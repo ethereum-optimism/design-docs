@@ -265,22 +265,22 @@ By categorizing events, we can schedule processing in parallel, without enshrini
 type Resource string
 
 const (
-	UnsafeL2 Resource = "unsafe-l2"
-	PromoteUnsafeL2 Resource = "promote-unsafe-l2" // example: to not tightly couple "unsafe" to "safe" transition
-	SafeL2 Resource = "safe-l2"
-	FinalizedL2 Resource = "finalized-l2"
-	CurrentL1 Resource = "current-l1" // traversal point on L1 for block-attributes generation
+    UnsafeL2 Resource = "unsafe-l2"
+    PromoteUnsafeL2 Resource = "promote-unsafe-l2" // example: to not tightly couple "unsafe" to "safe" transition
+    SafeL2 Resource = "safe-l2"
+    FinalizedL2 Resource = "finalized-l2"
+    CurrentL1 Resource = "current-l1" // traversal point on L1 for block-attributes generation
   
-	// ... standard resources can be extended by mods / new projects, e.g.:
+    // ... standard resources can be extended by mods / new projects, e.g.:
     CrossUnsafeL2 Resource = "cross-unsafe-l2"
-	
-	// some functionality may gets its own category, to synchronize the work into one place, for less lock contention
-	EngineL2 Resource = "engine-l2"
+    
+    // some functionality may gets its own category, to synchronize the work into one place, for less lock contention
+    EngineL2 Resource = "engine-l2"
 )
 
 type Event struct {
-	Resource Resource
-	Data any
+    Resource Resource
+    Data any
 }
 ```
 
@@ -301,10 +301,10 @@ type Engine struct {
 }
 
 func (e *Engine) OnEvent(ctx context.Context, event *Event) {
-	switch x := event.Data.(type) {
-		case *NewPayload:
-			select {
-			  // events can include ways to communicate the result, if necessary, across threads
+    switch x := event.Data.(type) {
+        case *NewPayload:
+            select {
+              // events can include ways to communicate the result, if necessary, across threads
               case x.Result <- e.onNewPayload(x.Envelope):
               case <-ctx.Done():
             }
@@ -314,7 +314,7 @@ func (e *Engine) OnEvent(ctx context.Context, event *Event) {
 
 func (e *Engine) onNewPayload(env *eth.ExecutionPayloadEnvelope) error {
     // ... check prestate first etc., insofar the EngineController does not already maintain it.
-    return x.control.InsertUnsafePayload(ctx, x.PayloadEnvelope)
+    return e.control.InsertUnsafePayload(ctx, x.PayloadEnvelope)
 }
 ```
 
@@ -322,20 +322,20 @@ Other derivers can then re-use this, by composing:
 ```go
 type Rollup struct {
     engine Deriver
-	pipeline Deriver
-	// ...
+    pipeline Deriver
+    // ...
 }
 
-func (r *Engine) OnEvent(ctx context.Context, event *Event) {
+func (r *Rollup) OnEvent(ctx context.Context, event *Event) {
   switch x := event.Data.(type) {
   case *NewPayload:
-	  // 1) update some rollup state: ...
-	  // 2) and propagate to the engine deriver
-	  r.engine.OnEvent(ctx, event)
+      // 1) update some rollup state: ...
+      // 2) and propagate to the engine deriver
+      r.engine.OnEvent(ctx, event)
   case *L1Change:
-	  r.pipeline.OnEvent(ctx, event)
+      r.pipeline.OnEvent(ctx, event)
   default:
-	  r.pipeline.OnEvent(ctx, event) // can forward anything to a fallback
+      r.pipeline.OnEvent(ctx, event) // can forward anything to a fallback
   }
 }
 ```
@@ -346,12 +346,12 @@ type Pipeline struct {
     root Deriver
 }
 
-func (r *Engine) OnEvent(ctx context.Context, event *Event) {
+func (p *Pipeline) OnEvent(ctx context.Context, event *Event) {
     switch x := event.Data.(type) {
     case *L1Change:
         // generate block attributes and give them to the unsafe-block processor to extend the chain
         // (or forward to next deriver if already known attributes)
-        r.root.OnEvent(ctx, &Event{Resource: UnsafeL2, Data: AttributesEvent{attributes}})
+        p.root.OnEvent(ctx, &Event{Resource: UnsafeL2, Data: AttributesEvent{attributes}})
     }
 }
 ```
@@ -378,7 +378,7 @@ can create a new go routine for each new `Resource` type, when first seen.
 worker, ok := driver.workers[event.Resource]
 if !ok {
     worker = ... // spawn new worker
-	driver.workers[event.Resource] = worker // keep it around
+    driver.workers[event.Resource] = worker // keep it around
 }
 worker.OnEvent(ctx, event)
 ```
