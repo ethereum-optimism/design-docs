@@ -40,6 +40,8 @@ Rather than externalize the 4337 mempool, the op-stack could natively offer a Us
         1. _Allowlist_: The sequencer can verticalize their chain with a bundler sidecar or have specific partners allowed to send conditional entrypoint txs.
         2. _Local Rate Limiting_: The authenticated caller has flashbots-style [reputation](https://docs.flashbots.net/flashbots-auction/advanced/reputation) computed based on the success rate of conditional txs, enabling permisionless bundler participation
 
+The endpoint MUST be authenticated but the policies may not be needed to permissionlessly launch this feature if a global rate limit with a runtime shut off is sufficient. A recommendation is to have the allowlist policy implemented with the keys of known bundlers registered, such that it is ready to enable. As this endpoint is used in production, additional policies like the local rate limits can be iterated on and implemented on a as-needed basis.
+
 The restricted usage & rate limits prevents this endpoint from superseding `eth_sendRawTransaction`, only suitable for honest bundlers, and also easy to wind back if needed later on.
 
 # Risks & Uncertainties
