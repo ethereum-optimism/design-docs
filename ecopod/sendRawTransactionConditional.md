@@ -36,11 +36,11 @@ Rather than externalize the 4337 mempool, the op-stack could natively offer a Us
     * **Exclusive 4337 Entrypoint Support**: We assert `tx.to() == entrypoint_contract_address` to ensure that this endpoint isn't used for other usecases. Making it easy to rollback if deprecated in the future due to native AA or a better solution to this problem.
     * **Runtime Shutoff**: The endpoint can be shutoff by the sequencer to address issues. As long a single bundler supports a fallback to `eth_sendRawTransaction`, 4337 liveness should remain OK.
     * **Global Rate Limit**: Rate limit how many conditional txs can be buffered at any given time in the mempool.
-    * **Authentication**: Requests must be authenticated, flashbot-style, with a self-identified keypair. This enables the development of two policy modules.
+    * **Authentication**: Requests must be authenticated, flashbot-style, with a self-identified keypair. This enables the development of two authorization policy modules.
         1. _Allowlist_: The sequencer can verticalize their chain with a bundler sidecar or have specific partners allowed to send conditional entrypoint txs.
         2. _Local Rate Limiting_: The authenticated caller has flashbots-style [reputation](https://docs.flashbots.net/flashbots-auction/advanced/reputation) computed based on the success rate of conditional txs, enabling permisionless bundler participation
 
-The endpoint MUST be authenticated but the policies may not be needed to permissionlessly launch this feature if a global rate limit with a runtime shut off is sufficient. A recommendation is to have the allowlist policy implemented with the keys of known bundlers registered, such that it is ready to enable. As this endpoint is used in production, additional policies like the local rate limits can be iterated on and implemented on a as-needed basis.
+The endpoint MUST be authenticated but the authorization policies may not be needed to permissionlessly launch this feature if a global rate limit with a runtime shut off is sufficient. A recommendation is to have the allowlist policy implemented with the keys of known bundlers registered, such that it is ready to enable. As this endpoint is used in production, additional policies like the local rate limits can be iterated on and implemented on a as-needed basis.
 
 The restricted usage & rate limits prevents this endpoint from superseding `eth_sendRawTransaction`, only suitable for honest bundlers, and also easy to wind back if needed later on.
 
@@ -49,3 +49,5 @@ The restricted usage & rate limits prevents this endpoint from superseding `eth_
 **Risk 1: Private 4337 mempools remain the status quo.** Bundlers can still suffer from reverts and have a strong desire for an endpoint like `eth_sendRawTransactionConditional`. In our proposed solution design, we can allowlist these common bundler operators and hold them to an SLA. Our proposed solution also leaves the door open to verticalizing bundler services in the superchain through the allowlist, enhance the account abstraction exprience in the superchain through a superchain-specific 4337 mempool.
 
 **Risk 2: Validation listed in the proposed solution isn't enough for permissionless bundler participation.** The listed validation rules are just a start on how we might scale this approach. With the existing solution we have the ability switch off the endpoint or allowlist known actors while exploring adding more DoS prevention tactics like IP-Banning or strict Local Rate Limiting policies.
+
+**Risk 3: Generalized External Validation.** Validation policies should be DRY'd between interop, sendRawTransactionConditional, and any future use cases. These policies that are implementated should work well between the different usecases as this approach is adopted and scales. For example, should accrued reputation be shared across use cases?
