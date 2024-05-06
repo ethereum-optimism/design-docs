@@ -53,13 +53,13 @@ Verticalization is also possible in the proposed solution by configuring the all
 
     * **Runtime Shutoff**
 
-        Through a new admin endpoint exposed through op-node, the sequencer can reject all calls to this endpoint, similar to the `admin_(start|stop)Sequencer` endpoints. If a proxy implementing these validation rules asetup to run on seperate hosts from the sequencer, this runtime switch must be read so that these requests can be terminated without reaching the sequencer.
+        Through a new admin endpoint exposed through op-node, the sequencer can reject all calls to this endpoint, similar to the `admin_(start|stop)Sequencer` endpoints. If a proxy implementing these validation rules are setup to run on seperate hosts from the sequencer, this runtime switch must be readable such that these requests can be terminated without reaching the sequencer.
 
         As long as a single bundler supports a fallback to `eth_sendRawTransaction`, 4337 liveness should remain OK
 
     * **Global Rate Limit**
 
-        Rate limit how many conditional txs can be sent over a configured time period.
+        Rate limit how many conditional txs can be sent over a configured time period. Like with the runtime shutoff, if these validation rules are horizontally scaled externally to the sequencer through a proxy, confiugration must be readable by these hosts & the design space for this rate limit should be explored -- i.e globally synchronized rate limit vs per-host limits.
 
 
 With this initial set of validation rules, we should be in a good position to safely launch this endpoint with either permissioned or permissionless bundler participation. If permissionless, the public keys of known bundlers should be collected and registered, such that the allowlist can be enabled to avoid potential 4337 downtime while implementing more validation mechanisms. In the worst case, this endpoint can be completely shutoff
