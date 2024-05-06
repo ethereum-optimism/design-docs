@@ -19,7 +19,7 @@ The account abstraction [roadmap](https://notes.ethereum.org/@yoav/AA-roadmap-Ma
 
 This problem is worked around on L1 through special block builders like Flashbots that provide atomic inclusion when building blocks through a custom rpc like [eth_sendBundle](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#eth_sendbundle), avoiding on-chain reverts for the caller. However on L2 there's only a single block builder, the sequencer, creating the requirement for the `eth_sendRawTransactionConditional` endpoint providing similar inclusion guarantees to launch shared 4337 mempools.
 
-Account Abstraction is a [growing ecosystem](https://dune.com/sixdegree/account-abstraction-overview) and solution to many wallet UX issues. Polygon is currently dominates the market on the number of active smart accounts and we want to ensure the op-stack enables this growth in the superchain as the ecosystem continues to evolve.
+Account Abstraction is a [growing ecosystem](https://dune.com/sixdegree/account-abstraction-overview) and solution to many wallet UX issues. Polygon currently dominates the market on the number of active smart accounts and we want to ensure the op-stack enables this growth in the superchain as the ecosystem continues to evolve.
 
 # Alternatives Considered
 
@@ -36,7 +36,7 @@ Verticalization is also possible in the proposed solution by configuring the all
 
 # Proposed Solution
 
-1. Implement `eth_sendRawTransactionConditional` with support for the conditionals described in the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j), for which a draft implementation [exists](https://github.com/ethereum/go-ethereum/compare/master...tynes:go-ethereum:eip4337) but requires a refresh. The conditional attached to the transaction is checked against the prior to mempool submisison and re-checked when a block including the transaction is being built.
+1. Implement `eth_sendRawTransactionConditional` with support for the conditionals described in the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j), for which a draft implementation [exists](https://github.com/ethereum/go-ethereum/compare/master...tynes:go-ethereum:eip4337) but requires a refresh. The conditional attached to the transaction is checked against the latest unsafe head the prior to mempool submisison and re-checked when included in the block being built.
 
     * There exists implementations for [Arbitrum](https://github.com/OffchainLabs/go-ethereum/blob/da4c975e354648c7be814ab9667b42f1c19cdc0f/arbitrum/conditionaltx.go#L25) and [Polygon](https://github.com/maticnetwork/bor/blob/b8ad00095a9e3e508517d802c5358a5ce3e81ed3/internal/ethapi/bor_api.go#L70) conforming to the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j). On Polygon, the API is authenticated under the` bor` namespace but public on Arbitrum under the `eth` namespace.
 
