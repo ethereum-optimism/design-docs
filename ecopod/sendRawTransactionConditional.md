@@ -13,7 +13,7 @@ We can implement this endpoint in op-geth with an additional layer of external v
 
 # Problem Statement + Context
 
-Bundlers aggregate [UserOp](https://eips.ethereum.org/EIPS/eip-4337#useroperation)s from an external mempool into a single transaction sent to the enshrined 4337 [Entrypoint](https://eips.ethereum.org/EIPS/eip-4337#entrypoint-definition) contract. It is the Bundler responsibility to ensure every UserOp can succesfully execute its validation step, otherwise resulting in a reverted transaction. With private Bundler mempools, the likelihood of these reverts are small as Bundlers are operating over different sets UserOps. Unless a smart account frontruns a submitted UserOp to the Entrypoint, a Bundler doesn't have to worry about changes in network state such as an incremented smart account nonce invalidating the transaction during the building process.
+Bundlers aggregate [UserOp](https://eips.ethereum.org/EIPS/eip-4337#useroperation)s from an external mempool into a single transaction sent to the enshrined 4337 [Entrypoint](https://eips.ethereum.org/EIPS/eip-4337#entrypoint-definition) contract. It is the Bundler responsibility to ensure every UserOp can succesfully execute its validation step, otherwise resulting in a reverted top-level transaction. With private Bundler mempools, the likelihood of these reverts are small as Bundlers are operating over different sets UserOps. Unless a smart account frontruns a submitted UserOp to the Entrypoint, a Bundler doesn't have to worry about changes in network state such as an incremented smart account nonce invalidating the transaction during the building process.
 
 However shared 4337 mempools are coming into [production](https://medium.com/etherspot/decentralized-future-erc-4337-shared-mempool-launches-on-ethereum-b6c860072f41), launched on Ethereum and some L2 testnets, decentralizing 4337 infrastructure. Multiple Bundlers operating on this mempool can create transactions including the same UserOp, increasing the likelihood of reverts due to changed account states. These reverts are too high of a cost for bundlers to operate.
 
@@ -37,11 +37,11 @@ Verticalization is also possible in the proposed solution by configuring the all
 
 1. Implement `eth_sendRawTransactionConditional` as described in the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j), for which a draft implementation [exists](https://github.com/ethereum/go-ethereum/compare/master...tynes:go-ethereum:eip4337). The conditional attached to the transaction is checked against the latest state prior to mempool submisison and re-checked when a block including the transaction is being built.
 
-2. Implement external validation rules. These rules are not enshrined in the node software's implementation of `eth_sendRawTransactionConditional`, instead scoped a layer higher, i.e a proxy
+2. Implement external validation rules. These rules are not enshrined in the node software's implementation of `eth_sendRawTransactionConditional`, instead scoped a layer higher, i.e a proxy, and horizontally scalable.
 
     * **Only 4337 Entrypoint Contract Support**: `tx.to() == entrypoint_contract_address`
 
-        The rationale is to make it easier to rollback if dprecated in the future due to native account abstraction or better solutions. Otherwise new uses case might create unwanted dependencies on this endpoint.
+        The rationale is to make it easier to rollback if deprecated in the future due to native account abstraction or better solutions. Otherwise new uses case might create unwanted dependencies on this endpoint.
 
         There does exist different [versions](https://github.com/eth-infinitism/account-abstraction/releases) of the Entrypoint contract as the 4337 spec is iterated on. We'll need to stay up to date with these version as a part of op-stack [preinstalls](https://docs.optimism.io/builders/chain-operators/features/preinstalls) and pass through calls to all the supported versions of `EntryPoint`.
 
@@ -64,12 +64,15 @@ Verticalization is also possible in the proposed solution by configuring the all
 
 With this initial set of validation rules, we should be in a good position to safely launch this endpoint with either permissioned or permissionless bundler participation. If permissionless, the public keys of known bundlers should be collected and registered, such that the allowlist can be enabled to avoid potential 4337 downtime while implementing more validation mechanisms. In the worst case, this endpoint can be completely shutoff
 
-If high rates of rejected transactions are observed, additional validation rules can be iterated on.
+If high rates of rejected transactions are observed, additional validation rules & improvements can be iterated on.
 
 * **Local Rate Limiting**
 
     Adopt flashbots-style [reputation](https://docs.flashbots.net/flashbots-auction/advanced/reputation) score that's computed based on the success rate of conditional txs. Designed to filter out inefficient callers and promote honest ones.
 
+* **Optimized State Lookups**
+
+    Verifying the conditional associated with the transaction requires state access, for which the sequencer is not compensated when the transaction is rejected as no gas is charged. To minimize resource usage, these checks could also be applied by the validating proxy prior to the sequencer mempool. This could then leverage optimized state store through solutions like [revm](https://github.com/bluealloy/revm) to reject failed conditionals both cheaper and faster.
 
 # Risks & Uncertainties
 
