@@ -13,25 +13,25 @@ We can implement this endpoint in op-geth with an additional layer of external v
 
 # Problem Statement + Context
 
-Bundlers aggregate [UserOp](https://eips.ethereum.org/EIPS/eip-4337#useroperation)s from an external mempool into a single transaction sent to the enshrined 4337 [Entrypoint](https://eips.ethereum.org/EIPS/eip-4337#entrypoint-definition) contract. It is the Bundler responsibility to ensure every UserOp can succesfully execute its validation step, otherwise resulting in a reverted top-level transaction. With private Bundler mempools, the likelihood of these reverts are small as Bundlers are operating over different sets UserOps. Unless a smart account frontruns a submitted UserOp to the Entrypoint, a Bundler doesn't have to worry about changes in network state such as an incremented smart account nonce invalidating their entire transaction during the building process.
+Account Abstraction is a [growing ecosystem](https://dune.com/sixdegree/account-abstraction-overview) and solution to many wallet UX issues. Polygon currently dominates the market on the number of active smart accounts and we want to ensure the op-stack enables this growth in the superchain as the ecosystem continues to evolve.
 
-The account abstraction [roadmap](https://notes.ethereum.org/@yoav/AA-roadmap-May-2024) is chugging along and shared 4337 mempools are coming into [production](https://medium.com/etherspot/decentralized-future-erc-4337-shared-mempool-launches-on-ethereum-b6c860072f41), launched on Ethereum and some L2 testnets, decentralizing 4337 infrastructure. Multiple Bundlers operating on this mempool can create transactions including the same UserOp, increasing the likelihood of reverts due to changed account states. These reverts are too high of a cost for bundlers to operate.
+Bundlers aggregate [UserOp](https://eips.ethereum.org/EIPS/eip-4337#useroperation)s from an external mempool into a single transaction sent to the enshrined 4337 [Entrypoint](https://eips.ethereum.org/EIPS/eip-4337#entrypoint-definition) contract. It is the Bundler responsibility to ensure every UserOp can succesfully execute its validation step, otherwise resulting in a reverted top-level transaction. With private Bundler mempools, the likelihood of these reverts are small as Bundlers are operating over different sets of UserOps. Unless a smart account frontruns a submitted UserOp to the Entrypoint, a Bundler doesn't have to worry about changes in network state such as an incremented smart account nonce invalidating their entire transaction during the building process.
+
+The account abstraction [roadmap](https://notes.ethereum.org/@yoav/AA-roadmap-May-2024) is chugging along and shared 4337 mempools are coming into [production](https://medium.com/etherspot/decentralized-future-erc-4337-shared-mempool-launches-on-ethereum-b6c860072f41), launched on Ethereum and some L2 testnets, decentralizing 4337 infrastructure. Multiple Bundlers operating on this mempool can create transactions including the same UserOp, increasing the likelihood of reverts due to changed account states, like account nonces. These reverts are too high of a cost for bundlers to operate.
 
 This problem is worked around on L1 through special block builders like Flashbots that provide atomic inclusion when building blocks through a custom rpc like [eth_sendBundle](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#eth_sendbundle), avoiding on-chain reverts for the caller. However on L2 there's only a single block builder, the sequencer, creating the requirement for the `eth_sendRawTransactionConditional` endpoint providing similar inclusion guarantees to launch shared 4337 mempools.
-
-Account Abstraction is a [growing ecosystem](https://dune.com/sixdegree/account-abstraction-overview) and solution to many wallet UX issues. Polygon currently dominates the market on the number of active smart accounts and we want to ensure the op-stack enables this growth in the superchain as the ecosystem continues to evolve.
 
 # Alternatives Considered
 
 ## Do Nothing
 
-4337 account abstraction is currently live on optimism. Dapps utilize the bundler endpoints that are come with a vendor-specific SDK -- Alchemy, Pimilico, Thirdweb, etc. As 4337 infrastructure becomes more permissionless, we will later have to play catch-up to ensure the op-Stack remains compatible while other L2 offerings have already moved towards supporting `eth_sendRawTransactionConditional`.
+4337 account abstraction is currently live on optimism. Dapps utilize the bundler endpoints that are come with a vendor-specific SDK -- Alchemy, Pimilico, Thirdweb, etc -- each with their own mempools. As 4337 infrastructure becomes more permissionless, we will later have to play catch-up to ensure the op-stack remains compatible while other L2 offerings have already moved towards supporting `eth_sendRawTransactionConditional`.
 
 ## Verticalize the OP-Stack
 
-Rather than externalize the 4337 mempool, the op-stack could natively offer a UserOp mempool alongside the regular tx mempool. When creating a new block, the sequencer can pull from the two, ensuring the bundled UserOps do not conflict with the latest network state. However, this adds additional complexity to the stack, where the proposer-builder seperation in 4337 nicely keeps account abstraction out of protocol.
+Rather than externalize the 4337 mempool, the op-stack could natively offer a UserOp mempool alongside the regular tx mempool. When creating a new block, the sequencer can pull from the two, ensuring the bundled UserOps do not conflict with the latest network state. However, this adds additional complexity to the stack, where the proposer-builder seperation in 4337 nicely keeps these concerns seperate.
 
-Verticalization is also possible in the proposed solution by configuring the allowlist of the authenticated `eth_sendRawTransactionConditional` endpoint to either a self-managed bundler or that of a partner, achieving the same outcome as native mempool without the complexity of a deeper change in the op-stack.
+Verticalization is possible in the proposed solution by configuring the allowlist of the authenticated `eth_sendRawTransactionConditional` endpoint to either a self-managed bundler or that of a partner, achieving the same outcome as native mempool without the complexity of a deeper change in the op-stack.
 
 
 # Proposed Solution
@@ -39,8 +39,6 @@ Verticalization is also possible in the proposed solution by configuring the all
 1. Implement `eth_sendRawTransactionConditional` with support for the conditionals described in the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j), for which a draft implementation [exists](https://github.com/ethereum/go-ethereum/compare/master...tynes:go-ethereum:eip4337) but requires a refresh. The conditional attached to the transaction is checked against the latest unsafe head the prior to mempool submisison and re-checked when included in the block being built.
 
     * There exists implementations for [Arbitrum](https://github.com/OffchainLabs/go-ethereum/blob/da4c975e354648c7be814ab9667b42f1c19cdc0f/arbitrum/conditionaltx.go#L25) and [Polygon](https://github.com/maticnetwork/bor/blob/b8ad00095a9e3e508517d802c5358a5ce3e81ed3/internal/ethapi/bor_api.go#L70) conforming to the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j). On Polygon, the API is authenticated under the` bor` namespace but public on Arbitrum under the `eth` namespace.
-
-    * The spec suggests limiting the `knownAccounts` conditional to 1000 entries for DoS prevention which both Arbitrum and Polygon implement.
 
 2. Implement external validation rules. These rules are not enshrined in the node software's implementation of `eth_sendRawTransactionConditional`, instead scoped a layer higher, i.e a proxy, and horizontally scalable.
 
@@ -83,7 +81,7 @@ If high rates of rejected transactions are observed, additional validation rules
 
 **Risk 1: Private 4337 mempools remain the status quo.** Bundlers can still suffer from reverts and have a strong desire for an endpoint like `eth_sendRawTransactionConditional`. Even without shared 4337 mempools, this endpoint adds value bundlers. In our proposed solution, we can allowlist these bundlers and hold them to an SLA. It also provides the opportunity for chain operators to verticalize their 4337 offering through the same allowlist functionality.
 
-**Risk 2: Implemented validation isn't enough for permissionless bundler participation.** The listed validation rules are a starting point and there's room for exploration in horizontally scalable validation. However we can fallback to a permissioned allowlist for this endpoint which enables 4337 shared mempools and likely makes no difference to dapp developers which already use a small subset of known infra providers.
+**Risk 2: Implemented validation isn't enough for permissionless bundler participation.** The listed validation rules are a starting point and there's room for exploration in horizontally scalable validation. However we can fallback to a permissioned allowlist for this endpoint which still enables 4337 shared mempools and likely makes no difference to dapp developers which already use a small subset of known infra providers.
 
 **Risk 3: Generalized External Validation.** Validation policies should be DRY'd between interop, eth_sendRawTransactionConditional, and any future use cases. These policies that are implementated should work well between these usecases as this approach is adopted and scales. The tech-debt here can grow quickly if each solution has it's own methods of preventing DoS and validation, especially operationally.
 
