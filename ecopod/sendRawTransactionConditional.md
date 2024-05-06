@@ -15,7 +15,7 @@ We can implement this endpoint in op-geth with an additional layer of external v
 
 Bundlers aggregate [UserOp](https://eips.ethereum.org/EIPS/eip-4337#useroperation)s from an external mempool into a single transaction sent to the enshrined 4337 [Entrypoint](https://eips.ethereum.org/EIPS/eip-4337#entrypoint-definition) contract. It is the Bundler responsibility to ensure every UserOp can succesfully execute its validation step, otherwise resulting in a reverted top-level transaction. With private Bundler mempools, the likelihood of these reverts are small as Bundlers are operating over different sets UserOps. Unless a smart account frontruns a submitted UserOp to the Entrypoint, a Bundler doesn't have to worry about changes in network state such as an incremented smart account nonce invalidating the transaction during the building process.
 
-However shared 4337 mempools are coming into [production](https://medium.com/etherspot/decentralized-future-erc-4337-shared-mempool-launches-on-ethereum-b6c860072f41), launched on Ethereum and some L2 testnets, decentralizing 4337 infrastructure. Multiple Bundlers operating on this mempool can create transactions including the same UserOp, increasing the likelihood of reverts due to changed account states. These reverts are too high of a cost for bundlers to operate.
+The account abstraction [roadmap](https://notes.ethereum.org/@yoav/AA-roadmap-May-2024) is chugging along and shared 4337 mempools are coming into [production](https://medium.com/etherspot/decentralized-future-erc-4337-shared-mempool-launches-on-ethereum-b6c860072f41), launched on Ethereum and some L2 testnets, decentralizing 4337 infrastructure. Multiple Bundlers operating on this mempool can create transactions including the same UserOp, increasing the likelihood of reverts due to changed account states. These reverts are too high of a cost for bundlers to operate.
 
 This problem is worked around on L1 through special block builders like Flashbots that provide atomic inclusion when building blocks through a custom rpc like [eth_sendBundle](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#eth_sendbundle), avoiding on-chain reverts for the caller. However on L2 there's only a single block builder, the sequencer, creating the requirement for the `eth_sendRawTransactionConditional` endpoint providing similar inclusion guarantees to launch shared 4337 mempools.
 
@@ -35,7 +35,11 @@ Verticalization is also possible in the proposed solution by configuring the all
 
 # Proposed Solution
 
-1. Implement `eth_sendRawTransactionConditional` as described in the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j), for which a draft implementation [exists](https://github.com/ethereum/go-ethereum/compare/master...tynes:go-ethereum:eip4337). The conditional attached to the transaction is checked against the latest state prior to mempool submisison and re-checked when a block including the transaction is being built.
+1. Implement `eth_sendRawTransactionConditional` with support for the conditionals described in the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j), for which a draft implementation [exists](https://github.com/ethereum/go-ethereum/compare/master...tynes:go-ethereum:eip4337) but requires a refresh. The conditional attached to the transaction is checked against the prior to mempool submisison and re-checked when a block including the transaction is being built.
+
+    * There exists implementations for [Arbitrum](https://github.com/OffchainLabs/go-ethereum/blob/da4c975e354648c7be814ab9667b42f1c19cdc0f/arbitrum/conditionaltx.go#L25) and [Polygon](https://github.com/maticnetwork/bor/blob/b8ad00095a9e3e508517d802c5358a5ce3e81ed3/internal/ethapi/bor_api.go#L70) conforming to the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j). On Polygon, the API is authenticated under the` bor` namespace but public on Arbitrum under the `eth` namespace.
+
+    * The spec suggests limiting the `knownAccounts` conditional to 1000 entries for DoS prevention which both Arbitrum and Polygon implement.
 
 2. Implement external validation rules. These rules are not enshrined in the node software's implementation of `eth_sendRawTransactionConditional`, instead scoped a layer higher, i.e a proxy, and horizontally scalable.
 
@@ -72,7 +76,7 @@ If high rates of rejected transactions are observed, additional validation rules
 
 * **Optimized State Lookups**
 
-    Verifying the conditional associated with the transaction requires state access, for which the sequencer is not compensated when the transaction is rejected as no gas is charged. To minimize resource usage, these checks could also be applied by the validating proxy prior to the sequencer mempool. This could then leverage optimized state store through solutions like [revm](https://github.com/bluealloy/revm) to reject failed conditionals both cheaper and faster.
+    Verifying the conditional associated with the transaction requires state access, for which the sequencer is not compensated when the transaction is rejected. To minimize resource usage, these checks could also be applied by the validating proxy prior to the sequencer mempool. This could then leverage an optimized state store through solutions like [revm](https://github.com/bluealloy/revm) to reject failed conditionals both cheaper and faster.
 
 # Risks & Uncertainties
 
