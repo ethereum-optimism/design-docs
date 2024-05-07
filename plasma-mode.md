@@ -17,13 +17,13 @@ We have the following requirements for Plasma Mode:
 Additionally, we take the following development-process requirement:
 - The op-node and specification repo does not need to be modified for each new DA Layer
 
-The largest challenge to this developement process requirement is that DA Providers have different ways of committing to data and semantics of challenges. We need to create a design that generically supports a broad set of DA Providers without heavy modification or forking of the OP Stack.
+The largest challenge to this development process requirement is that DA Providers have different ways of committing to data and semantics of challenges. We need to create a design that generically supports a broad set of DA Providers without heavy modification or forking of the OP Stack.
 
 ## High Level Overview of Plasma Mode
 
 Instead of posting data directly to L1, the batcher gives the data to a DA server which posts the data to a DA layer.
-The DA server returns a commiment to the data to the batcher & the batcher posts that commitment to L1.
-The op-node performs derivation with the modification that when it finds a commiment on L1, it asks its DA server to get the data associated with the commitment.
+The DA server returns a commitment to the data to the batcher & the batcher posts that commitment to L1.
+The op-node performs derivation with the modification that when it finds a commitment on L1, it asks its DA server to get the data associated with the commitment.
 Then the rest of the derivation pipeline functions as normal.
 Finalization is modified because a L2 block can only be finalized when the commitment that was used to derive it can no longer be challenged.
 Commitment finalization takes significantly longer in Plasma Mode because of the challenge period.
@@ -48,7 +48,7 @@ The other option to avoid compiling in the DA Layer specific logic is to use [go
 
 ## Generic Commitment
 
-The generic commtiment is [specified here](https://github.com/ethereum-optimism/specs/blob/main/specs/experimental/plasma.md#input-commitment-submission).
+The generic commitment is [specified here](https://github.com/ethereum-optimism/specs/blob/main/specs/experimental/plasma.md#input-commitment-submission).
 The relevant part is copied to this document:
 
 The da-service commitment is as follows: `da_layer_byte ++ payload`. The DA layer byte must be initially restricted to the range `[0, 127)`. This specification will not apportion DA layer bytes, but different DA layers should coordinate to ensure that the DA layer bytes do not conflict. DA Layers can do so in [this discussion](https://github.com/ethereum-optimism/specs/discussions/135). The payload is a bytestring which is up to the DA layer to specify. The DA server should be able to parse the payload, find the data on the DA layer, and verify that the data returned from the DA layer matches what was committed to in the payload.
@@ -88,7 +88,7 @@ event ChallengeStatusChanged(bytes indexed challengedCommitment, uint256 indexed
 
 The flow is that after a commitment is posted to L1, it can be challenged within `challenge_window` blocks.
 If it is challenged an event with the `Active` status is emitted.
-If the challenge has not been resolved within `resolve_window` blocks, the challenge is presumed to suceed and the commitment is invalid.
+If the challenge has not been resolved within `resolve_window` blocks, the challenge is presumed to succeed and the commitment is invalid.
 If the challenge is resolved within `resolve_window`, an event with the `Resolved` status is emitted and the commitment is valid.
 If a commitment is never challenged within `challenge_window` blocks, it is valid.
 
@@ -122,10 +122,10 @@ const (
 func CommitmentStatus(comm GenericCommitment, L1Source eth.BlockID) (CommStatus, error)
 ```
 
-Commitment Status Defintions:
+Commitment Status Definitions:
 - `OptimisticOK` means that the commitment is assumed to be valid, but could be challenged & invalidated later
 - `ConfirmedValid` means that the commitment cannot be invalidated on the given L1 chain
-- `ConfirmedInvalid` means that the commitment has been invalited & will not become valid on the given L1 chain
+- `ConfirmedInvalid` means that the commitment has been invalidated & will not become valid on the given L1 chain
 
 We adapt the SC events into this golang interface to support multiple different bridge types without having to modify derivation.
 In addition, this confirmation model is more closely aligned to how the derivation pipeline works with commitment validity.
@@ -181,7 +181,7 @@ This is proposal helps inform how we should implement finality tracking; however
 ## DA Server / Challenge Code Quality Integration
 
 External parties will be responsible for both the DA server and DA Challenge Contract.
-This means that code will not follow the standard developement process of the op-stack.
+This means that code will not follow the standard development process of the op-stack.
 
 ## Superchain Registry Integration
 
