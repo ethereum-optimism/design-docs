@@ -101,8 +101,8 @@ The validity is checked by a third party smart contract which understands the co
 DA Layers which have ZK bridges from their DA Chain to Ethereum can write a SC which emits the following event.
 
 ```solidity
-    event MarkedInvalid(bytes indexed challengedCommitment, uint256 indexed challengedBlockNumber)
-    event MarkedValid(bytes indexed challengedCommitment, uint256 indexed challengedBlockNumber)
+    event Invalid(bytes challengedCommitment, uint256 challengedBlockNumber)
+    event Valid(bytes challengedCommitment, uint256 challengedBlockNumber)
 ```
 
 The flow is that after a commitment is posted to L1, it can be challenged within `challenge_window` blocks.
