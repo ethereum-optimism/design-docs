@@ -115,7 +115,7 @@ The op-node uses the following interface inside the derivation pipeline.
 ```go
 type CommStatus int
 const (
-    OptimisticOK     = iota
+    AssumedValid     = iota
     ConfirmedValid
     ConfirmedInvalid
 )
@@ -123,7 +123,7 @@ func CommitmentStatus(comm GenericCommitment, L1Source eth.BlockID) (CommStatus,
 ```
 
 Commitment Status Definitions:
-- `OptimisticOK` means that the commitment is assumed to be valid, but could be challenged & invalidated later
+- `AssumedValid` means that the commitment is assumed to be valid, but could be challenged & invalidated later
 - `ConfirmedValid` means that the commitment cannot be invalidated on the given L1 chain
 - `ConfirmedInvalid` means that the commitment has been invalidated & will not become valid on the given L1 chain
 
@@ -167,7 +167,7 @@ At a high level, finalization is process of marking L2 blocks as not being able 
 If a commitment is marked as invalid, we have to reorg the L2 chain, therfore finality in Plasma Mode is about tracking when commitments finalize.
 
 To implement finality, we track commitments (even skipped or invalid commitments in order). When the derivation pipeline has advanced to the point where
-the commitment status changes from `OptimisticOK` to `ConfirmedValid` or `ConfirmedInvalid`, we record the L1 block in which that occurred.
+the commitment status changes from `AssumedValid` to `ConfirmedValid` or `ConfirmedInvalid`, we record the L1 block in which that occurred.
 We then wait for that L1 block to be finalized. Once that L1 block has been finalized, the commitment status can never change.
 The L1 block in which the commitment status became unchangeable is then passed as a finalized block to the L2 Finality controller.
 L2 blocks which are fully derived from a block below that L1 block can be finalized.
