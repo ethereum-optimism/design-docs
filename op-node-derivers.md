@@ -307,6 +307,19 @@ type Deriver interface {
 ```
 A deriver is assumed to have read-access to any state it needs. Composed by the constructor of the deriver.
 
+The `Driver` at the top, responsible for running the deriver-stack, has the following interface to dispatch events to:
+```go
+type Emitter interface {
+    // EmitEvent dispatches an event to another Deriver.
+    // The event may be assigned to a different resource (worker go routine) than where it was dispatched from.
+    // The dest is the deriver that the event may be forwarded to immediately,
+    // to not re-propagate it through the full event-switching stack.
+    // if dest==nil, the event may be dispatched to the default Deriver (the root).
+    EmitEvent(ctx context.Context, event *Event, dest Deriver)
+}
+```
+This allows the user of the deriver-stack to implement synchronous or asynchronous event dispatching.
+
 #### Composable derivers
 
 Writes idiomatically happen by implementing a purpose-specific Deriver:
@@ -318,12 +331,8 @@ type Engine struct {
 func (e *Engine) OnEvent(ctx context.Context, event *Event) {
     switch x := event.Data.(type) {
         case *NewPayload:
-            select {
-              // Events can include ways to communicate the result, if necessary, across threads.
-              // Note: fault-proofs may use a synchronous Engine alternative,
-              // which calls the underlying event-handlers directly, to not rely on Go channels.
-              case x.Result <- e.onNewPayload(x.Envelope):
-              case <-ctx.Done():
+            if err := e.control.onNewPayload(ctx, x.Envelope); err != nil {
+                // ...
             }
         // *insert other engine events*
     }
@@ -338,6 +347,7 @@ func (e *Engine) onNewPayload(env *eth.ExecutionPayloadEnvelope) error {
 Other derivers can then re-use this, by composing:
 ```go
 type Rollup struct {
+    emitter Emitter
     engine Deriver
     pipeline Deriver
     // ...
@@ -348,19 +358,19 @@ func (r *Rollup) OnEvent(ctx context.Context, event *Event) {
   case *NewPayload:
       // 1) update some rollup state: ...
       // 2) and propagate to the engine deriver
-      r.engine.OnEvent(ctx, event)
+      r.emitter.EmitEvent(ctx, event, r.engine)
   case *L1Change:
-      r.pipeline.OnEvent(ctx, event)
+      r.emitter.EmitEvent(ctx, event, r.pipeline)
   default:
-      r.pipeline.OnEvent(ctx, event) // can forward anything to a fallback
+      r.emitter.EmitEvent(ctx, event, r.pipeline) // can forward anything to a fallback
   }
 }
 ```
 
-Or, a deriver can be given access to the root-level Deriver, to surface new event data to:
+Or, a deriver can be given access to the root-level, without specific destination, to surface new event data to:
 ```go
 type Pipeline struct {
-    root Deriver
+    emitter Emitter
 }
 
 func (p *Pipeline) OnEvent(ctx context.Context, event *Event) {
@@ -368,7 +378,7 @@ func (p *Pipeline) OnEvent(ctx context.Context, event *Event) {
     case *L1Change:
         // generate block attributes and give them to the unsafe-block processor to extend the chain
         // (or forward to next deriver if already known attributes)
-        p.root.OnEvent(ctx, &Event{Resource: UnsafeL2, Data: AttributesEvent{attributes}})
+        p.emitter.EmitEvent(ctx, &Event{Resource: UnsafeL2, Data: AttributesEvent{attributes}}, nil)
     }
 }
 ```
@@ -503,7 +513,7 @@ Alternative rollup node implementations should be able to adopt this pattern.
 This is one of the more involved refactors, that we cannot execute all at once in op-node.
 This is a proposal for a 3-phase migration:
 
-#### 1) Derivation/Engine decoupling
+#### 1a) Derivation/Engine decoupling
 
 The derivation pipeline currently is coupled too tightly to the Engine.
 In particular, the `EngineQueue` should be removed,
@@ -527,6 +537,12 @@ In summary, the changes would look like:
 - Handle consolidation vs. force-processing of attribute as a separate object, called with the attributes from the pipeline.
 - Move safe-blocks memory and finalization as a separate object, called after applying attributes to the engine.
 - Handle queued unsafe blocks (the payloads queue) as a separate object, called before the derivation is used.
+
+#### 1b) Event processing diagram
+
+Before starting with (2), map out the state-changes and corresponding events to process.
+A diagram of how the Deriver is composed, and what events pass through,
+will help with the implementation in phase 2 and correctness of later asynchronous processing. 
 
 #### 2) Incremental `OnEvent` adoption
 
