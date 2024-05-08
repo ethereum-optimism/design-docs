@@ -517,6 +517,17 @@ The derivation is somewhat statefully connected to the engine however:
 We need a first step that addresses this, so the derivation process that generates the block attributes
 is shareable with the new driver design.
 
+In summary, the changes would look like:
+- Remove the Engine-queue stage.
+- As derivation pipeline, return a "tentative" block-attributes (not the safe-block yet),
+  along with information whether or not this is the last entry of a span-batch.
+- Modify the derivation pipeline such that the success-status of the last attributes is passed on:
+  if failed, we proceed to pull more attributes on the same block-height.
+- Remember engine sync-status in the EngineController.
+- Handle consolidation vs. force-processing of attribute as a separate object, called with the attributes from the pipeline.
+- Move safe-blocks memory and finalization as a separate object, called after applying attributes to the engine.
+- Handle queued unsafe blocks (the payloads queue) as a separate object, called before the derivation is used.
+
 #### 2) Incremental `OnEvent` adoption
 
 We can incrementally change the Driver state-loop sub-processes to fit the `OnEvent` signature,
