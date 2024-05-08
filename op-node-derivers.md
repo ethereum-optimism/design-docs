@@ -57,9 +57,13 @@ This is a remnant of the first Bedrock iteration, which synchronously processed 
 
 This worked reasonably well up to now, since it was mostly centered around a single new resource: the "unsafe" block.
 
-The OP-Stack is growing a lot: new types of resources,
+The OP-Stack is growing a lot: new types of block-label resources
+(potentially: `cross-unsafe`, `subjective-safe`, and various L1 / DA traversal labels),
 new customizations, and new validation rules are being introduced.
 This growth is something we need to layer on more solid abstractions.
+
+Examples of projects that are important to integrate and can benefit from a better interface:
+Alt-DA, Interop, Fault-Proofs.
 
 #### Driver tech-debt
 
@@ -119,10 +123,12 @@ Extending the stack should not require duplication of the state-transition
 modifications between the proof system and regular node.
 
 Alt-DA also changes the meaning of "inputs";
-DA commmitments alone are not sufficient to finalize data as we would with rollup data,
-as the underlying data is not finalzied when the L1-registration of the commitment is.
+DA commitments alone are not sufficient to finalize data as we would with rollup data,
+as the underlying data is not finalized when the L1-registration of the commitment is.
 With plasma, a challenge period has to expire first.
 In other words, alt-DA changes the finality system.
+See [Alt-DA finalization specs](https://github.com/ethereum-optimism/design-docs/blob/8d66ce7bd1ec09f9d4f6ebb7765844b03440ed36/plasma-mode.md#finalization)
+for additional details.
 
 # Alternatives Considered
 
@@ -202,8 +208,14 @@ Another way to look at it, from @axelKingsley, is to think of it as a blocks-fir
 The "providers" produce blocks, and the "core" prioritizes and processes them, along with safety updates.
 
 There are some issues we identified:
-- Not all state changes are in fact blocks.
-- Creating blocks involves the engine (a contentious resource).
+- Not all state changes are in fact blocks:
+  - Current forkchoice-updates (finality and safety are signals, not new blocks)
+  - Interop safety updates (cross-unsafe is a property of message dependencies, not blocks)
+  - Reorgs, when rewinding or flip-flopping, do not introduce new blocks.
+  - Some system Config updates, like a p2p sequencer key, are perceived by polling the L1, not from a block.
+  - Alt-DA data that is no longer available may cause reorgs.
+- Creating new blocks, derived from a data-source, involves the engine (a contentious resource)
+  to compute implied block attributes such as a state-root.
 - The "core" should not replicate the existing monolithic state-loop and synchronous execution issues.
 
 But this does start to introduce a plugin-like abstraction.
@@ -213,6 +225,8 @@ is modular such that we can just combine a few providers to build the driver.
 
 We believe we do not need runtime plugins as binaries:
 the Go plugin system is stagnant, and the build complexity expands.
+The Reth execution-extensions feature and the Geth live-tracer are good examples of 
+extensions that are compiled with the node-software, rather than loaded during runtime. 
 
 ### Pre-image Derivers
 
@@ -255,6 +269,7 @@ To sum up what did not work in above alternative solutions, and what we aim to a
 - Ability to couple effects: changes often cannot be atomically coupled like a DB,
   but intermediate failures should be possible to respond to, to maintain some level of consistency.
 - Ability to transfer effects between threads without dead-locking or blocking multiple resources.
+- Ability to trigger specific conditions/effects, for more sequenced test steps, like in the action-tests.
 
 ## Solution
 
@@ -290,7 +305,7 @@ type Deriver interface {
     OnEvent(ctx context.Context, event *Event)
 }
 ```
-A deriver is assumed to read-access to any state it needs. Composed by the constructor of the deriver.
+A deriver is assumed to have read-access to any state it needs. Composed by the constructor of the deriver.
 
 #### Composable derivers
 
@@ -304,7 +319,9 @@ func (e *Engine) OnEvent(ctx context.Context, event *Event) {
     switch x := event.Data.(type) {
         case *NewPayload:
             select {
-              // events can include ways to communicate the result, if necessary, across threads
+              // Events can include ways to communicate the result, if necessary, across threads.
+              // Note: fault-proofs may use a synchronous Engine alternative,
+              // which calls the underlying event-handlers directly, to not rely on Go channels.
               case x.Result <- e.onNewPayload(x.Envelope):
               case <-ctx.Done():
             }
@@ -483,7 +500,7 @@ Alternative rollup node implementations should be able to adopt this pattern.
 
 ### Migration path
 
-This one of the more involved refactors, that we cannot execute all at once in op-node.
+This is one of the more involved refactors, that we cannot execute all at once in op-node.
 This is a proposal for a 3-phase migration:
 
 #### 1) Derivation/Engine decoupling
@@ -537,7 +554,9 @@ I.e. don't communicate by sharing memory, but share memory by communicating.
 The driver/derivation system is the core of the rollup-node, and it is important not to break it.
 This refactor should be possible to execute without breaking integration tests, with incremental steps.
 Derivation changes should be kept to a minimum (i.e. no major changes to other stages than the `EngineQueue`),
-the driver is the primary thing to improve. The `OnEvent` adoption 
+the driver is the primary thing to improve.
+The `OnEvent` adoption can be implemented before introducing additional concurrency,
+which can make the refactor more incremental.
 
 ## New requirements
 
