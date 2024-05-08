@@ -73,6 +73,11 @@ These events then get adapted into a golang interface that the derivation pipeli
 
 ### Data Availability Challenge Smart Contract Specification
 
+We propose two different DAC SC event specifications.
+V1 is implemented for the Centralized DA system and can be extended to arbitrary DA layers as long as the DA layer is able to validate data against the commitment on L2.
+V2 is not yet implemented, but is designed to work with an instant finality DA bridge. Several DA layers have a header chain relay from the DA layer to L1 which
+can be used to instantly challenge a commitment on L1.
+
 #### V1: Optimisic Bridge
 The DAC SC will emit the following event
 ```solidity
