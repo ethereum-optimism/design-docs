@@ -89,7 +89,7 @@ transactions that trigger executing messages.
 
 The derivation pipeline is updated to include EVM execution of the deposit transactions. A forking EVM provider backed
 by L2 tip state is used. This enables simulation of the deposit transactions before they are included in L2. If the deposit
-transaction fails the sequencing window invariant or creates an invalid deposit transaction, it is mapped into a noop deposit
+transaction fails the sequencing window invariant or creates an invalid executing message, it is mapped into a noop deposit
 transaction.
 
 A noop deposit transaction:
@@ -125,6 +125,10 @@ for i, tx in enumerate(payload.transactions):
 If static analysis was possible, then no execution would be required to derive the information required to check the
 validity of the executing messages. The same two checks `sequencing_window_invariant` and `is_valid_message` could
 be applied but solely with static analysis instead of needing to execute to get the executing message.
+The definition of `sequencing_window_invariant` is defined below and `is_valid_message` is defined in the specs.
+
+Note that only the deposits are simulated as part of the derivation pipeline, not any transactions that are sent
+directly to the sequencer. This means that there is a guaranteed worst case in the amount of gas for this execution.
 
 ## Sequencing Window Invariant
 
