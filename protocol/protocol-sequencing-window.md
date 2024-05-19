@@ -40,6 +40,10 @@ The sequencing window would be stored in both the `SystemConfig` and the `L1Bloc
 are consistent between the two locations. Only the chain operator would be able to modify the sequencing window. This allows chain
 operators to modify the sequencing window, which is particularly useful for L3 networks.
 
+If the value could be read from a public getter on the `L1Block` contract, smart contract would be able to compare the current
+timestamp against a cached in state timestamp and the sequencing window to have an on chain finality oracle. This is essentially
+what we want to do as part of the interop design, as noted [here](https://github.com/ethereum-optimism/design-docs/pull/13).
+
 ## Chain Standardness
 
 We cannot define in terms of time for standardness since time is relative to the blocktime of the basechain.
