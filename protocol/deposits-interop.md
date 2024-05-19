@@ -78,7 +78,7 @@ can cause nodes to inconsistent chains.
 The stateless injective function for mapping deposit events into deposit transactions is updated to be a
 2-valued function, meaning that any input can be mapped to one of two inputs. In mathematical terms:
 
-$$f:A→{b1,b2}$$
+$$f:A→\{b1,b2\}$$
 
 A deposit transaction event can be mapped to either a valid deposit transaction or a noop deposit transaction.
 
