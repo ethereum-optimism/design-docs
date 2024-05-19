@@ -7,7 +7,9 @@ What this means in practice is that a deposit transaction can be used to create 
 
 # Summary
 
-Protocol modifications need to be made
+Some deep protocol modifications need to be made, particularly in the derivation pipeline. A new way of mapping deposit
+events into deposit transactions is introduced via a new invariant as well as way to check for executing message validity
+as part of the derivation pipeline.
 
 # Problem Statement + Context
 
@@ -119,6 +121,10 @@ for i, tx in enumerate(payload.transactions):
         txs.append(tx)
         break
 ```
+
+If static analysis was possible, then no execution would be required to derive the information required to check the
+validity of the executing messages. The same two checks `sequencing_window_invariant` and `is_valid_message` could
+be applied but solely with static analysis instead of needing to execute to get the executing message.
 
 ## Sequencing Window Invariant
 
