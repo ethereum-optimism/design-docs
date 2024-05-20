@@ -37,6 +37,7 @@ Below are references for this project:
     - This can be mitigated by using offchain checks on the standardness of the ERC20 token before doing any sort of brand association with the custom gas token chain. These checks cannot be automated, manual inspection must be done to ensure that the token is [specs compliant](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/granite/custom-gas-token.md#properties-of-a-gas-paying-token).
 - **Detection:**
     - An offchain monitoring service could exist that is able to utilize the APIs on the smart contracts to determine that the bridge is not drained on L1 in a malicious way
+    - It is unlikely that all bridges would be able to be drained at once, so issuing a pause could be helpful to save some of the bridges. It is up to the chain operator to issue this pause until the custom gas token feature becomes standard.
 - **Recovery Path(s)**:
     - It is possible to recollateralize the bridge by directly transferring the ERC20 tokens to the bridge. This would enable users to be able to withdraw again.
 
@@ -51,6 +52,7 @@ Below are references for this project:
     - We should not co-market with any custom gas token chain unless we have manually checked that their ERC20 token complies with the specs.
 - **Detection:** *How do we detect if this occurs?*
     - Automation cannot fully detect that the ERC20 token meets the standardness checks.
+    - We would need to manually check that ERC20 tokens do not break any of the restrictions. If they are upgradable, then we trust that the governance around the upgrade will not upgrade to an implementation that will break standardness checks in the future.
 - **Recovery Path(s)**:
     - We will need to remove the chain from the superchain if they are able to launch without us realizing that they are not meeting the ERC20 standardness requirements. It is risky to have the team migrate to a standard ERC20 because it would require a full solvency check first.
 
@@ -74,10 +76,11 @@ Below is what needs to be done before launch to reduce the chances of the above 
 
 - [ ]  Figure out existing chain monitoring solutions and if rollup as a service providers operate them
     - [ ]  If yes, then design the necessary changes to the monitoring service so that they can eventually be implemented
-- [ ]  *Action item 3 (Assignee: tag assignee)*
+- [ ] Make sure that the docs reflect the standardness properties of the ERC20 token being used, these are defined in the specs
 
 ## Appendix
 
 ### Appendix A: Relation to Existing Chains
 
-The custom gas token feature can be enabled or disabled. When it is disabled, it is assumed that ether is used as the L2 native asset. This feature will eventually be rolled out to OP Mainnet with the custom gas token feature disabled. This will warrant a future failure mode analysis.
+The custom gas token feature can be enabled or disabled. When it is disabled, it is assumed that ether is used as the L2 native asset.
+This feature will eventually be rolled out to OP Mainnet with the custom gas token feature disabled. This will warrant a future failure mode analysis.
