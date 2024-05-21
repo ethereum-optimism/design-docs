@@ -58,9 +58,9 @@ Verticalization is possible in the proposed solution by configuring the allowlis
 
         With the public key of the caller, we can implement an allowlist policy module, allowing the chain operator to verticalize by running their own bundler or delegating to partners. This allowlist module does NOT have to be enabled for permissionless bundler participation.
 
-    * **Shutoff**
+    * **Runtime Shutoff**
 
-        Through an admin endpoint or environment variable in the proxy, all calls can be rejected without reaching the sequencer. When rejecting, the json-rpc request will return an error with the code -32000 and "unavailable" message.
+        Through an admin endpoint or environment variable in the proxy, all calls can be rejected without reaching the sequencer. When rejecting, the json-rpc request will return an error with the code -32000 and "unavailable" message. Bundlers should be setup to observe this error state and fallback to `sendRawTransaction` until further communication.
 
         As long as a single bundler supports a fallback to `eth_sendRawTransaction`, shared-mempool 4337 liveness should remain OK
 
@@ -85,9 +85,9 @@ With this initial set of validation rules, we should be in a good position to sa
 
 * **conditional mempool latency**: understanding of how long conditional transactions are sitting in the mempool. We would expect failed inclusion the longer a conditional tx remains in the mempool due to state changes since submission.  Elevated latencies in combination with a low inclusion success rate will indicate if the proxy should be enforcing a higher minimum fee for these transactions to minimize mempool time.
 
-The public keys of known bundlers should be collected and registered. With alerts setup on the above, when in a state of degradation, the allowlist of first be enabled in the proxy to avoid 4337 downtime while assessing next steps. If still in a degradaded state, the endpoint should be fully shutoff, with bundlers reverting to `sendRawTransaction`, until further iteration.
+The public keys of known bundlers should be collected and registered. With alerts setup on the above, when in a state of degradation, the allowlist of first be enabled in the proxy to avoid 4337 downtime while assessing next steps. If still in a degradaded state, the endpoint should be fully shutoff, with bundlers reverting to `sendRawTransaction`, until further iteration. Both of these actions should occur in tandem with public comms.
 
-Additional validation rules can be applied to boost performance on this endpoint. Here are a few extra validation rules applicable:
+Additional validation rules can be applied to boost performance of this endpoint. Here are a some extra applicable validation rules:
 
 * **Elevated minimum fee**
 
