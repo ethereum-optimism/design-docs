@@ -85,7 +85,7 @@ With this initial set of validation rules, we should be in a good position to sa
 
 * **conditional mempool latency**: understanding of how long conditional transactions are sitting in the mempool. We would expect failed inclusion the longer a conditional tx remains in the mempool due to state changes since submission.  Elevated latencies in combination with a low inclusion success rate will indicate if the proxy should be enforcing a higher minimum fee for these transactions to minimize mempool time.
 
-The public keys of known bundlers should be collected and registered. With alerts setup on the above, when in a state of degradation, the allowlist of first be enabled in the proxy to avoid 4337 downtime while assessing next steps. If still in a degradaded state, the endpoint should be fully shutoff, with bundlers reverting to `sendRawTransaction`, until further iteration. Both of these actions should occur in tandem with public comms.
+The public keys of known bundlers should be collected and registered. With alerts setup on the metrics above, when in a state of degradation, the allowlist policy should first be enabled to avoid 4337 downtime while assessing next steps. If still in a degradaded state, the endpoint should then be fully shutoff, having bundlers revert to `sendRawTransaction` until further iteration. Both of these actions should occur in tandem with public comms.
 
 Additional validation rules can be applied to boost performance of this endpoint. Here are a some extra applicable validation rules:
 
