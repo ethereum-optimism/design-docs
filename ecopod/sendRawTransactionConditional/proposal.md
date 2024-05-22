@@ -36,11 +36,15 @@ Verticalization is possible in the proposed solution by configuring the allowlis
 
 # Proposed Solution
 
-1. Implement `eth_sendRawTransactionConditional` with support for the conditionals described in the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j), for which a draft implementation [exists](https://github.com/ethereum/go-ethereum/compare/master...tynes:go-ethereum:eip4337) but requires a refresh. The conditional attached to the transaction is checked against the latest unsafe head the prior to mempool submisison and re-checked when included in the block being built.
+1. Implement `eth_sendRawTransactionConditional` in op-geth with support for the conditionals described in the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j), for which a draft implementation [exists](https://github.com/ethereum/go-ethereum/compare/master...tynes:go-ethereum:eip4337) but requires a refresh. The conditional attached to the transaction is checked against the latest unsafe head the prior to mempool submisison and re-checked when included in the block being built.
 
     * There exists implementations for [Arbitrum](https://github.com/OffchainLabs/go-ethereum/blob/da4c975e354648c7be814ab9667b42f1c19cdc0f/arbitrum/conditionaltx.go#L25) and [Polygon](https://github.com/maticnetwork/bor/blob/b8ad00095a9e3e508517d802c5358a5ce3e81ed3/internal/ethapi/bor_api.go#L70) conforming to the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j). On Polygon, the API is authenticated under the` bor` namespace but public on Arbitrum under the `eth` namespace.
 
-2. Implement external validation rules. These rules are not enshrined in the node software's implementation of `eth_sendRawTransactionConditional`, instead scoped a layer higher, i.e a proxy, and horizontally scalable.
+    * This endpoint will be exposed on a separate port from the execution engine RPCs. The rationale is to be explicit on how custom sequencer rpcs are accessed publicly.
+
+    * To remove the incentive of using this endpoint for MEV, adopt the protective strategy implemented by Arbitrum. The conditional will also be applied on the previous block in addition to HEAD, introducing a time delay, making it worse than `sendRawTransaction` for MEV opportunities.
+
+2. Implement external validation rules. These rules are not enshrined in the node software's implementation of `eth_sendRawTransactionConditional`, instead scoped a layer higher, a validating proxy that's horizontally scalable.
 
     * **Only 4337 Entrypoint Contract Support**: `tx.to() == entrypoint_contract_address`
 
@@ -52,22 +56,42 @@ Verticalization is possible in the proposed solution by configuring the allowlis
 
         Requests to this endpoint MUST be authenticated with a secp256K1 keypair, similar to [flashbots authentication](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#authentication). The [EIP-191](https://eips.ethereum.org/EIPS/eip-191) hash of the json-rpc payload must be signed and included in the the `X-Optimism-Signature` header of the request in a `<public key adddress>:<signature>` format.
 
-        With the public key of the caller, we can implement an allowlist policy module, allowing the chain operator to verticalize by running their own bundler or delegating to partners.
+        With the public key of the caller, we can implement an allowlist policy module, allowing the chain operator to verticalize by running their own bundler or delegating to partners. This allowlist module does NOT have to be enabled for permissionless bundler participation.
 
     * **Runtime Shutoff**
 
-        Through a new admin endpoint exposed through op-node, the sequencer can reject all calls to this endpoint, similar to the `admin_(start|stop)Sequencer` endpoints. If a proxy implementing these validation rules are setup to run on seperate hosts from the sequencer, this runtime switch must be readable such that these requests can be terminated without reaching the sequencer.
+        Through an admin endpoint or environment variable in the proxy, all calls can be rejected without reaching the sequencer. When rejecting, the json-rpc request will return an error with the code -32000 and "unavailable" message. Bundlers should be setup to observe this error state and fallback to `sendRawTransaction` until further communication.
 
-        As long as a single bundler supports a fallback to `eth_sendRawTransaction`, 4337 liveness should remain OK
+        As long as a single bundler supports a fallback to `eth_sendRawTransaction`, shared-mempool 4337 liveness should remain OK
 
     * **Global Rate Limit**
 
-        Rate limit how many conditional txs can be sent over a configured time period. Like with the runtime shutoff, if these validation rules are horizontally scaled externally to the sequencer through a proxy, confiugration must be readable by these hosts & the design space for this rate limit should be explored -- i.e globally synchronized rate limit vs per-host limits.
+        Rate limit how many conditional txs can be sent over a configured time period. Like with the runtime shutoff, if the validation proxy is horizontally scaled, the design space for this rate limit should be explored -- i.e globally synchronized rate limit vs per-host limits.
+
+        When this rate limit is reached, the proxy should set the response HTTP status code to 429 (Too Many Requests), as an indicator for the caller.
 
 
-With this initial set of validation rules, we should be in a good position to safely launch this endpoint with either permissioned or permissionless bundler participation. If permissionless, the public keys of known bundlers should be collected and registered, such that the allowlist can be enabled to avoid potential 4337 downtime while implementing more validation mechanisms. In the worst case, this endpoint can be completely shutoff
+With the validation proxy described in (2) and the `sendRawTransactionConditional` op-geth endpoint described in (1), the cloud architecture for how this setup works should look like the following diagram. An operator that wishes to expose the endpoint publicly without the validating proxy in front can simply route the method directly to the sequencer from the ingress router.
 
-If high rates of rejected transactions are observed, additional validation rules & improvements can be iterated on.
+![Cloud Architecture](cloud-architecture.png)
+
+With this initial set of validation rules, we should be in a good position to safely launch this endpoint permissionlessly. Instrumentation is critical to surface further action -- key metrics to track:
+
+* **conditional requests / s (by caller)**: understanding of overall usage and alert setup with the configured rate limits. The breakdown of requests by caller will help identify single-use authentication keys and the general activity of different bundlers
+
+* **conditional submission success rate % (by caller)**: understanding of requests failing the initial conditional check. Elevated rates will indicate that a caller is not doing sufficient simulation with the latest unsafe head prior to submission. This metric will help understand if localized rules should be applied.
+
+* **conditional inclusion success rate %**: understanding of conditional transactions frontrunned in the mempool. In combination with mempool latencies, lowered rates will signal actionable next steps, such as enforcing a higher minimum fee.
+
+* **conditional mempool latency**: understanding of how long conditional transactions are sitting in the mempool. We would expect failed inclusion the longer a conditional tx remains in the mempool due to state changes since submission.  Elevated latencies in combination with a low inclusion success rate will indicate if the proxy should be enforcing a higher minimum fee for these transactions to minimize mempool time.
+
+The public keys of known bundlers should be collected and registered. With alerts setup on the metrics above, when in a state of degradation, the allowlist policy should first be enabled to avoid 4337 downtime while assessing next steps. If still in a degradaded state, the endpoint should then be fully shutoff, having bundlers revert to `sendRawTransaction` until further iteration. Both of these actions should occur in tandem with public comms.
+
+Additional validation rules can be applied to boost performance of this endpoint. Here are a some extra applicable validation rules:
+
+* **Elevated minimum fee**
+
+    The longer a conditional transaction is in the mempool, the more likely it is to fail when included in a block due to state changes since submission. To minimize this latency, we may want to monitor the base fee of the network and add a premium for conditional transactions in order to minimize the time spent the mempool.
 
 * **Local Rate Limiting**
 
@@ -85,4 +109,4 @@ If high rates of rejected transactions are observed, additional validation rules
 
 **Risk 3: Generalized External Validation.** Validation policies should be DRY'd between interop, eth_sendRawTransactionConditional, and any future use cases. These policies that are implementated should work well between these usecases as this approach is adopted and scales. The tech-debt here can grow quickly if each solution has it's own methods of preventing DoS and validation, especially operationally.
 
-**Risk 4: Excessive Compute/Operational Requirements**. This endpoint is a feature provided out of protocol by the block builder -- the sequencer. With failed conditional transactions, the sequencer is not compensated with charged gas like when processing a reverted transaction. There's also the added overhead of managing new services that must mitigate DoS and increases the surface area where manual intervention will be required. The wasted compute on failed conditionals or inability to effectively mitigate DoS may be a reason to rollback this feature.
+**Risk 4: Excessive Compute/Operational Requirements**. This endpoint is a feature provided out of protocol by the block builder -- the sequencer. With failed conditional transactions, the sequencer is not compensated with charged gas like when processing a reverted transaction, nor for the addtional checks of successful conditional transactions. There's also the added overhead of managing new services to mitigate DoS and increases the surface area where manual intervention will be required. The uncompensated compute or inability to effectively mitigate DoS may be a reason to rollback this feature.
