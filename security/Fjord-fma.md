@@ -92,7 +92,7 @@ https://github.com/ethereum-optimism/optimism/pull/10357
 - **Detection:** *How do we detect if this occurs?*
 - **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
 
-## Generic
+## Generic items we need to take into account
 
 ### Chain Halt at Activation
 
