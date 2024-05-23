@@ -38,8 +38,10 @@ Below are references for this project:
 - **Detection:**
     - An offchain monitoring service could exist that is able to utilize the APIs on the smart contracts to determine that the bridge is not drained on L1 in a malicious way
     - It is unlikely that all bridges would be able to be drained at once, so issuing a pause could be helpful to save some of the bridges. It is up to the chain operator to issue this pause until the custom gas token feature becomes standard.
+    - `wd-mon` exists but would not catch bugs where the balance is drained on L1 without a L2 triggered withdrawal or a deposit to L2 is triggered without a balance increase of the contract
 - **Recovery Path(s)**:
     - It is possible to recollateralize the bridge by directly transferring the ERC20 tokens to the bridge. This would enable users to be able to withdraw again.
+    - It would be good to pause the bridge if possible to get a handle on the situation.
 
 ### Non Standard ERC20 Usage
 
@@ -49,10 +51,12 @@ Below are references for this project:
     - High severity, low likelihood
     - Given that we communicate with rollup as a service platforms, this is low probability. Chains that don’t listen to us can do whatever they want in their world but they will never be able to be considered standard.
 - **Mitigations:**
-    - We should not co-market with any custom gas token chain unless we have manually checked that their ERC20 token complies with the specs.
+    - We should not work too closely with any custom gas token chain unless we have manually checked that their ERC20 token complies with the specs.
+    - Any upgradable token requires trusting their governance process.
 - **Detection:** *How do we detect if this occurs?*
     - Automation cannot fully detect that the ERC20 token meets the standardness checks.
     - We would need to manually check that ERC20 tokens do not break any of the restrictions. If they are upgradable, then we trust that the governance around the upgrade will not upgrade to an implementation that will break standardness checks in the future.
+    - A malicious token can implement creative ways to avoid being detected as non standard.
 - **Recovery Path(s)**:
     - We will need to remove the chain from the superchain if they are able to launch without us realizing that they are not meeting the ERC20 standardness requirements. It is risky to have the team migrate to a standard ERC20 because it would require a full solvency check first.
 
