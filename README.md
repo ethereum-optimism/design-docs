@@ -11,6 +11,7 @@ directory after it is completed.
 
 - `protocol` contains consensus level features
 - `ecopod` contains application level features
+- `governance` contains governance level features
 - `security` contains failure mode analysis documents
 
 ## Scheduling Inclusion in a Design Review Session
