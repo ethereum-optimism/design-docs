@@ -1,6 +1,6 @@
 # Introduction
 
-This document is intended to remain internal. It covers the Fjord superchain upgrade, on a mainnet level, which involves four changes:
+This document is intended to be shared in a public space for reviews and visibility purposes. It covers the Fjord superchain upgrade, on a mainnet level, which involves four changes:
 
 - enables a precompile for the secp256r1 elliptic curve ([RIP-7212](https://github.com/ethereum/RIPs/blob/master/RIPS/rip-7212.md))
 - a more accurate L1 data cost function that estimates the batch-compressed transaction size using a [FastLZ](https://code.google.com/archive/p/fastlz/) based linear regression.
@@ -10,7 +10,7 @@ This document is intended to remain internal. It covers the Fjord superchain upg
 
 Below are references for this project:
 
-- The Fjord upgrade will be fully documented in the monorepo [specifications](https://github.com/ethereum-optimism/specs) once finalized.
+- The Fjord upgrade will be fully documented in the monorepo [specifications](https://github.com/ethereum-optimism/specs) once the implementation is finalized.
 - The unfinalized fork specification describing the EIP-7212 changes are [here](https://github.com/ethereum-optimism/specs/blob/main/specs/fjord/overview.md).
 - FastLZ related spec changes can be found [here](https://github.com/ethereum-optimism/specs/pull/25).
 - [PR](https://github.com/ethereum-optimism/specs/pull/146) for max-sequencer-drift spec update.
