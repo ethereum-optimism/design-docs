@@ -17,7 +17,6 @@ Below are references for this project:
 - Brotli channel compression
     - Specs: https://github.com/ethereum-optimism/specs/pull/168
     - Impl: https://github.com/ethereum-optimism/optimism/pull/10358
-- Protocol quest [issues](https://github.com/ethereum-optimism/protocol-quest/issues?q=is%3Aissue+Fjord+) related to Fjord.
 
 # **Failure Modes and Recovery Paths**
 
