@@ -358,10 +358,12 @@ Summary of simplified implementation to include in specs:
   - Event log hashes (concatenated)
 - Binary search to find a log entry by block-number
 - Reorgs by truncating the append-log to the last common block before the reorg divergence
+- The safety labels can be incrementally moved towards newer L2 blocks,
+  as the initiating messages of executing messages get matched against prior initiating messages.
+- While the cross-L2 messages have not been checked, or while data is unavailable,
+  queries may return a `unsafe` safety-level. Only when fully cross-L2 validated, then `cross-unsafe` may be returned.
 
-## Superchain Backend implementation: `op-resolver`
-
-> *Name suggestions welcome, `op-superchain` seems to generic however.*
+## Standalone implementation: `op-supervisor`
 
 This service resolves superchain dependencies, and implements the above proposed spec for a standalone implementation.
 
@@ -400,9 +402,42 @@ to one another and checking message-safety through the standard backend interfac
     - We can also have cross-chain loops; executing message is used as initiating message and executed by other chain,
       and executing message on other chain is what is consumed as initiating message by original executing message.
 
+### Redundancy and reliability
+
+As a standalone service, a larger user may run multiple replicas,
+and load-balance and fallback between the replicas for increased reliability.
+
+When running multiple replicas, the views over the safety-data may be inconsistent however.
+To consolidate different superchain-backend views, we merge the views in the rollup node.
+This prevents a load-balancer service from becoming a single point of failure on its own.
+
+We can implement the following rules in the consuming rollup-node:
+- The backend constructs a cross-L2 blockhash (see below) to commit to its view
+  of the L2 chains at the queried block-height.
+  - If this changes at any point at a specific block-height,
+    the rollup node can detect the change, and invalidate the previously queried data.
+  - If there is disagreement between data, then the rollup-node can follow the majority-view.
+- The rollup node should follow the superchain-backends with the following priorities:
+  - The latest L2 finality. Any backend with older finality than another should be ignored.
+    This filters out backends which are stuck syncing older data,
+    without entirely dropping every option if everything is syncing.
+  - Part of the majority-view (as described by cross-L2 blockhash).
+    This filters out backends which are lagging behind more recent data.
+  - Temporary request issues may be ignored,
+    the rollup node can operate as long as there is one valid operational backend.
+
+The rollup node may stick to a single valid backend for a few queries, before checking all the backends again,
+to prevent continuous load on all backends. The selection and timing should be randomized,
+to prevent query spikes when backends are shared by multiple nodes.
+
+Cross-L2 blockhash:
+at a specific height (expressed by timestamp, since chain block numbers do not align),
+sort the chains by chain-ID, and hash together the blockhashes.
+If data of a chain is missing, repeat the latest blockhash before the missing entry.
+
 ## Embedded RPC-based implementation
 
-As alternative to running a full `op-resolver` service, we may support a fallback in the op-node.
+As alternative to running a full `op-supervisor` service, we may support a fallback in the op-node.
 Message safety is checked by relying on the local execution-engine
 for serving full event-logs and block-safety labels of the local chain,
 and then attaching to another external backend 
@@ -441,7 +476,7 @@ The backend events would roughly consist of:
 
 ## Throughput
 
-The embedded version in the op-node is too high latency:
+**The embedded version in the op-node is too high latency:**
 interop messaging may be faster or higher-throughput than an inefficient standard-RPC based
 implementation without prefetching or aggregating can keep up with.
 
@@ -452,6 +487,13 @@ but is still effectively backed by receipts-retrieval in op-geth.
 
 If this proves to be too slow, then there still is the standalone service that benefits from prefetching
 and aggregate data handling (no receipts, just efficient message-hash lookups).
+
 In the long-term, with the growth of interoperating chains, light-clients (for just the cross-L2 part)
 may support the under-resourced nodes that are unable to run this service
 in addition to the current rollup-node and execution-engine stack.
+To support light-clients, we may need to introduce a protocol-change
+for faster more efficient message-inclusion verification,
+e.g. by adding the merkle-root of a binary merkle-trie of message-hashes, instead of full raw RLP encoded receipts.
+
+Additionally we can use other transports to local nodes,
+or distribute the data in larger pre-processed chunks through the peer-to-peer network.
