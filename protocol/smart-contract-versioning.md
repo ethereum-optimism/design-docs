@@ -105,6 +105,21 @@ To accommodate this, once ready for governance approval the release flow is:
 - If subsequent monorepo `-rc.n` versions are added to the branch, only update the `-rc.n` for the contracts that have changed since the last `-rc.n` version. This is to avoid unnecessary version bumps for contracts that have not changed.
 - Fixes to an `-rc.n` version should be made into the `proposal/op-contracts/vX.Y.Z` branch and then merged into `develop` afterwards. In other words, the `proposal/op-contracts/vX.Y.Z` branch behaves like a feature branch only for the duration of the governance proposal.
 
+Here is an example to clarify how to choose `vX.Y.Z` when merging a proposal branch into `develop`. Given that ContractA is `1.2.3-rc.1` on develop, then the initial sequence of events is:
+
+- We create the release branch, and on that branch remove the `-rc.1`, giving a final ContractA version on that branch of `1.2.3`
+- Governance proposal is posted, pointing to the corresponding monorepo tag.
+- Governance approves the release.
+- Open a PR to merge the final versions of the contracts (ContractA) back into develop.
+
+There are two scenarios for this PR that merges the release branch into develop:
+
+1. On develop, no changes have been made to ContractA. The PR therefore changes ContractA's version on develop from `1.2.3-rc.1` to `1.2.3`, and no other changes to ContractA occur.
+2. On develop, breaking changes have been made to ContractA for a new feature, and it's currently versioned as `2.0.0-beta.3`. The PR should modify the source code of ContractA appropriately and bump the version to `2.0.0-beta.4`.
+    - In practice, this one unlikely to occur when using inheritance for feature development, as specified in [Smart Contract Feature Development](https://github.com/ethereum-optimism/design-docs/blob/main/smart-contract-feature-development.md) architecture. It's more likely that (1) is the case, and we merge the changes into the base contract.
+
+This flow also provides a dedicated branch for each release, making it easy to deploy a patch or bug fix, regardless of other changes that may have occurred on develop since the release.
+
 ## Changelog
 
 Lastly, we will start maintaining a CHANGELOG for contract releases:
