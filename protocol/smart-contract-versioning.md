@@ -34,6 +34,8 @@ There are five parts to the solution:
 - [Individual Contract Versioning](#individual-contract-versioning): Introduces a new versioning scheme for individual contracts that includes beta, release candidate, and feature tags.
 - [Monorepo Contracts Release Versioning](#monorepo-contracts-release-versioning): Introduces a new versioning scheme for monorepo releases that follows semver.
 - [Release Process](#release-process): Describes the process for deploy contracts and proposing a release to governance.
+  - [Additional Release Candidates](#additional-release-candidates): Describes how to handle additional release candidates after an initial `op-contracts/vX.Y.Z-rc.1` release.
+  - [Merging Back to Develop After Governance Approval](#merging-back-to-develop-after-governance-approval): Explains how to choose the resulting contract versions when merging back into `develop`.
 - [Changelog](#changelog): Describes how we will maintain a CHANGELOG for contract releases.
 
 ## Semver Rules
@@ -65,15 +67,6 @@ Versioning for individual contracts works as follows:
     - Continue to bump the beta version as you make changes. When the contract is ready for release, bump the version to `3.0.0-rc.1`.
 - New contracts start at `0.y.z` and only become `1.0.0` when they are ready for production.
 
-Below is sample workflow explaining how this works in practice once the release process begins:
-
-- A PR into develop which replaces the `-beta.n` suffix with the `-rc.n` suffix for all contracts in your release. Once this PR is merged, it becomes the last commit to develop for this release until it's governance approved.
-  - At this point, the lock on develop is released, and others may modify your `-rc.n` contracts.
-- Next, create a branch from that commit on `develop` called `proposal/op-contracts/vX.Y.Z`. Using the `proposal/` prefix signals that this branch is for a governance proposal, and intentionally does not convey whether or not the proposal has passed.
-- Open a PR into the `proposal/op-contracts/vX.Y.Z` branch to remove all the `-rc.n` suffixes from contracts. Once merged, this commit is where contracts are deployed, and this commit is tagged as `op-contracts/vX.Y.Z-rc.1` for the governance proposal.
-- Subsequent changes only bump the `rc.n` identifier at the monorepo release level. One exception: a contract change results in a higher version level than prior bumps, e.g. if `rc.1` only bumped the minor version, but now we must introduce a breaking change for `rc.2`, we need to bump the major version. Ideally once we're at an `rc.n` this should not occur. This also results in a new branch being created.
-- Once the governance proposal passes, create the `op-contracts/vX.Y.Z` tag and release from the latest `op-contracts/vX.Y.Z-rc.n` release, then merge the branch into develop.
-
 ## Monorepo Contracts Release Versioning
 
 Versioning for monorepo releases works as follows:
@@ -98,25 +91,45 @@ To accommodate this, once ready for governance approval the release flow is:
 
 - On the `develop` branch, bump the version of all contracts to their respective `X.Y.Z-rc.n`. The `X.Y.Z` here refers to the contract-specific versions, so it differs per-contract. The `-rc.n` begins as `-rc.1` for all contracts. Any `-beta.n` and `+feature-name` identifiers are removed at this point.
 - Branch off of `develop` and create a branch named `proposal/op-contracts/vX.Y.Z`. Here, `X.Y.Z` is the new version of the monorepo release.
-- On this branch, create a new commit that removes the `-rc.n` from all contracts. This is the commit hash that will be used to deploy the contracts and proposed to governance.
-- Once governance approves the proposal, merge the proposal branch into `develop` and bump the version of all contracts to their respective `X.Y.Z`. When there are conflicts, resolve them in favor of the `develop` branch. In other words:
-  - If a contract has not had any changes since the proposal, the version should be bumped to `X.Y.Z`.
-  - If a contract has had changes since the proposal, the version should be stay as whatever is the latest version on `develop`.
-- If subsequent monorepo `-rc.n` versions are added to the branch, only update the `-rc.n` for the contracts that have changed since the last `-rc.n` version. This is to avoid unnecessary version bumps for contracts that have not changed.
-- Fixes to an `-rc.n` version should be made into the `proposal/op-contracts/vX.Y.Z` branch and then merged into `develop` afterwards. In other words, the `proposal/op-contracts/vX.Y.Z` branch behaves like a feature branch only for the duration of the governance proposal.
+  - Using the `proposal/` prefix signals that this branch is for a governance proposal, and intentionally does not convey whether or not the proposal has passed.
+- Open a PR into the `proposal/op-contracts/vX.Y.Z` branch that removes the `-rc.1` suffixes from all contracts.
+  - This is the commit hash that will be tagged as `op-contracts/vX.Y.Z-rc.1`, used to deploy the contracts, and proposed to governance.
+  - Sometimes additional release candidates are needed before proposal—see [Additional Release Candidates](#additional-release-candidates) for more information on this flow.
+- Once the governance approval is posted, any lock on contracts on `develop` is released.
+- Once governance approves the proposal, merge the proposal branch into `develop` and set the version of all contracts to the appropriate `X.Y.Z` after considering any changes made to `develop` since the release candidate was created.
+  - See [Merging Back to Develop After Governance Approval](#merging-back-to-develop-after-governance-approval) for more information on how to choose the resulting contract versions when merging back into `develop`.
 
-Here is an example to clarify how to choose `vX.Y.Z` when merging a proposal branch into `develop`. Given that ContractA is `1.2.3-rc.1` on develop, then the initial sequence of events is:
+### Additional Release Candidates
+
+Sometimes additional release candidate versions are needed.
+The process for this is:
+
+- Make the fixes on `develop`. Increment the `-rc.n` qualifier for the changed contracts only.
+- Open a PR into the `proposal/op-contracts/vX.Y.Z` branch that incorporates the changes from `develop`.
+- Open another PR to remove the new `-rc.2` version identifiers from the changed contracts. Tag the resulting commit on the proposal branch as `op-contracts/vX.Y.Z-rc.2`.
+- This flow (1) ensures develop stays up to date during the release process, (2) mitigates the risk of forgetting to merge the release back into the develop branch, and (3) mitigates the risk of the merge into develop removing the required `-rc.n` version that is needed until the release is approved.
+
+### Merging Back to Develop After Governance Approval
+
+A release will change a set of contracts, and those contracts may have changed on `develop` since the release candidate was created.
+
+If there have been no changes to a contract since the release candidate, the version of that contract stays at `X.Y.Z` and just has the `-rc.n` removed.
+For example, if the release candidate is `1.2.3-rc.1`, the resulting version on `develop` will be `1.2.3`.
+
+If there have been changes to a contract, the `X.Y.Z` will stay the same as whatever is the latest version on `develop`, with the `-beta.n` qualifier incremented.
+
+For example, given that ContractA is `1.2.3-rc.1` on develop, then the initial sequence of events is:
 
 - We create the release branch, and on that branch remove the `-rc.1`, giving a final ContractA version on that branch of `1.2.3`
 - Governance proposal is posted, pointing to the corresponding monorepo tag.
 - Governance approves the release.
 - Open a PR to merge the final versions of the contracts (ContractA) back into develop.
 
-There are two scenarios for this PR that merges the release branch into develop:
+Now there are two scenarios for the PR that merges the release branch back into develop:
 
 1. On develop, no changes have been made to ContractA. The PR therefore changes ContractA's version on develop from `1.2.3-rc.1` to `1.2.3`, and no other changes to ContractA occur.
-2. On develop, breaking changes have been made to ContractA for a new feature, and it's currently versioned as `2.0.0-beta.3`. The PR should modify the source code of ContractA appropriately and bump the version to `2.0.0-beta.4`.
-    - In practice, this one unlikely to occur when using inheritance for feature development, as specified in [Smart Contract Feature Development](https://github.com/ethereum-optimism/design-docs/blob/main/smart-contract-feature-development.md) architecture. It's more likely that (1) is the case, and we merge the changes into the base contract.
+2. On develop, breaking changes have been made to ContractA for a new feature, and it's currently versioned as `2.0.0-beta.3`. The PR should bump the version to `2.0.0-beta.4` if it changes the source code of ContractA.
+    - In practice, this one unlikely to occur when using inheritance for feature development, as specified in [Smart Contract Feature Development](https://github.com/ethereum-optimism/design-docs/blob/main/smart-contract-feature-development.md) architecture. It's more likely that (1) is the case, and we merge the version change into the base contract.
 
 This flow also provides a dedicated branch for each release, making it easy to deploy a patch or bug fix, regardless of other changes that may have occurred on develop since the release.
 
