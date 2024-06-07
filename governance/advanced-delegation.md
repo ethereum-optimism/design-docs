@@ -10,7 +10,7 @@ The proposed feature will introduce a hook-based integration between the GovToke
 
 Advanced delegation, which includes partial delegation and subdelegations, is a superset of basic delegation. Partial delegation allows delegators to distribute their voting power among multiple delegatees in a fractional manner, while subdelegations enable delegatees to further delegate their received voting power to other delegatees based on predefined rules and constraints.
 
-Currently, delegators have to use the Alligator contract separately from the GovToken to access advanced delegation features. This separation of contracts complicates integration for indexers and front-end clients, as they need to track events and interact with both contracts. It also poses challenges for future interoperability plans. To streamline the delegation experience and reduce complexity, a hook-based integration between the GovToken and the Alligator is proposed, consolidating the delegation logic and state into a single contract.
+Currently, delegators have to use the Alligator contract separately from the GovToken to access advanced delegation features. This separation of contracts complicates integration for indexers and front-end clients, as they need to track events and interact with both contracts. It also poses challenges for future interoperability plans. To streamline the delegation experience and reduce complexity, a hook-based integration between the GovToken and the Alligator is proposed, consolidating the delegation logic and state into the Alligator.
 
 # Alternatives Considered
 
