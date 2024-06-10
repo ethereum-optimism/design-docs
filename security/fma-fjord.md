@@ -1,4 +1,4 @@
-# Introduction
+# Introduction - FMA(Failure Modes and Recovery Path Analysis) for Fjord Hardfork
 
 This document is intended to be shared in a public space for reviews and visibility purposes. It covers the Fjord superchain upgrade, on a mainnet level, which involves four changes:
 
@@ -36,7 +36,7 @@ Fjord introduces changes to the `GasPriceOracle` precompile contract on the L2. 
 ## **Incorrect L1 Data Fee computation**
 
 - **Description:** Fjord updates the cost function for computing the L1 data fee of each transaction. If there are bugs in this implementation it could result in inappropriate L1 data fees being charged, either too high (costing users significant fees) or too low (causing revenue loss for chain operators).  Implementation of this change is primarily in [this PR](https://github.com/ethereum-optimism/op-geth/pull/249).
-- **Risk Assessment:** Low. The new cost function introduces no new inputs, but instead implements a more sophisticated handling and transformation of existing inputs, in particular the bytes in the transaction data. Instead of naively counting zero and non-zero bytes to estimate compressibility, the Fjord function uses an actual but high-performance compression algorithm, FastLZLen, to estimate compressibility of the transaction. The output of this function is fed into a linear regression, with hard-coded coefficients tuned to minimize estimation error across various slices of chain data (details in [this protocol quest issue](https://github.com/ethereum-optimism/protocol-quest/issues/210) and the [compression analysis repo](https://github.com/roberto-bayardo/compression-analysis)).
+- **Risk Assessment:** Low. The new cost function introduces no new inputs, but instead implements a more sophisticated handling and transformation of existing inputs, in particular the bytes in the transaction data. Instead of naively counting zero and non-zero bytes to estimate compressibility, the Fjord function uses an actual but high-performance compression algorithm, FastLZLen, to estimate compressibility of the transaction. The output of this function is fed into a linear regression, with hard-coded coefficients tuned to minimize estimation error across various slices of chain data in this [compression analysis repo](https://github.com/roberto-bayardo/compression-analysis).
 - **Mitigations:** Unit and end-to-end testing, extensive evaluation of the cost function showing far better robustness in minimizing estimation error compared to what has been used pre-Fjord.
 - **Detection:** Dashboards would quickly reveal if we are charging too little and alerts should fire if we are no longer recovering revenue from L1 data posting. L1 fee parameters are tuned to maintain a 5% margin above expected cost. If we are charging too much then we’ll observe revenue recovery well above this margin, and could even here reports from users/dApp operators. Chains such as Base have alerts set to fire If we are charging too little and revenue recovery goes below 0.
 - **Recovery Path(s)**: Fjord preserves the ability to adjust fee recovery margin via fee scalar and blob fee scalars should we be under or over charging
@@ -85,13 +85,13 @@ https://github.com/ethereum-optimism/optimism/pull/10357
 
 ## Brotli/FastLZ size mismatch exploit
 
-- **Description:** *Details of the failure mode go here. What the causes and effects of this failure?*
-- **Risk Assessment:** *Simple low/medium/high rating of impact (severity) + likelihood.*
-- **Mitigations:** *What mitigations are in place, or what should we add, to reduce the chance of this occurring?*
-- **Detection:** *How do we detect if this occurs?*
-- **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
+- **Description:** If it is possible to create transactions that have a (much) smaller FastLZ size than their actually compressed Brotli size, these transactions would be underpriced by our new cost function.
+- **Risk Assessment:** Low. Brotli is a much better compression algo than FastLZ, so if at all, this should only be possible for certain crafted edge cases, which then probably don’t have any utility, so it would still cost an attacker fees to send nonsense transactions.
+- **Mitigations:** We did extensive historical backtesting of FastLZ vs zlib and also Brotli compressed transactions and could confirm that the vast majority of transactions are over- and not underpriced by FastLZ (but still much more fairly priced than the old method of counting (non-)zero bytes).
+- **Detection:** We’d detect this by doing historical analysis of FastLZ vs actual compressed batch size usage. We have already planned to do this kind of analysis after activating Fjord on mainnet.
+- **Recovery Path(s)**: If this turned out to be a major problem (very unlikely), we can always revert back to zlib compression, which should be closer to FastLZ and then not exhibit this attack surface. If it only affects a small number of transactions, we can ship an improvement to the cost function in the next hardfork and live with a few underpriced transactions in the meantime.
 
-## Generic items we need to take into account
+## Generic items we need to take into account:
 
 ### Chain Halt at Activation
 
@@ -103,3 +103,22 @@ https://github.com/ethereum-optimism/optimism/pull/10357
     - We should also prepare datadir backups close before the upgrade, so we can use these in an emergency to rollback.
     - Estimated sequencer downtime is 30 min in a worst-case scenario where we have to reset the chain back to a block before the activation and disable the hardfork activation. Additional steps would be required from infra providers to get back to the healthy chain. They would either need to restart their op-node and op-geth with activation override command line flags/env var, or their images to an emergency release with activation disabled.
     - It should be noted that we already prepared for this generic scenario for Ecotone, so we can use the same preparations, which we already practiced.
+ 
+### Incomplete Activation
+
+- **Description:** The upgrade may take place but some steps may fail leaving the upgrade in a partial state. For example the contracts could get upgraded but the new cost function might not be applied, or the rest of the functionality upgrades but the contract deployments fail.
+- **Risk Assessment:** Medium severity — funds should not be at risk, but chain could halt and recovery unfortunately could be very messy.
+- **Mitigations:** End to end testing, and making sure the upgrade works properly and at the right time on our devnets and testnet. The end to end testing consists of all the tests in the `op-e2e` folder that were added as part of the implementation PRs.
+- **Detection:** Requires we check: (1) updated L2 contracts contain the new expected bytecode, (2) transactions submitted after the hardfork are being charged data fees as expected according to the new function, (3) invoking the new precompile produces the expected output.
+- **Recovery Path(s)**: Recovery would likely involve a new node release and/or tools allowing for appropriate rollback depending on the precise nature of the failures.
+    - There are two approaches, depending on failure
+        - if it’s minor, we just live with it and fix it in an upcoming upgrade → no downtime
+        - if it’s critical, we can initiate the same rollback as described above → same downtime as above
+    
+### Hard fork Failure to Activate
+
+- **Description:** The upgrade may be misconfigured and fail to take place.
+- **Risk Assessment:** Low severity — the chain would continue on as if the upgrade never happened. We could recover easily by rescheduling the upgrade.
+- **Mitigations:** End to end testing, and making sure the upgrade works properly and at the right time on our devnets and testnest. The end to end testing consists of all the tests in the `op-e2e` folder that were added as part of the implementation PRs.
+- **Detection:** We can easily see if the L2 contracts were upgraded as expected by trying to invoke their new read methods such as reading the blob base fee parameter from the gas price oracle.
+- **Recovery Path(s)**: Reschedule upgrade, possibly releasing new binary though without immediate urgency.
