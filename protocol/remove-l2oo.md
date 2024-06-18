@@ -92,7 +92,7 @@ The challenger would run as the `Challenger` role and would then automate counte
 
 ## Custom Privileged Dispute Game
 
-A simple dispute game could be implemented which allows only the `Proposer` to create game and be immediately resolved
+A simple dispute game could be implemented which allows only the `Proposer` to create a game and be immediately resolved
 as valid. The `disputeGameFinalityDelaySeconds` would then be set to 7 days, giving time for the `Guardian` to blacklist
 the game if required. The `Challenger` role would not be used in this setup.
 
