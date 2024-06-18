@@ -82,7 +82,7 @@ the `Challenger` role has the full 7 days to respond whereas with this setup the
 the `Guardian` another 3.5 days. These values can be adjusted per chain however to adjust the time the `Challenger` has
 to respond, including setting either to 0.
 
-Since the audits focussed on teh `Guardian` override paths and assumed games could resolve incorrectly, it's recommended
+Since the audits focussed on the `Guardian` override paths and assumed games could resolve incorrectly, it's recommended
 to either maintain the op-mainnet equal split or to set the `faultGameMaxClockDuration` to 0
 and `disputeGameFinalityDelaySeconds` to 7 days. This effectively eliminates the `Challenger` role but gives
 the `Guardian` 7 days to blacklist the game.
