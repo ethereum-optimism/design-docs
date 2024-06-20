@@ -36,7 +36,7 @@ This gives us:
 - Simple factory code.
 
 > [!NOTE]
-> An important note is that L1 must also be able to deploy `Mirror` contracts. We don’t have control over the factory address on L1. Therefore, to ensure the same `Mirror` address for a given token is maintained across chains, the factory pre-deploy will not follow the `0x42.....N` standard, but it will have to match the factory’s deployment address on L1 in all chains.
+> 💡 An important note is that L1 must also be able to deploy `Mirror` contracts. We don’t have control over the factory address on L1. Therefore, to ensure the same `Mirror` address for a given token is maintained across chains, the factory pre-deploy will not follow the `0x42.....N` standard, but it will have to match the factory’s deployment address on L1 in all chains.
 
 The salt doesn't need to be more than the `OptimismMintableERC20Token` address. The `name` and `symbol` can be queried from the implementation code. The `Mirror` will take in the token it extends as an argument and the factory address as its admin to allow for upgrades.
 
