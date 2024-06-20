@@ -49,7 +49,7 @@ The mirror implementation contract should be deployed beforehand. The Proxy must
 This design allows the `StandardBridge` to call `mirrors(_token)` when a `Mirror` contract performs a `transfer` and validates the mirror belongs to the `_token`. As an illustrative example:
 
 ```solidity
-function mirrorMint(_token, amount) external {
+function mirrorMint(address _token, uint256 _amount) external {
 	address _mirror = MIRROR_FACTORY.mirrors(_token);
 	if (_mirror != msg.sender) revert();
 	///...mint logic
