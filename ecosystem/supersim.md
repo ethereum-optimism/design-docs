@@ -24,17 +24,17 @@ From a developer perspective, supersim will offer a command line interface throu
 ```bash
 // brings up two vanilla op chains with each other in the dep set with the same L1 chain
 
-mocktimism
+supersim
 ```
 
 ```bash
 // brings up all forked chains in the superchain registry, if l1BlockHeight is not specified, uses the latest safe head
 
-mocktimism --superchain --l1BlockHeight=423012
+supersim --superchain --l1BlockHeight=423012
 
 // can also specify a subset of members in the superchain
 
-mocktimism --superchain --networks=base,op-mainnet
+supersim --superchain --networks=base,op-mainnet
 ```
 
 config.toml(optional)
