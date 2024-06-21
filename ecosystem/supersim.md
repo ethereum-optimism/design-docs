@@ -120,26 +120,27 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-   subgraph Op-Simulator Interface
-       direction LR
-       A[Instance Status] -->|Checks| A1[Status from Orchestrator]
-      
-       B[RPC Call Interception] -->|Intercepts| B1[eth_sendRawTransaction]
-       B -->|Intercepts| B2[eth_getLog]
-       B -->|Proxies to Anvil| B3[Other RPC Calls]
+  subgraph Op-Simulator Interface
+      direction LR
 
 
-       C[Event Subscription] -->|Subscribes to| C1[Events from Anvil Chains]
-       C1 -->|Determines Interception| B
-      
-       subgraph D[Invariant Checks]
-           D1[Check Interop Message Invariants] -->|If Pass| D2[Pass to Anvil Nodes]
-           D1 -->|If Fail| D3[Send Failure Message to Anvil Instance]
-       end
-      
-       B2 --> D1
-       D2 --> B3
-   end
+      C -->|any other RPC call| D2[call eth_sendRawTransaction \non Anvil]
+
+
+      C[ETH RPC API] -->|eth_sendRawTransaction| C1[Does TX have \n ExecutingMessage?]
+             C1 -->|no| D2
+
+
+      C1 -->|yes| D1
+
+
+    
+          D1[Check Interop Message Invariants] -->|If Pass|D2
+          D1 -->|If Fail| D3[Return TX failed]
+  
+    
+      D2 --> B3[Return result]
+  end
 ```
 
 ### Services
