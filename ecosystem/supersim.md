@@ -67,9 +67,9 @@ The flow of this tool will differ depending on whether the user opts for **vanil
 2. **Forking mode**: 
     a. Orchestrator acquires L1 reference block to get the latest L2 height for forking using l2-fork-state-finder. 
     b. Orchestrator gets appropriate chain configs from the superchain registry using the chain-config-loader.
-    c. Orchestrator starts the requested chains at determined L2 block height
-    d. Orchestrator applies genesis to each chain using the genesis-applier
-    e. Orchestrator starts op-simulator and offers interface between anvil instances and op-simulator
+    c. Orchestrator starts the requested chains at determined L2 block height.
+    d. Orchestrator applies genesis to each chain using the genesis-applier.
+    e. Orchestrator starts op-simulator and offers interface between anvil instances and op-simulator.
     f. Orchestrator monitors status of running local anvil instances.
     
 
@@ -159,7 +159,8 @@ Given the application flow, the following services will be part of supersim:
 3. **Genesis-applier** : The `genesis-applier` takes genesis files output by the monorepo and applies them to anvil instances.
     a. The genesis files needed will differ depending on whether the user is in vanilla or forked mode, and forked mode is unlikely to need anything other than the interop contracts initially. 
     b. Can be multi-step: multiple genesis files can be applied idempotently, particularly in forking mode (when you fork a network that has bedrock contracts but not interop contracts, for instance).
-4. **Chain-config-loader**: Downloads the latest chain config from the superchain registry to allow the orchestrator to apply needed configs to anvil instances.
+    c. Genesis-applier should work as a standalone tool: if a developer is using Anvil outside the context of the orchestrator, they should be able to use genesis-applier to apply genesis state to their instance. In the context of supersim, the `orchestrator` will use the `genesis-applier` to apply the needed genesis state to the anvil instances it is running. 
+4. **Chain-config-loader**: Downloads the latest chain config from the superchain registry to allow the orchestrator to apply needed configs to anvil instances. Should be a standalone tool that works with the orchestrator but could be used directly on local testing nodes. 
 5. **L2-fork-state-finder**: From an L1 reference block, runs an algorithm to identify the latest L2 height derived from the L1 block for each network.
 6. **Op-simulator**: Proxy server in front of anvil instances that simulates op-stack services without the real derivation pipeline.
     a. Simulates deposits by listening to the `optimismPortal` and forwarding deposit txs via `eth_sendRawTransaction`.
@@ -285,11 +286,12 @@ In the interest of working in the open we should apply a TDD approach to develop
 ## Alternatives
 
 1. Use the Optimism devnet instead. Make our documentation for how developers can use it better and point them there when they wish to try out interop locally. While this would technically meet the need to test locally, the devnet is cumbersome at this time and this approach would fail to give developers a magical experience when developing optimism applications. 
-2. Do nothing, and hope application developers cobble together a sufficient solution for their development needs. It is possible that a developer external to OPLabs will build an elegant solution for local testing, but such an approach leaves a lot to chance. By providing tools for developers in our ecosystem, we make it easier for them to contribute.
+2. Do nothing, and hope application developers cobble together a sufficient solution for their development needs. It is possible that a developer external to OPLabs will build an elegant solution for local testing, but such an approach leaves a lot to chance. By providing tools for developers in our ecosystem, we make it easier for them to contribute and get started in the Superchain ecosystem.
 
 ## Risks and Uncertainties
 
-Will OPLabs have the bandwidth to maintain this tool once it is live? If not, how can we be sure we find support for its maintenance in the ecosystem when it is time to do so?
+1. Will OPLabs have the bandwidth to maintain this tool once it is live? If not, how can we be sure we find support for its maintenance in the ecosystem when it is time to do so? 
+2. What metrics can we use to assess success/adoption, and how will we ensure continuous feedback from developers who try this tool?
 
 ## Appendix
 [PRFAQ](https://docs.google.com/document/d/154K98TwgzaHQMQ--7rvGod-WLDsn8XtFBpgO5eGhXYA/edit#heading=h.bdadv42dvm88)
