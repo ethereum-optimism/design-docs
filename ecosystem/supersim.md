@@ -90,7 +90,7 @@ The flow of this tool will differ depending on whether the user opts for **vanil
         iii. Apply button/command
         iv. Configuration details: show detailed information about the selected configuration
 
-2. **Op-simulator** interface checks instance status as served by orchestrator interface and listens for RPC calls that require op-simulator intervention. The purpose of this interface is to intercept RPC calls that should go to the interface rather than to anvil instances directly. This is essentially an internal interface between the orchestrator run anvil nodes and the op-simulator. 
+2. **Op-simulator** interface checks instance status as served by orchestrator interface and listens for RPC calls that require op-simulator intervention. The purpose of this interface is to intercept RPC calls that should go to the interface rather than to anvil instances directly. This is essentially a proxy between the app's RPC calls and the op-simulator. 
 
 ```mermaid
 flowchart TD
