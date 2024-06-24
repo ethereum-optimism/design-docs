@@ -59,38 +59,49 @@ The **orchestrator** is responsible for spinning up the requested number of **an
 
 The flow of this tool will differ depending on whether the user opts for **vanilla** mode or **forking** mode.
 
-1. **Vanilla mode**: 
-    a. Orchestrator has preset chain configs and starts chains anew.
-    b. Orchestrator applies genesis state via the genesis-applier.
-    c. Orchestrator starts op-simulator and offers an interface between anvil instances and op-simulator.
-    d. Orchestrator monitors status of running local anvil instances.
-2. **Forking mode**: 
-    a. Orchestrator acquires L1 reference block to get the latest L2 height for forking using l2-fork-state-finder. 
-    b. Orchestrator gets appropriate chain configs from the superchain registry using the chain-config-loader.
-    c. Orchestrator starts the requested chains at determined L2 block height.
-    d. Orchestrator applies genesis to each chain using the genesis-applier.
-    e. Orchestrator starts op-simulator and offers interface between anvil instances and op-simulator.
-    f. Orchestrator monitors status of running local anvil instances.
+#### Vanilla mode
+
+    1. Orchestrator has preset chain configs and starts chains anew.
+    2. Orchestrator applies genesis state via the genesis-applier.
+    3. Orchestrator starts op-simulator and offers an interface between anvil instances and op-simulator.
+    4. Orchestrator monitors status of running local anvil instances.
+
+#### Forking mode 
+    
+    1. Orchestrator acquires L1 reference block to get the latest L2 height for forking using l2-fork-state-finder. 
+    2. Orchestrator gets appropriate chain configs from the superchain registry using the chain-config-loader.
+    3. Orchestrator starts the requested chains at determined L2 block height.
+    4. Orchestrator applies genesis to each chain using the genesis-applier.
+    5. Orchestrator starts op-simulator and offers interface between anvil instances and op-simulator.
+    6. Orchestrator monitors status of running local anvil instances.
     
 
 ### Interfaces
 
-1. **Orchestrator** interface provides the following to the developer: 
-    a. Instance status
-    b. Event log
-    c. Mode selection
-    d. Control panel (in cli? Some ui option? both?): buttons/commands to start/stop/restart individual instances
-    e. Genesis state interface: could be a long term goal to give devs more control over what they do here. Would offer an interface for applying and managing genesis states: 
+#### Orchestrator interface provides the following to the developer: 
+    
+    1. Instance status
+    2. Event log
+    3. Mode selection
+    4. Control panel (in cli? Some ui option? both?): buttons/commands to start/stop/restart individual instances
+    5. Genesis state interface: could be a long term goal to give devs more control over what they do here. Would offer an interface for applying and managing genesis states: 
+        
         i. File upload: upload genesis files
         ii. Genesis history: list of applied genesis states with timestamps/details
         iii. Apply button/command: apply the selected genesis state to the chosen instances.
-    f. Configuration loader: interface for loading and managing chain configurations from the chain-config-loader. 
+    
+    6. Configuration loader: interface for loading and managing chain configurations from the chain-config-loader. 
+        
         i. Config list: display available configurations from the registry
         ii. Download button/command for the selected configuration
         iii. Apply button/command
         iv. Configuration details: show detailed information about the selected configuration
 
-2. **Op-simulator** interface checks instance status as served by orchestrator interface and listens for RPC calls that require op-simulator intervention. The purpose of this interface is to intercept RPC calls that should go to the interface rather than to anvil instances directly. This is essentially a proxy between the app's RPC calls and the op-simulator. 
+#### Op-simulator interface 
+
+Checks instance status as served by orchestrator interface and listens for RPC calls that require op-simulator intervention. The purpose of this interface is to intercept RPC calls that should go to the interface rather than to anvil instances directly. 
+
+This is essentially a proxy between the app's RPC calls and the op-simulator. 
 
 ```mermaid
 flowchart TD
@@ -148,26 +159,36 @@ flowchart TD
 Given the application flow, the following services will be part of supersim: 
 
 1. **Orchestrator**: This is the main focus and interface for developers using supersim. 
-    a. Runs all of the other services in supersim and manages their lifecycle. 
-    b. Provides an interface to the user
-        i. Initially a static interface.
-        ii. Medium-term, offer an API interface that the orchestrator exposes to make it easier to build new offchain services that hook into the runtime.
+    
+    * Runs all of the other services in supersim and manages their lifecycle
+    * Provides an interface to the user
+    
+        * Initially a static interface.
+        * Medium-term, offer an API interface that the orchestrator exposes to make it easier to build new offchain services that hook into the runtime.
+
 2. **Anvil Instances**: Anvil instances are run by the orchestrator after initial prep work to allow them to mirror the Superchain interop environment.
-    a. Should be run in `--optimism` mode so the extra fields in transactions are there.
-    b. Orchestrator should also run an L1 instance, though L1 withdrawals won’t initially be supported.
-    c. Eventually supersim can be extended to be used with HardHat and other local simulation tools as well.
+
+    * Should be run in `--optimism` mode so the extra fields in transactions are there.
+    * Orchestrator should also run an L1 instance, though L1 withdrawals won’t initially be supported.
+    * Eventually supersim can be extended to be used with HardHat and other local simulation tools as well.
+
 3. **Genesis-applier** : The `genesis-applier` takes genesis files output by the monorepo and applies them to anvil instances.
-    a. The genesis files needed will differ depending on whether the user is in vanilla or forked mode, and forked mode is unlikely to need anything other than the interop contracts initially. 
-    b. Can be multi-step: multiple genesis files can be applied idempotently, particularly in forking mode (when you fork a network that has bedrock contracts but not interop contracts, for instance).
-    c. Genesis-applier should work as a standalone tool: if a developer is using Anvil outside the context of the orchestrator, they should be able to use genesis-applier to apply genesis state to their instance. In the context of supersim, the `orchestrator` will use the `genesis-applier` to apply the needed genesis state to the anvil instances it is running. 
+
+    * The genesis files needed will differ depending on whether the user is in vanilla or forked mode, and forked mode is unlikely to need anything other than the interop contracts initially. 
+    * Can be multi-step: multiple genesis files can be applied idempotently, particularly in forking mode (when you fork a network that has bedrock contracts but not interop contracts, for instance).
+    * Genesis-applier should work as a standalone tool: if a developer is using Anvil outside the context of the orchestrator, they should be able to use genesis-applier to apply genesis state to their instance. In the context of supersim, the `orchestrator` will use the `genesis-applier` to apply the needed genesis state to the anvil instances it is running. 
+
 4. **Chain-config-loader**: Downloads the latest chain config from the superchain registry to allow the orchestrator to apply needed configs to anvil instances. Should be a standalone tool that works with the orchestrator but could be used directly on local testing nodes. 
+
 5. **L2-fork-state-finder**: From an L1 reference block, runs an algorithm to identify the latest L2 height derived from the L1 block for each network.
+
 6. **Op-simulator**: Proxy server in front of anvil instances that simulates op-stack services without the real derivation pipeline.
-    a. Simulates deposits by listening to the `optimismPortal` and forwarding deposit txs via `eth_sendRawTransaction`.
-    b. Implements `eth_sendRawTransaction` and first applies any necessary out-of-protocol validation such as the interop spec variants.
-    c. Calls `eth_getLog` on other chains to fetch event logs for invariant checks.
-    d. All other rpc calls are proxied by the orchestrator to the anvil instances.
-    e. **Withdrawal pathway to Ethereum is not supported** (at least to start)
+
+    * Simulates deposits by listening to the `optimismPortal` and forwarding deposit txs via `eth_sendRawTransaction`.
+    * Implements `eth_sendRawTransaction` and first applies any necessary out-of-protocol validation such as the interop spec variants.
+    * Calls `eth_getLog` on other chains to fetch event logs for invariant checks.
+    * All other rpc calls are proxied by the orchestrator to the anvil instances.
+    * **Withdrawal pathway to Ethereum is not supported** (at least to start)
 
 ### Sequence Diagram
 
