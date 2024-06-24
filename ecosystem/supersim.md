@@ -265,7 +265,7 @@ flowchart TD
 
 ## Testing
 
-In the interest of working in the open we should apply a TDD approach to development. This means we should start off by writing a foundry test script that includes coverage for all the developer actions we intend to support and use this as our main specification. 
+In the interest of working in the open we should apply a TDD approach to development. This means we should start off by writing a test script that includes coverage for all the developer actions we intend to support and use this as our main specification. 
 
 ### Test Cases
 * `test_environment_initialization`: It should verify that multiple Anvil instances can be started and configured correctly.
