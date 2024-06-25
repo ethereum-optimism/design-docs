@@ -8,18 +8,19 @@ This document presents the `SuperchainERC20` Mirror Standard, which enables exis
 
 ## Summary
 
-We discussed different approaches to making existing liquidity interoperable in the [Migrated Liquidity Design Doc](https://github.com/ethereum-optimism/design-docs/pull/35). We introduced the Mirror standard and highlighted it as the simplest solution, as it requires no liquidity migration at all.
+The [Migrated Liquidity Design Doc](https://github.com/ethereum-optimism/design-docs/pull/35) already discussed different approaches to making existing `OptimismMintableERC20` liquidity in L2 interoperable. The Mirror standard was highlighted as the simplest solution, as it requires no liquidity migration at all.
 
-The Mirror approach deploys a new token contract that follows the `ISuperchainERC20` specifications and will work as a double-entry point for an appointed `OptimismMintableERC20`. We must modify the `L2StandardBridge` to enable the Mirror contract to burn and mint the underlying `OptimismMintableERC20` to implement the Mirror.
+The Mirror approach deploys a new token contract that follows the [`ISuperchainERC20` specifications](https://github.com/ethereum-optimism/specs/pull/257) and will work as a double-entry point for an appointed `OptimismMintableERC20`. To implement the Mirror solution, the `L2StandardBridge` should be modified to allow the Mirror contract to burn and mint the underlying `OptimismMintableERC20`.
 
 ## Proposed Design
-
-The proposed design includes a specification on implementing a double-entry point to mirror an existing `OptimismMintableERC20`, as well as approaches to the Factory and `L2StandardBridge`.
 
 ### OptimismMintableERC20 proxiable functions
 
 The following functions will be implemented as simple proxies, that is, by having a mirror call to the appointed `OptimismMintableERC20` token:
 
+- `name()`
+- `symbol()`
+- `decimals()`
 - `totalSupply()`
 - `balanceOf(account)`
 - `transfer(recipient, amount)`
@@ -32,12 +33,20 @@ Approvals functions will be implemented in a conventional way, specific to the c
 - `approve(spender, amount)`
 - `allowance(owner, spender)`
 
+If approvals where proxied, it would be very straightforward to achieve a double spending attack:
+
+1. Alice has a legacy token balance of N and gave Bob an approval for M.
+2. Bob can call `transferFrom()` in the Mirror contract for $\rm min(M,N)$ to his account. This will not update the allowance on the legacy token.
+3. If $N>M$ (Alice still has balance after `L2StandardBridge` burnt $\rm min(M,N)$ tokens), Bob can call `transferFrom()` in legacy an get $\rm min(N-M,M)$ tokens to his account.
+
+For example, if $N>2M$, Bob could get $2M$, i.e. double its allowance.
+
 ### Code sample
 
-Below, we show what the implementation of the mirror contract would look like.
+Below, we show what the implementation of the mirror contract would look like. Notice it follows the `SuperchainERC20` standard, which was presented [here](https://github.com/ethereum-optimism/specs/pull/257).
 
 ```solidity
-contract Mirror is Superc20 {
+contract Mirror is SuperchainERC20 {
   IERC20 public immutable LEGACY_TOKEN;
   IL2StandardBridge public constant L2_STANDARD_BRIDGE = IL2StandardBridge(0x4200000000000000000000000000000000000010);
 
@@ -97,18 +106,28 @@ contract Mirror is Superc20 {
 
 Deploying mirror versions will require introducing a new predeploy for`SuperchainERC20` factory. This factory would accomplish the following:
 
-- Designed to enable same-address deployments across OP Chains.
-- Address predictability for each token, we should know the corresponding Mirror.
-- Simple Factory code.
-- It may serve to create both `SuperchainERC20` standard tokens and mirror versions.
+- Enable same-address deployments across OP Chains.
+- Address predictability: for each `OptimismMintableERC20` token, it should be possible to deduce the corresponding Mirror address.
+- [To Discuss] It may serve to create both `SuperchainERC20` standard tokens and mirror versions.
 
 ### Upgrading `L2StandardBridge`
 
-We must update the `L2StandardBridge` to allow the mirror contract to mint and burn the mirrored legacy token. We can do this by adding a `mirrorMint()` and a `mirrorBurn()` functions that check the mirror is valid for the corresponding legacy token.
+The `L2StandardBridge` should be updated to allow the Mirror contract to mint and burn the mirrored legacy token. We can do this by adding a `mirrorMint()` and a `mirrorBurn()` functions that check the mirror is valid for the corresponding legacy token.
+
+For validation, the `L2StandardBridge` can check if the address of the `msg.sender` (the mirror) corresponds to the correct mirror address deployed by the Mirror factory. In the Mirror factory design, each token is coupled with a single Mirror, so this can be done (see [Limited Mirror Factory](https://github.com/ethereum-optimism/design-docs/pull/37)).
+
+Here's an example code snippet:
+
+```solidity
+function mirrorMint(address _token, uint256 _amount) external {
+	address _mirror = MIRROR_FACTORY.mirrors(_token);
+	if (_mirror != msg.sender) revert();
+	///...mint logic
+}
+```
 
 ## Risks & Uncertainties
 
-1. In this iteration, we have proposed having independent approvals for legacy and mirror token to minimize security risks.
-2. Legacy tokens and mirror tokens will handle their own events. This can lead to confusion in transaction logs and make it difficult for users and third-party services to accurately track token movements. Users might see duplicate or redundant events, which can be misinterpreted.
-3. We need to ensure that `L2StandardBridge` can only grant burn and mint permissions to valid mirror contracts.
-4. Having more than one entry point for a single contract can be a pitfall for developers. They must be aware that the balances can be modified by more than one address.
+1. Legacy tokens and mirror tokens will handle their own events. This can lead to confusion in transaction logs and make it difficult for users and third-party services to accurately track token movements. Users might see duplicate or redundant events, which can be misinterpreted.
+2. It is essential that we have a good method for the `L2StandardBridge` to only grant burn and mint permissions to valid mirror contracts.
+3. Having more than one entry point for a single contract can be a pitfall for developers. They must be aware that the balances can be modified by more than one address.
