@@ -62,24 +62,24 @@ contract MirrorERC20Factory is Semver {
   event MirrorDeployed(address indexed mirror, address indexed token);
 
   constructor() is Semver(1,0,0) {
-	implementation = new MirrorSuperchainERC20();
+    implementation = new MirrorSuperchainERC20();
   }
 
   function deploy(address _token) external returns (address _mirror) {
-	require(_isOptimismMintableERC20(_token), "not OptimismMintableERC20Token");
+    require(_isOptimismMintableERC20(_token), "not OptimismMintableERC20Token");
 
-	bytes memory _creationCode = abi.encodePacked(type(Proxy).creationCode, abi.encode(address(this), _token));
+    bytes memory _creationCode = abi.encodePacked(type(Proxy).creationCode, abi.encode(address(this), _token));
 
-	_mirror = CREATE3.deploy({salt: _token, creationCode: _creationCode, value: 0 });
+    _mirror = CREATE3.deploy({salt: _token, creationCode: _creationCode, value: 0 });
 
-	mirrors[_token] = _mirror;
+    mirrors[_token] = _mirror;
 
-	emit MirrorDeployed(_mirror, _token);
+    emit MirrorDeployed(_mirror, _token);
   }
 
   function _isOptimismMintableERC20(address _token) internal view returns (bool) {
-	return ERC165Checker.supportsInterface(_token, type(ILegacyMintableERC20).interfaceId)
-	|| ERC165Checker.supportsInterface(_token, type(IOptimismMintableERC20).interfaceId);
+    return ERC165Checker.supportsInterface(_token, type(ILegacyMintableERC20).interfaceId)
+    || ERC165Checker.supportsInterface(_token, type(IOptimismMintableERC20).interfaceId);
   } 
 }
 
