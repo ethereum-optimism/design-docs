@@ -1,4 +1,37 @@
-# Introduction - FMA(Failure Modes and Recovery Path Analysis) for Fjord Hardfork
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Fjord Hardfork FMA (Failure Modes and Recovery Path Analysis)](#fjord-hardfork-fma-failure-modes-and-recovery-path-analysis)
+  - [Introduction](#introduction)
+  - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
+    - [Bugs introduced in the L2 contract upgrades](#bugs-introduced-in-the-l2-contract-upgrades)
+    - [Incorrect L1 Data Fee computation](#incorrect-l1-data-fee-computation)
+    - [Failures with RIP-7212 precompile](#failures-with-rip-7212-precompile)
+    - [Brotli Channel Compression](#brotli-channel-compression)
+    - [Max Sequencer Drift update](#max-sequencer-drift-update)
+    - [10x of channel size constants](#10x-of-channel-size-constants)
+    - [Brotli/FastLZ size mismatch exploit](#brotlifastlz-size-mismatch-exploit)
+    - [P256VERIFY is too expensive for Fault Proofs](#p256verify-is-too-expensive-for-fault-proofs)
+    - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
+      - [Chain Halt at Activation](#chain-halt-at-activation)
+      - [Incomplete Activation](#incomplete-activation)
+      - [Hard fork Failure to Activate](#hard-fork-failure-to-activate)
+      - [Invalid `DisputeGameFactory.setImplementation` execution](#invalid-disputegamefactorysetimplementation-execution)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+# Fjord Hardfork FMA (Failure Modes and Recovery Path Analysis)
+
+| | |
+|--------|--------------|
+| Author | Roberto Bayardo, Sebastian Stammler |
+| Created at | 2024-04-19 |
+| Needs Approval From | Matt Solomon |
+| Other Reviewers | Sebastian Stammler, Dragan Zurzin |
+| Status | Final |
+
+## Introduction
 
 This document is intended to be shared in a public space for reviews and visibility purposes. It covers the Fjord superchain upgrade, on a mainnet level, which involves four changes:
 
@@ -20,9 +53,9 @@ Below are references for this project:
     - Impl: https://github.com/ethereum-optimism/optimism/pull/10358
 - Check script confirming correct activation of EL changes: https://github.com/ethereum-optimism/optimism/pull/10578
 
-# **Failure Modes and Recovery Paths**
+## Failure Modes and Recovery Paths
 
-## **Bugs introduced in the L2 contract upgrades**
+### Bugs introduced in the L2 contract upgrades
 
 Fjord introduces changes to the `GasPriceOracle` precompile contract on the L2. As with any contract change, there is the potential for new bugs to be introduced. The contract changes introduced for Fjord are contained primarily in this PR: https://github.com/ethereum-optimism/optimism/pull/9618 (main PR with upgrade txs) and the GPO change in its separate PR https://github.com/ethereum-optimism/optimism/pull/10534
 
@@ -43,7 +76,7 @@ Fjord introduces changes to the `GasPriceOracle` precompile contract on the L2. 
 - **Recovery Path(s)**:  Contracts are upgradable, and if there are any bugs, an emergency deployment of a fixed contract could be scheduled. This will require a multi-sig ceremony for each chain and could take some time.
 
 
-## **Incorrect L1 Data Fee computation**
+### Incorrect L1 Data Fee computation
 
 
 - **Description:** Fjord updates the cost function for computing the L1 data fee of each transaction. If there are bugs in this implementation it could result in inappropriate L1 data fees being charged, either too high (costing users significant fees) or too low (causing revenue loss for chain operators).  Implementation of this change is primarily in [this PR](https://github.com/ethereum-optimism/op-geth/pull/249).
@@ -56,7 +89,7 @@ Fjord introduces changes to the `GasPriceOracle` precompile contract on the L2. 
 
 - **Recovery Path(s)**: Fjord preserves the ability to adjust fee recovery margin via fee scalar and blob fee scalars should we be under or over charging
 
-## Failures with RIP-7212 precompile
+### Failures with RIP-7212 precompile
 
 - **Description:** The 7212 precompile may not get activated properly at the point of the hardfork, or it may be activated properly but there may be bugs in the implementation.
 
@@ -68,7 +101,7 @@ Fjord introduces changes to the `GasPriceOracle` precompile contract on the L2. 
 
 - **Recovery Path(s)**: Because of the low impact, if the precompile fails to activate, the appropriate recovery path would be to attempt to redeploy it in a subsequent hard-fork. If the deployment is buggy, we could discourage its use until we update it in a subsequent hardfork. We could even block transactions that invoke it at the sequencer level if we want to be extra cautious. (Users could still invoke it via forced inclusion, but this would require they first understand why it’s being blocked in the first place.)
 
-## Brotli Channel Compression
+### Brotli Channel Compression
 
 - **Description:** Channel compression currently uses the zlib algorithm, which is fast and works well for small data compression. With the advent of multi-blob batches, we found that Brotli-10 offers significant improvements in compression ratios (10-20% in some cases), motivating its inclusion in the Fjord upgrade. One risk is the brotli compression doesn’t activate to become a valid compression algo and we continue to use zlib after the hardfork.
 
@@ -84,7 +117,7 @@ Fjord introduces changes to the `GasPriceOracle` precompile contract on the L2. 
 
 - **Recovery Path(s)**: Because we’ll continue to allow chain derivation to interpret zlib-compressed batches, an upgraded release (not involving a hardfork) could revert to previous zlib-compression behavior if there are any issues detected with using Brotli.
 
-## Max Sequencer Drift update
+### Max Sequencer Drift update
 
 - **Description:** Max sequencer drift change might introduce unexpected consequences. It may either fail to activate, or use a wrong value. Implementation of this change can be found in [this PR](https://github.com/ethereum-optimism/optimism/pull/10465); it involves simply hardcoding max-sequencer-drift to the desired value and using that value after the upgrade instead of the previous chain-configured parameter. It is raised from the default parameter value of 600 seconds = 10 min to a constant value of 1800 seconds = 30 min.
 
@@ -104,7 +137,7 @@ Fjord introduces changes to the `GasPriceOracle` precompile contract on the L2. 
 
     - If there was an actual L1 outage that lead to unintended rejected or accepted blocks, then the current faulty max sequencer drift rule could probably still be maintained for a while and then fixed in a quick follow-up fork.
 
-## 10x of channel size constants
+### 10x of channel size constants
 
 - **Description:** Two constants related to reading channels from L1 in the derivation pipeline were increased by a factor of 10x, the `MAX_RLP_BYTES_PER_CHANNEL` and `MAX_CHANNEL_BANK_SIZE`. This change is important for chains that run with higher gas limit configurations that would allow single blocks to become larger than the current limit of 10MB for the max rlp size. Specifically if the gas limit is greater than 40 Million, transactions with all zeros in the calldata could create a 10MB block which would exceed the existing limit.
     The only conceivable failure mode is that this change doesn’t properly activate. This would be inconsequential to Ethereum chains, and only affect Alt-DA chains.
@@ -119,7 +152,7 @@ For more detail, feel free to review: https://github.com/ethereum-optimism/optim
 
 - **Recovery Path(s)**: We’d just fix it in a next protocol upgrade. Alt-DA chains wouldn’t be able to include such blocks. A hot-fix could also be implemented on Alt-DA chain sequencers to proactively check the block size while building the block and stop adding txs to the block if its rlp size would go over the max rlp channel size limit. This is possible because *individual* txs cannot be larger than 128KB due to geth gossip limits.
 
-## Brotli/FastLZ size mismatch exploit
+### Brotli/FastLZ size mismatch exploit
 
 - **Description:** If it is possible to create transactions that have a (much) smaller FastLZ size than their actually compressed Brotli size, these transactions would be underpriced by our new cost function.
 
@@ -131,9 +164,21 @@ For more detail, feel free to review: https://github.com/ethereum-optimism/optim
 
 - **Recovery Path(s)**: If this turned out to be a major problem (very unlikely), we can always revert back to zlib compression, which should be closer to FastLZ and then not exhibit this attack surface. If it only affects a small number of transactions, we can ship an improvement to the cost function in the next hardfork and live with a few underpriced transactions in the meantime.
 
-## Generic items we need to take into account:
+### P256VERIFY is too expensive for Fault Proofs
 
-### Chain Halt at Activation
+- **Description:** The introduction of new precompiles always carries a risk of making it too costly for the op-challenger to generate execution traces and fault proofs that contain the precompile.
+
+- **Risk Assessment:** Low. [Based on Cannon performance testing of various precompiles](https://www.notion.so/865e2b86c24a404dbf6f2aa35b94a0eb?pvs=21), including `P256VERIFY`, it’s not costly for offchain Cannon to generate fault proofs. The gas schedule correctly reflects the offchain costs of `P256VERIFY` traces*.* There aren’t known adversarial inputs to `P256VERIFY` that would induce an unexpectedly long Cannon execution trace.
+
+- **Mitigations:** [Cannon precompile performance testing](https://www.notion.so/865e2b86c24a404dbf6f2aa35b94a0eb?pvs=21) show that it’s relatively, compared to existing precompiles, inexpensive to generate traces of `P256VERIFY` operations.
+
+- **Detection:** The op-challenger will be slower in responding to games and may ultimately lose dispute games. op-dispute-mon contains metrics that are configured to page proofs-squad and security on either case.
+
+- **Recovery Path(s)**:
+
+### Generic items we need to take into account:
+
+#### Chain Halt at Activation
 
 - **Description:** Most hard forks have risk of bugs that cause chain halts at activation time, and this hard fork is no exception.
 
@@ -151,7 +196,7 @@ For more detail, feel free to review: https://github.com/ethereum-optimism/optim
 
     - It should be noted that we already prepared for this generic scenario for Ecotone, so we can use the same preparations, which we already practiced.
 
-### Incomplete Activation
+#### Incomplete Activation
 
 - **Description:** The upgrade may take place but some steps may fail leaving the upgrade in a partial state. For example the contracts could get upgraded but the new cost function might not be applied, or the rest of the functionality upgrades but the contract deployments fail.
 
@@ -169,7 +214,7 @@ For more detail, feel free to review: https://github.com/ethereum-optimism/optim
 
         - if it’s critical, we can initiate the same rollback as described above → same downtime as above
 
-### Hard fork Failure to Activate
+#### Hard fork Failure to Activate
 
 - **Description:** The upgrade may be misconfigured and fail to take place.
 
@@ -178,5 +223,21 @@ For more detail, feel free to review: https://github.com/ethereum-optimism/optim
 - **Mitigations:** End to end testing, and making sure the upgrade works properly and at the right time on our devnets and testnest. The end to end testing consists of all the tests in the `op-e2e` folder that were added as part of the implementation PRs.
 
 - **Detection:** We can easily see if the L2 contracts were upgraded as expected by trying to invoke their new read methods such as reading the blob base fee parameter from the gas price oracle.
+
+- **Recovery Path(s)**: Reschedule upgrade, possibly releasing new binary though without immediate urgency.
+
+#### Invalid `DisputeGameFactory.setImplementation` execution
+
+- **Description:** This occurs when either the call to the `DisputeGameFactory` could not be made due to grossly unfavorable base fees on L1, an invalidly approved safe nonce, or a successful execution to a misconfigured dispute game implementation.
+
+- **Risk Assessment:**
+    - Low likelihood. The low likelihood is a result of tenderly simulation testing of safe transactions, code review of the upgrade playbook, and manual review of the dispute game implementations (which are deployed on mainnet and specified in the governance proposal so they may be reviewed).
+    - High impact as Fault proofs remains incompatible with Fjord which would brick new bridge withdrawals. If we did nothing, i.e. ignored dispute-mon alerts and did not apply the FP recovery runbook, then an attacker would be able to steal the bonds of “honest” challengers that have upgraded their op-program to Fjord by using the ecotone fork chain to generate a fault proof. In this scenario, the attacker would be unable to steal funds from the bridge so long as there exists an honest challenger that is configured to generate ecotone execution traces. That said, the actual impact would be equivalent to [FP recovery](https://www.notion.so/8dad0f1e6d4644c281b0e946c89f345f?pvs=21) as it would trigger the runbook, where we would have the opportunity to use overrides to recover the system.
+
+- **Mitigations:** There are two cases:
+    - If the safe transaction couldn’t be successfully executed, then: Revert `OptimismPortal` to use the permissioned fault dispute game as its respected game type. Depending on how much time till the upgrade, a superchain pause would be needed in order to gather necessary the signatures to change the `OptimismPortal`.
+    - If the game implementation was misconfigured and this was detected prior to Fjord activation, then do the above. If detection occurs post-Fjord, then follow the [Fault Proofs Recovery Runbook](https://www.notion.so/8dad0f1e6d4644c281b0e946c89f345f?pvs=21).
+
+- **Detection:** An un-executed safe transaction is easily detectable. In the case of a misconfigured game implementation, the op-dispute-mon will alert proofs-squad and security on any attempt to exploit this misconfiguration.
 
 - **Recovery Path(s)**: Reschedule upgrade, possibly releasing new binary though without immediate urgency.
