@@ -174,9 +174,7 @@ For more detail, feel free to review: https://github.com/ethereum-optimism/optim
 
 - **Detection:** The op-challenger will be slower in responding to games and may ultimately lose dispute games. op-dispute-mon contains metrics that are configured to page proofs-squad and security on either case.
 
-- **Recovery Path(s)**:
-
-Several recovery options are available, depending on the severity of the problem. These options, listed in order of increasing severity, include:
+- **Recovery Path(s)**: Several recovery options are available, depending on the severity of the problem. These options, listed in order of increasing severity, include:
 
 1. Blacklisting problematic games, if and only if the issue affects a limited number of games.
 1. Increasing the op-challenger compute resources. Generating such traces is CPU-bound and may be alleviated with more computational power.
