@@ -176,6 +176,15 @@ For more detail, feel free to review: https://github.com/ethereum-optimism/optim
 
 - **Recovery Path(s)**:
 
+Several recovery options are available, depending on the severity of the problem. These options, listed in order of increasing severity, include:
+
+1. Blacklisting problematic games, if and only if the issue affects a limited number of games.
+1. Increasing the op-challenger compute resources. Generating such traces is CPU-bound and may be alleviated with more computational power.
+1. If the above measures prove ineffective, upgrading the system to use the `PermissionedDisputeGame` as the respected game type. This should be implemented if there's sufficient time for the Guardian to execute the upgrade.
+1. As a last resort, if time is critically limited, executing the pre-signed pause.
+
+Each option should be considered carefully, with the least disruptive solution attempted first before escalating to more severe measures. Ultimately, the pre-signed pause must be executed if there is not ample time available for the other recovery options.
+
 ### Generic items we need to take into account:
 
 #### Chain Halt at Activation
