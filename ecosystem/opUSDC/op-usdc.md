@@ -13,7 +13,7 @@ This implementation of OpUSDC for the OP Stack allows for:
 - Leverage from the OP Stack security model used.
 - Enabling a chain operator to coordinate with Circle to upgrade into native USDC.
 
-In the end, the goal is to provide a secure pathway for Circle's participation in any OP Chain ecosystem, which favors [Cross-Chain Transfer Protocol (CCTP)](https://www.notion.so/CCTP-USDC-d464d146ce244502af760a9b9e4765f4?pvs=21) integration and [other benefits](https://www.circle.com/blog/bridged-usdc-standard) once the migration is completed.
+In the end, the goal is to provide a secure pathway for Circle's participation in any OP Chain ecosystem, which favors [Cross-Chain Transfer Protocol (CCTP)](https://developers.circle.com/stablecoins/docs/cctp-getting-started) integration and [other benefits](https://www.circle.com/blog/bridged-usdc-standard) once the migration is completed.
 
 # Problem Statement + Context
 
