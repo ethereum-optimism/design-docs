@@ -217,43 +217,50 @@ API implementation:
 
 By clipping using `maxNumber` the op-node is able to verify the returned `cross-unsafe`, and not accept it if it's non-canonical, and optionally query for older cross-unsafe blocks to try to bump to.
 
-### `TryCrossSafe`
+### `NextDeriveTask`, `OnDerived`, `CrossSafe`
 
 ```go
-type CrossSafeStatus string
-
-const (
-	CrossSafeAccept CrossSafeStatus = "accept"
-	CrossSafeUnknown CrossSafeStatus = "unknown"
-	CrossSafeInvalid CrossSafeStatus = "invalid"
-)
-
 type RPC interface {
-    TryCrossSafe(chainID types.ChainID, localSafe eth.BlockID, derivedFrom eth.BlockID) (crossSafe eth.BlockID, err error)
+	
+	// Returns where the next L2 block has to be derived from. 
+	NextDeriveTask(chainID types.ChainID) (parentL2 eth.BlockID, depositOnly bool, l1 eth.BlockID) error
+
+	// Signals what has been derived, considered to be local-safe in op-node.
+	OnDerived(chainID types.ChainID, derived eth.BlockID, parentL2 eth.BlockID, depositOnly bool, l1 eth.BlockID) error
+
+	// CrossSafe returns the cross-safe block, and where in L1 traversal it was recognized as cross-safe. 
+	CrossSafe(chainID types.ChainID, l1Number uint64) (crossSafe eth.BlockID, derivedFrom eth.BlockID, error)
 }
 ```
-`TryCrossSafe`:
-    1. The tip of the `super-safe-db` is checked against L1, to be canonical.
-        - Rewind if not canonical.
-        - This may be skipped if the L1 chain was recently checked already.
-    2. The `derivedFrom` is checked against the `super-safe-db`.
-        - If it is `<=` the current tip:
-            - If it is canonical: 
-                1. Find the latest `crossSafe` for the `chainID` that is `<=` to the input `localSafe`.
-                2. Return this to the op-node. The op-node will be able to verify whether the result is canonical, and accept it as new cross-safe, promoting the safety-level of part of its L2 chain.
-                    - TODO: need to also return current state of local-safe, to catch invalid executing message in `localSafe` situation.
-            - If it is non-canonical: wrong L1 view, return error.
-        - If it is just on top of the current tip:
-            - Buffer the data
-                - The op-supervisor needs to append a new `super-safe-db` entry,
-                    after having collected data from every L2 chain.
-            - Return an error, the op-node should retry later.
-        - If further ahead:
-            - Return a reset error, since we need the op-node to produce older derived-from information.
-                - the op-node has to change L1 view.
-                - the op-supervisor has to change L1 view.
+`NextDeriveTask`: Given the chainID, check if we have a local-safe block that builds on top of the latest cross-unsafe.
+- If we do not have such block, then create the task to derive one:
+  - `{parentL2: latestCrossSafe, depositOnly: false, l1: l1OfLatestCrossSafe}`
+- If we do, then determine if the local-safe block has been verified:
+  1. Check if all dependencies are:
+    - known
+    - cross-safe if previous height
+    - local-safe if same height
+    - have valid intra-block dependencies if same height
+  2. If unknowns, then return error to defer the task till later.
+  3. If invalid dependencies, then create a task to replace the block:
+    - `{parentL2: latestCrossSafe, depositOnly: true, l1: l1OfLatestCrossSafe}`
 
-TODO: we need to make `TryCrossSafe` more robust. The main direction to explore is to make the op-node run derivation based on where the supervisor says it needs data, rather than trying to push things from the op-node to the supervisor at seemingly arbitrary times, to avoid difficult synchronization issues.
+`OnDerived`: the op-node signals the result of a previous `NextDeriveTask`:
+- If `parentL2`, `depositOnly`, `l1` match the current task:
+    1. Accept it, and merge it into the `super-safe-db` head entry.
+    2. The head-entry should be flushed to the DB, and tasks should be updated, once every L2 chain has been seen.
+       - TODO: multiple L2 blocks from the same L1 block. We need some way to report exhaustion of a L1 block.
+       - TODO: there may not be any L2 blocks derived from the L1 block. Can repeat parentL2 as "derived" in that case maybe?
+- If it does not match the task, then heck if it matches a past entry.
+  - If it does, silently accept the result. There may be multiple op-nodes running the same tasks.
+  - If it does not, then return an error. The op-node will need to adjust to the latest task.
+
+Note that the op-node can ignore reporting task-results,
+if the `CrossSafe()` is canonical to its view, and ahead of where the op-node is.
+
+`CrossSafe`: returns the current cross-safe block, at the time of `l1Number` L1 block number.
+The op-node should check if the return L1-block is canonical before accepting the result.
+
 
 ### `TryFinalize`
 
@@ -272,11 +279,19 @@ type RPC interface {
 - Track `cross-unsafe` as new safety-level in the `EngineController`, similar to pseudo-levels like `backup-unsafe-reorg`, and `pending-safe`.
 - Modify the `engine` payload-processing step to not immediately mark a derived-from-L1 block as `safe`, but rather emit an event that indicates the `unsafe` block was derived and ready to promote. Don’t emit the pending-safe update immediately either.
 - Add new Interop event-deriver.
-    - Monitor for what used to be the promote unsafe→safe event. If pre-interop fork, immediately promote it, no checks. If post-interop fork, check the op-supervisor, with the `TryCrossSafe` RPC.
-        - If the supervisor RPC call itself fails, we can return an error, and with some backoff, retry (by requesting the latest promotion-ready block from the engine)
-        - If the supervisor indicates a `crossSafe` block, then verify the block, and promote it.
-        - TODO: more response handling, depending on API design.
-    - Replace finalizer deriver, to simply take the L1 finality signal, forward it to the supervisor, and get back a signal what to finalize on the L2 accordingly. If the L1 finalization signal is too new, that’s ok, eventually we’ll have recent data, or we can pass an older L1 block as input to the supervisor, to get an older L2 block to finalize.
+    - Monitor the derive tasks of the super-visor with `NextDeriveTask(...)`
+      - Perform the tasks, report results with `OnDerived(...)`
+    - Poll `CrossSafe(...)` for cross-safe changes.
+    - Replace finalizer deriver, to simply take the L1 finality signal, forward it to the supervisor,
+      and get back a signal what to finalize on the L2 accordingly.
+      If the L1 finalization signal is too new, that’s ok, eventually we’ll have recent data,
+      or we can pass an older L1 block as input to the supervisor, to get an older L2 block to finalize.
+
+TODO:
+- We could add a mode to `op-node` where it ignores the derivation tasks,
+  and just takes `CrossSafe` to find a recent sync-target, and then trigger engine-sync with that.
+- We could expose a public `CrossSafe` endpoint, without the `NextDeriveTask`, `OnDerived`,
+  for low-resource users / replicas to have something trusted to maintain a safety view with.
 
 ### op-geth safety
 
