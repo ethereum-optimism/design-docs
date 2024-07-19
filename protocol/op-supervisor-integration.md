@@ -60,8 +60,6 @@ The solution consists of 3 parts:
 
 ### Primary key
 
-Unlike the previous local "safe-db", we use the superchain timestamp, not the L1, as primary key.
-
 With L1 block number as primary key:
 
 - Key-space may leave gaps in L2 blockhashes
