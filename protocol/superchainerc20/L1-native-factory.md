@@ -83,9 +83,9 @@ that maps each L1 address to the `DeploymentData` struct
 ```solidity
 struct DeploymentData {
 	address superchainERC20;
+	uint8 decimals;
 	string name;
 	string symbol;
-	uint8 decimals;
 }
 ```
 
@@ -104,22 +104,21 @@ contract SuperchainERC20Factory is Semver {
 	// address of superchainERC20 can be packed with decimals to save a slot
 	struct DeploymentData {
     address superchainERC20;
+    uint8 decimals;
     string name;
     string symbol;
-    uint8 decimals;
   }
 
   mapping(address => DeploymentData) public deploymentsData;
 
   event SuperchainERC20Deployed(address indexed superchainERC20, address indexed l1Token, string name, string symbol, uint8 decimals);
-  error AlreadyDeployed(address l1Token);
 
   constructor() Semver(1, 0, 0) {}
 
 	// This function can be called from L1 or L2. A real implementation would probably move the
 	// deployment logic to an internal function and split deploy() into deployFromL1() and deployFromL2()
 	// external functions to minimize branching.
-  function deploy(address _remoteToken, string memory _name, string memory _symbol, uint8 _decimals) external returns (address _superchainERC20) {
+  function deploy(address _remoteToken, uint8 _decimals, string memory _name, string memory _symbol) external returns (address _superchainERC20) {
     if (msg.sender == Predeploys.L2CrossChainMessenger) {
         require(IL2CrossChainMessenger(Predeploys.L2CrossChainMessenger).xDomainMessageSender() == NATIVE_INITIALIZER, "Invalid initializer");
     } else if (msg.sender == Predeploys.L2ToL2CrossDomainMessenger) {
@@ -127,36 +126,31 @@ contract SuperchainERC20Factory is Semver {
     } else {
         revert("Unauthorized caller");
     }
-		// Revert if the deployment already exists
-    if (deployments[_remoteToken] != address(0)) {
-      revert AlreadyDeployed(_remoteToken);
-    }
+
+    require(deployments[_remoteToken] == address(0), "Token already deployed");
 
     // Encode the BeaconProxy creation code with the beacon contract address and metadata
     // [To discuss] It is possible to deploy with a string.concat 'SUPER' or 's' before the name
     bytes memory _creationCode = abi.encodePacked(
         type(BeaconProxy).creationCode,
-        abi.encode(Predeploy.SuperchainBeacon, abi.encode(_remoteToken, _name, _symbol, _decimals))
+        abi.encode(Predeploy.SuperchainBeacon, abi.encode(_remoteToken, _decimals, _name, _symbol))
     );
 
-    // Use CREATE3 for deterministic deployment
     bytes32 salt = keccak256(abi.encode(_remoteToken));
     _superchainERC20 = CREATE3.deploy(salt, _creationCode);
 
-		// Store superchainERC20 address and metadata
-    deploymentsData[_remoteToken] = DeploymentsData(_superchainERC20, _name, _symbol, _decimals);
+    deploymentsData[_remoteToken] = DeploymentsData(_superchainERC20, _decimals, _name, _symbol);
 
-    emit SuperchainERC20Deployed(_superchainERC20, _remoteToken, _name, _symbol, _decimals);
+    emit SuperchainERC20Deployed(_superchainERC20, _remoteToken, _decimals, _name, _symbol);
   }
 
 	// discuss having an array of chainIds and a for
   function deployWithMetadata(address _remoteToken, uint256 _chainId) external {
-    DeploymentData memory _deploymentsData = deploymentsData[_remoteToken];
-    require(bytes(_deploymentsData.name).length > 0, "Metadata not found");
+    DeploymentData storage _metadata = deploymentsData[_remoteToken];
+    require(_metadata.superchainERC20 != address(0), "Token has not been deployed yet");
 
-    bytes memory _message = abi.encodeCall(this.deploy, (_remoteToken, metadata.name, metadata.symbol, metadata.decimals));
-		// TODO: check min gas
-    IL2toL2CrossDomainMessenger(Predeploys.L2ToL2CrossDomainMessenger).sendMessage(address(this), _message, MIN_GAS_LIMIT);
+    bytes memory _message = abi.encodeCall(this.deploy, (_remoteToken, _metadata.decimals, _metadata.name, _metadata.symbol));
+    IL2toL2CrossDomainMessenger(Predeploys.L2ToL2CrossDomainMessenger).sendMessage({destination: _chainId, target: address(this), message: _message});
   }
 }
 ```
