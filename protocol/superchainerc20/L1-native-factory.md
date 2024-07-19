@@ -101,7 +101,9 @@ Will follow the [`Proxy.sol` implementation](https://github.com/ethereum-optimis
 contract SuperchainERC20Factory is Semver {
   address public constant NATIVE_INITIALIZER = 0x0...;
 
-  // address of superchainERC20 can be packed with decimals to save a slot
+  // address of superchainERC20 is packed with decimals to save a slot
+  // alternative order would be to have superchainERC20 at the end, and follow the name, symbol, decimal order
+  // of ERC20
   struct DeploymentData {
     address superchainERC20;
     uint8 decimals;
@@ -111,7 +113,7 @@ contract SuperchainERC20Factory is Semver {
 
   mapping(address => DeploymentData) public deploymentsData;
 
-  event SuperchainERC20Deployed(address indexed superchainERC20, address indexed l1Token, string name, string symbol, uint8 decimals);
+  event SuperchainERC20Deployed(address indexed superchainERC20, address indexed remoteToken, uint8 decimals, string name, string symbol);
 
   constructor() Semver(1, 0, 0) {}
 
