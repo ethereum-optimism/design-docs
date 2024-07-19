@@ -82,10 +82,10 @@ that maps each L1 address to the `DeploymentData` struct
 
 ```solidity
 struct DeploymentData {
-	address superchainERC20;
-	uint8 decimals;
-	string name;
-	string symbol;
+  address superchainERC20;
+  uint8 decimals;
+  string name;
+  string symbol;
 }
 ```
 
@@ -101,8 +101,8 @@ Will follow the [`Proxy.sol` implementation](https://github.com/ethereum-optimis
 contract SuperchainERC20Factory is Semver {
   address public constant NATIVE_INITIALIZER = 0x0...;
 
-	// address of superchainERC20 can be packed with decimals to save a slot
-	struct DeploymentData {
+  // address of superchainERC20 can be packed with decimals to save a slot
+  struct DeploymentData {
     address superchainERC20;
     uint8 decimals;
     string name;
@@ -115,9 +115,9 @@ contract SuperchainERC20Factory is Semver {
 
   constructor() Semver(1, 0, 0) {}
 
-	// This function can be called from L1 or L2. A real implementation would probably move the
-	// deployment logic to an internal function and split deploy() into deployFromL1() and deployFromL2()
-	// external functions to minimize branching.
+  // This function can be called from L1 or L2. A real implementation would probably move the
+  // deployment logic to an internal function and split deploy() into deployFromL1() and deployFromL2()
+  // external functions to minimize branching.
   function deploy(address _remoteToken, uint8 _decimals, string memory _name, string memory _symbol) external returns (address _superchainERC20) {
     if (msg.sender == Predeploys.L2CrossChainMessenger) {
         require(IL2CrossChainMessenger(Predeploys.L2CrossChainMessenger).xDomainMessageSender() == NATIVE_INITIALIZER, "Invalid initializer");
@@ -144,7 +144,7 @@ contract SuperchainERC20Factory is Semver {
     emit SuperchainERC20Deployed(_superchainERC20, _remoteToken, _decimals, _name, _symbol);
   }
 
-	// discuss having an array of chainIds and a for
+  // discuss having an array of chainIds and a for
   function deployWithMetadata(address _remoteToken, uint256 _chainId) external {
     DeploymentData storage _metadata = deploymentsData[_remoteToken];
     require(_metadata.superchainERC20 != address(0), "Token has not been deployed yet");
