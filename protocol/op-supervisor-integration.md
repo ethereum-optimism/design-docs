@@ -196,7 +196,7 @@ API implementation:
     - If the entry is not yet known, return an `unknown` safety level.
 
 
-### `TryCrossUnsafe`
+### `GetCrossUnsafe`
 
 ```go
 type RPC interface {
