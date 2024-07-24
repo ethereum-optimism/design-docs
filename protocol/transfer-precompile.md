@@ -2,10 +2,10 @@
 
 Since its inception, the Celo blockchain provides a feature called "[Token
 Duality](https://specs.celo.org/token_duality.html)", which allows the native
-token to be used both in the usual ETH-like way and as ERC-20 token.
+token to be used both in the usual ETH-like way and as an ERC-20 token.
 
 We would like to bring this feature to more OP-Stack based chains and bring the
-Celo L2 closer to vanilla OP-stack by adding the transfer precompile to
+Celo L2 closer to vanilla OP-stack by adding the underlying transfer precompile to
 op-geth.
 
 # Summary
@@ -25,23 +25,23 @@ annoying and incurs additional gas charges.
 
 This can be solved by having a contract that provides an ERC-20 interface
 directly to the native token. To implement such a contract, the blockchain must
-provide a way to transfer native tokens on behalf of the tx sender.
+provide a way to transfer native tokens on behalf of the transaction sender.
 
 # Proposed Solution
 
-Add one new blockchain parameter `TransferPrecompileAllowed` and a new precompile.
+Add one new blockchain parameter `TransferPrecompileAllowedCaller` and a new precompile.
 The parameter defines the address from which the precompile must be called.
 
 Precompile name: `transfer`  
 Precompile address: 0x0000000000000000000000000000000000000101 (directly after the `P256VERIFY` precompile from Fjord)  
 Parameters (abi-encoded): `address from, address to, uint256 value`  
 Gas costs: 9000  
-Result: `value` native tokes will be transferred from `from` to `to`.  
+Result: `value` native tokens will be transferred from `from` to `to`.  
 No return value  
 
 The precompile can fail for the following reasons:
-* `TransferPrecompileAllowed` is not configured for the blockchain
-* It is not called from the contract at the `TransferPrecompileAllowed` address
+* `TransferPrecompileAllowedCaller` is not configured for the blockchain
+* It is not called from the contract at the `TransferPrecompileAllowedCaller` address
 * The `from` address has less than `value` native tokens
 * The input is not exactly 96 bytes long
 * The input parameters can't be parsed correctly
@@ -66,12 +66,12 @@ There, the caller is set to the contract doing `TRANSFER.call`.
 
 # Risks & Uncertainties
 
-* The privileged contract at `TransferPrecompileAllowed` can execute arbitrary transfers, so it must be a well known and safe contract.
+* The privileged contract at `TransferPrecompileAllowedCaller` can execute arbitrary transfers, so it must be a well known and safe contract.
 * Like all precompiles, it must be added as part of a hardfork.
 
 # Open questions
-* Where is the right place for the `TransferPrecompileAllowed` configuration? Should it be part of `OptimismConfig`?
-* If `TransferPrecompileAllowed` is not configured, is it ok to have the precompile, although it will always revert? Or would it be better to remove it from the list of active precompiles?
+* Where is the right place for the `TransferPrecompileAllowedCaller` configuration? Should it be part of `OptimismConfig`?
+* If `TransferPrecompileAllowedCaller` is not configured, is it ok to have the precompile, although it will always revert? Or would it be better to remove it from the list of active precompiles?
 
 # History
 
