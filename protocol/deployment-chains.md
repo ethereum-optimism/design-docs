@@ -73,7 +73,7 @@ deploy config.
 As an op-e2e test suite, I need to:
 - Customize the deploy-config deeply, including L1 parameters and upgrade parameters, to cover all functionality.
 - Create multiple L2s with a shared L1 (to go from isolated L2s to interoperating L2s through interop hardfork).
-- Create multiple L2s with a shared L1 and shared superchain (to test interop without emulating hardfork first).
+- Create multiple L2s with a shared L1 and shared superchain L1 contracts, like a shared SuperchainConfig and ProtocolVersions contract, and implementations list (to test interop without emulating hardfork first).
 
 ### Devnet needs
 
