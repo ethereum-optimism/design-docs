@@ -53,7 +53,7 @@ including Interop parameters specifically.
 
 Specs: https://specs.optimism.io/experimental/op-stack-manager.html
 
-Older implementatipn draft: https://github.com/ethereum-optimism/optimism/pull/9985
+Older implementation draft: https://github.com/ethereum-optimism/optimism/pull/9985
 
 The OP-Stack manager focuses on making the deployment of the L1 contracts of an L2 chain deterministic,
 by deploying proxies to deterministic addresses (salt = chainID),
