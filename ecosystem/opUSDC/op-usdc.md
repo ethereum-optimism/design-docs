@@ -45,8 +45,8 @@ There are four main pieces:
 
 - `BridgedUSDC`: An upgradable contract that implements the Bridged USDC token standard.
 - `L1OpUSDCFactory`: A factory on L1 that implements cross-chain deployment logic.
-- `L1OpUSDCBridgeAdapter`: The bridge contract that locks and secures USDC. It is also responsible for triggering the migration and properly burning the USDC amount once it is completed.
-- `L2OpUSDCBridgeAdapter`: The bridge contract capable of minting and burning `BridgedUSDC` on the L2 side.
+- `L1OpUSDCBridgeAdapter`: An upgradeable bridge contract that locks and secures USDC. It is also responsible for triggering the migration and properly burning the USDC amount once it is completed.
+- `L2OpUSDCBridgeAdapter`: An upgradeable bridge contract capable of minting and burning `BridgedUSDC` on the L2 side.
 
 ## Flows
 
@@ -56,11 +56,12 @@ Recreation of the flows for each stage of the implementation of this design.
 
 Obtaining the factory, adapters, and bridged token involves the following steps:
 
-1. Anyone deploy the `L1OpUSDCFactory`. 
-2. The chain operator initializes deployment by calling the contract, which will:
-    1. Deploy the `L1OpUSDCBridgeAdapter`.
+1. Anyone deploy the `L1OpUSDCFactory`.
+2. The chain operator deploys the Bridged USDC implementation on the L2 of his choice.
+3. The chain operator initializes deployment by calling the  `L1OpUSDCFactory` contract, which will:
+    1. Deploy the `L1OpUSDCBridgeAdapter` and its proxy on L1.
     2. Call the `CrossDomainMessenger` with the deployment calldata.
-    3. Use the calldata to deploy and set up the L2 contracts: `L2OpUSDCBridgeAdapter`, and both the proxy and implementation for `BridgedUSDC`.
+    3. Use the calldata to deploy and set up the L2 contracts: `L2OpUSDCBridgeAdapter` and its proxy, and the proxy for the `BridgedUSDC` implementation which will point to the implementation deployed in step 2.
 
 Once everything is set, the adapters are ready to transfer USDC between domains.
 
@@ -72,7 +73,7 @@ For an user to make a deposit, the process remains as simple as follows:
 2. Users proceed to deposit USDC by calling the contract.
 3. The `L1OpUSDCBridgeAdapter` sends the message to the appointed `CrossDomainMessenger`.
 4. The sequencer is digested and included by the sequencer.
-5. The `L1OpUSDCBridgeAdapter` mints the specified amount of `bridgedUSDC` to the user.
+5. The `L2OpUSDCBridgeAdapter` mints the specified amount of `bridgedUSDC` to the user.
 
 Similarly, for withdrawals:
 
@@ -100,10 +101,10 @@ By doing so, Circle is fully onboarded in the OP Chain, and the old system is de
 
 ### **Additional aspects**
 
-- Anyone can deploy an `L1OpUSDCFactory`, but only one is needed since it is permissionless and immutable. Additionally, it will return the deployment addresses when the `deploy` function is called.
-- `L1OpUSDCBridgeAdapter` and `L2OpUSDCBridgeAdapter` are not upgradable.
+- Anyone can deploy an `L1OpUSDCFactory`, but only one is needed since it is permissionless and immutable. Additionally, it will return the deployment addresses when the `deploy` function is called, and will also emit an event with the addresses.
+- `L1OpUSDCBridgeAdapter` and `L2OpUSDCBridgeAdapter` are upgradable.
 - Once the migration process starts, it is irreversible.
-- In case of a failed transaction on L2 during migration, the`migrateToNative` function will remain open, allowing the executor to retry if needed.
+- In case of a failed transaction on L2 during migration, the `migrateToNative` function will remain open, allowing the executor to retry if needed.
 - Liability remains solely on each chain operator during the implementation until the migration process is completed.
 
 # Challenges ahead
