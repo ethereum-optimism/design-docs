@@ -130,7 +130,7 @@ contract OptimismSuperchainERC20Beacon is IBeacon {
 The implementation should include
 
 - An `initialize` function that takes `(address _remoteToken, string _name, string _symbol, uint8 decimals)` and stores these in the storage of the BeaconProxy.
-- A function to reinitialize after an upgrade.
+- A function to reinitialize after proxy deployments or upgrades.
 
 ## User Stories
 
