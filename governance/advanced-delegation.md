@@ -1,6 +1,6 @@
 # Purpose
 
-This design document aims to provide an overview and explanation of a hook-based integration between the [GovernanceToken](https://github.com/ethereum-optimism/specs/blob/main/specs/governance/gov-token.md) and the [GovernanceDelegation](https://github.com/ethereum-optimism/specs/blob/main/specs/experimental/gov-delegation.md) contract to enable advanced delegation functionality natively. The purpose is to understand how it will enable relative and absolute partial delegation of voting power among multiple delegatees.
+This design document aims to provide an overview and explanation of a hook-based integration between the [GovernanceToken](https://github.com/ethereum-optimism/specs/blob/main/specs/governance/gov-token.md) and the [GovernanceDelegation](https://github.com/ethereum-optimism/specs/blob/main/specs/experimental/gov-delegation.md) contract to enable advanced delegation functionality natively. The purpose is to understand how it will enable relative and absolute partial delegation of voting power among multiple delegates.
 
 # Summary
 
@@ -8,7 +8,7 @@ The proposed feature will introduce a hook-based integration between the `Govern
 
 # Problem Statement + Context
 
-Advanced delegation, which mainly includes relative and absolute partial delegations, is a superset of basic delegation. Partial delegation allows delegators to distribute their voting power among multiple delegatees in a fractional manner.
+Advanced delegation, which mainly includes relative and absolute partial delegations, is a superset of basic delegation. Partial delegation allows delegators to distribute their voting power among multiple delegates in a fractional manner.
 
 Currently, delegators have to use the `GovernanceDelegation` contract separately from the `GovernanceToken` to access advanced delegation features. This separation of contracts complicates integration for indexers and front-end clients, as they need to track events and interact with both contracts. It also poses challenges for future interoperability plans. To streamline the delegation experience and reduce complexity, a hook-based integration between the `GovernanceToken` and the `GovernanceDelegation` is proposed, consolidating the delegation logic and state into the `GovernanceDelegation`.
 
@@ -30,16 +30,16 @@ To avoid state fragmentation, all delegation-related state from the `GovernanceT
 
 Backwards compatibility is maintained by updating the basic delegation functions in the `GovernanceToken` to forward the calls to the `GovernanceDelegation`. As advanced delegation allows for basic delegation, functions like `delegate` and `delegateBySig` in the `GovernanceToken` can be modified to use an advanced delegation rule that mimics basic delegation, and forward it to `GovernanceDelegation`'s delegate function. This approach ensures that the Governor contract implementation will not require any changes.
 
-Last but not least, the `GovernanceDelegation` should be incorporated as a predeploy of the OP stack to avoid manual deployments across the Superchain.
+Last but not least, the `GovernanceDelegation` should be incorporated as a predeploy of the OP stack to avoid manual deployments across the superchain.
 
 ## Invariants
 
 The implementation should maintain the following invariants:
 
 1. **Delegation existence**: Every delegation in the `GovernanceDelegation` must be defined as an advanced delegation.
-2. **Circular delegation prevention**: The `GovernanceDelegation` contract should prevent circular delegation chains. A delegator `from` cannot delegate to a delegatee `to` if `to` is already part of the delegation chain starting from `from`.
+2. **Circular delegation prevention**: The `GovernanceDelegation` contract should prevent circular delegation chains. A delegator `from` cannot delegate to a delegate `to` if `to` is already part of the delegation chain starting from `from`.
 3. **Vote weight consistency**: For relative partial delegations, the sum of the basis points should not exceed 100%. For absolute partial delegations, the sum of the votes should not exceed the voting power of the delegator.
-4. **Checkpoint consistency**: The checkpoints maintained by the `GovernanceDelegation` contract should accurately reflect the changes in the delegated voting power of each delegatee over time, taking into account existing and new advanced delegations.
+4. **Checkpoint consistency**: The checkpoints maintained by the `GovernanceDelegation` contract should accurately reflect the changes in the delegated voting power of each delegate over time, taking into account existing and new advanced delegations.
 
 # Risks & Uncertainties
 
