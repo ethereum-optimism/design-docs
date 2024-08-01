@@ -5,10 +5,10 @@ pre-deploy. It will give context around the desired behavior of the interactions
 
 # Summary
 
-There will be two main changes to the existing `GovernanceDelegation` contract to support interoperability. First, the function in which the checkpoints can be queried from the
+There will be two main changes to the existing `GovernanceDelegation` [contract](https://github.com/ethereum-optimism/specs/blob/fb28b09890ca5e991ccfb9b9e52540e4b0a79a13/specs/experimental/gov-delegation.md) to support interoperability. First, the function in which the checkpoints can be queried from the
 contract will now check for the migration status prior to retrieving voting power and implement an announce function that will emit an event that contains the chain ID and the block
 number of the latest checkpoint. The contract on OP mainnet will then consume these events, and in its own storage provide a mapping between chainIds and an object containing both
-the latest checkpoint and the block number. After tokens are transferred using the `GovToken` contract a check is performed on the delegation contract that ensures that before this
+the latest checkpoint and the block number. After tokens are transferred using the `GovToken` [contract](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/governance/GovernanceToken.sol) a check is performed on the delegation contract that ensures that before this
 mapping is updated, the nonce of the token transfer received has been incremented as well as being sent from a block number greater than the current one.
 
 # Problem Statement + Context
@@ -21,7 +21,7 @@ messages.
 
 # Alternatives Considered
 
-When originally considering this problem, the idea was to create a hook during the `afterTokenTransfer` event. As alluded to above, this do not provide some of the desired functionality.It also makes a few assumptions about the behaviors of delegates that receive tokens and stifles their ability to create partial delegations in a low-cost manner. Moreover, if there was
+When originally considering this [problem](https://github.com/ethereum-optimism/specs/blob/5046a5b7f95e7a238cbfabc2b353709c9737b50b/specs/governance/alligator-interop.md), the idea was to create a hook during the `afterTokenTransfer` event. As alluded to above, this do not provide some of the desired functionality.It also makes a few assumptions about the behaviors of delegates that receive tokens and stifles their ability to create partial delegations in a low-cost manner. Moreover, if there was
 a want to later batch updates of voting power to mainnet it would be costly to those operating governance.
 
 Another active consideration is the use of block timestamp of each L2 instead of block number while implementing this new solution. The primary reason for block numbers to be used in
@@ -33,7 +33,7 @@ its stead, stems from a concern of manipulation by sequencers and the possible d
 
 Due to the fact that the `GovernanceDelegation` contract now has awareness of the block numbers and chain IDs of all of the voting power checkpoints each L2 can now be responsible for
 their own checkpointing and thus make as many updates necessary without cost to relayers. From an implementation standpoint many of the changes are quite small and should minimize the
-risk of complication of an already intricate interface.
+risk of complication of an already intricate interface. There will be a mapping between chainIDs and the `Checkpoint` object that will contain an additional field `blockNumber`. Since events are being consumed ad-hoc the logic in which `Checkpoint` is stored will not be based on branching logic on chain ID, but instead on the messages being processed inside the L2Crosschain Inbox.
 
 The main goal is to ensure that the incentives are set up correctly so that relayers and indexers can manage and provide users the latest delegation changes when exercising their voting
 power.
@@ -53,13 +53,9 @@ The implementation should maintain the following invariants:
 
 1. **Awareness of migration status**: To ensure that existing voting power is preserved that do not have L1 block number.
 2. **Checkpoint mapping**: A new storage field that contains the block number and L2 chain IDs of the latest checkpoint.
-3. **Nonce on token transfers**: The governance token will now employ a nonce on each transfer that will be checked in the `afterTokenTransfer` hook.
 
 # Risks & Uncertainties
 
 1. The biggest risk in implementing this change is ensuring that all existing voting power is preserved such that the checkpoints that already exist on the contract is accessible.
 2. Indexers must now accept a delay in updates if wishing to give an accurate voting status for a particular delegate.
-3. Minimize the griefing vector of incurring costs onto delegators.
-4. Estimation of costs of operating relayers to ensure they are still incentivized to relay messages.
-5. Batch ordering of checkpoints across all L2 chains.
-
+3. Batch ordering of checkpoints across all L2 chains. Mainly with exposing a function that allows the Governor contract to batch process messages being received in the L2Crosschain Inbox.
