@@ -1,10 +1,10 @@
 ## Summary
 
-This document presents the requirements for a factory that deploys `SuperchainERC20` tokens for tokens native to L1.
+This document presents the requirements for a factory that deploys `OptimismSuperchainERC20` tokens.
 
 ## Overview
 
-The `SuperchainERC20Factory` will be a proxied predeploy. It will deploy proxied `SuperchainERC20` tokens using the Beacon pattern. This structure allows upgrading all implementations at once if needed.
+The `SuperchainERC20Factory` will be a proxied predeploy. It will deploy proxied `OptimismSuperchainERC20` tokens using the Beacon pattern. This structure allows upgrading all implementations at once if needed.
 
 Even though this document is specific for L1 native tokens, it should serve as a basis for other cases.
 
@@ -35,8 +35,6 @@ In what follows, we will list each requirement and detail how the factory should
 
 Factories will live in each L2 as a predeploy on the same address, which is crucial to achieving the same address for `OptimismSuperchainERC20`s across chains.
 
-If the same address for the `OptimismSuperchainERC20` on L1 is also needed, then the address at which the predeploy is initialized should match the factory's L1 address.
-
 **Creation method**
 
 The `OptimismSuperchainERC20` addresses should be independent of the implementations. `CREATE` was discarded due to nonce dependability, and `CREATE2` was discarded because of its dependence on the creation code. For these reasons, the factory should use `CREATE3`.
@@ -51,13 +49,14 @@ The factory will deploy `OptimismSuperchainERC20`s as BeaconProxies, as this is 
 
 **Beacon Contract**
 
-The Beacon Contract holds the implementation address for the BeaconProxies. It will be a predeploy (consistent with the current architecture of the OP stack).
+The Beacon Contract holds the implementation address for the BeaconProxies. It will be a predeploy and implement the interface defined in [EIP-1967](https://eips.ethereum.org/EIPS/eip-1967).
 
 **Implementations**
 
-Each type of ERC20 (vanilla, vote token, rebasing, xERC20, etc) will require their unique implementation and, therefore, factory. Optimism should deploy and support the most common implementations. Anyone can deploy their custom implementations and factories but without predeploys.
+In an implementation update, the upgraded chains must perform a hardfork to change the constant value in the Beacon Contract representing the implementation address. 
+The address of the implementation will be determined similarly to [other upgrade transactions](https://github.com/ethereum-optimism/specs/blob/1f8ace7f21e44ff028951965ab552c81b892f199/specs/fjord/derivation.md#gaspriceoracle-deployment) .
 
-In an implementation update, the upgraded chains must perform a hardfork to change the constant value in the Beacon Contract representing the implementation address.
+
 
 ### Factory Upgradability
 
@@ -82,12 +81,13 @@ Will follow the [`Proxy.sol` implementation](https://github.com/ethereum-optimis
 **Factory Implementation**
 
 ```solidity
-contract OptimismSuperchainERC20Factory is Semver {
+contract OptimismSuperchainERC20Factory is ISemver {
   mapping(address superc20 => address remoteToken) public deployments;
+  string public constant version = "1.0.0";
 
   event OptimismSuperchainERC20Deployed(address indexed superchainERC20, address indexed remoteToken, string name, string symbol, uint8 decimals);
 
-  constructor() Semver(1, 0, 0) {}
+  constructor() {}
 
   function deploy(address _remoteToken, string memory _name, string memory _symbol, uint8 _decimals) external returns (address _superchainERC20) {
     bytes memory _creationCode = abi.encodePacked(
@@ -164,7 +164,3 @@ sequenceDiagram
 2. Core developers and Foundation will organize a hardfork between the upgraded chains.
 3. The hardfork will update the implementation address on the Beacon Contract.
 
-## Open Questions
-
-- How should different ERC20 implementations be handled? One or multiple implementations per Beacon Contract predeploy?
-- How should native token deployment in L2 behave?
