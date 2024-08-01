@@ -46,6 +46,21 @@ The new storage values will be used to keep track of both the voting power that 
 non-migrated tokens. Indexers will now need to be aware of the events being emitted on both OP mainnet and the other L2's that implement the `GovToken` to show checkpoints that have yet
 to be processed on the mainnet contract. Each L2 will now have the total cumulative voting power for every partial delegation. Vote retrieval on mainnet will take in a parameter that specifies the height of the latest block it cares about of a given L2 chain.
 
+```mermaid
+sequenceDiagram
+  participant delegate
+  participant GovernanceDelegationA as GovernanceDelegation (Chain A)
+  participant GovernanceDelegationB as GovernanceDelegation (Chain B)
+  participant Inbox as CrossL2Inbox
+  participant Messenger_A as L2ToL2CrossDomainMessenger (Chain A)
+  participant Messenger_B as L2ToL2CrossDomainMessenger (Chain B)
+  delegate->>GovernanceDelegationA: delegate(delegatee)
+  GovernanceDelegationA->>GovernanceDelegationA: announcePastVotes(delegatee, blockNumber)
+  GovernanceDelegationA->>Messenger_A: sendMessage(nativeChainId, message)
+  Messenger_A->>Inbox: executeMessage()
+  Inbox->>Messenger_B: relayMessage()
+  Messenger_B->>GovernanceDelegationB: getPastVotes(delegate, blockNumber, chainId)
+```
 
 ## Invariants
 
