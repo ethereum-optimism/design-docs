@@ -8,9 +8,9 @@ There will be two main changes to the existing `GovernanceDelegation` [contract]
 
 # Problem Statement + Context
 
-The existing `GovernanceDelegation` and `GovernanceToken` contracts do not support interoperability, thus making the voting power fragmented across all of the potential L2 chains. The negative consequence of this is that tracking delegations becomes a much harder task when users have partially delegated to many different users that may or may not be on the same chain.
+As described in the [advanced delegation](advanced-delegation.md) design document, the `GovernanceToken` contract supports advanced delegation by integrating with the `GovernanceDelegation` contract. However, the `GovernanceDelegation` contract does not support interoperability, which means that when the `GovernanceToken` gets deployed across networks in the Superchain, the total voting supply in OP Mainnet may decrease as the token would be fragmented across other networks.
 
-However, pushing all of the logic onto the `GovernanceToken` proves to be problematic given the potential flood of messages that may be out of sequence or have many smaller transfer events prior to a single delegation event. The following section aims to outline a solution to correct this as well as ensure that relayers still have the proper incentives to handle these
+Therefore, this design document aims to modify the `GovernanceDelegation` contract to support cross-chain delegations of voting power, maximazing user experience and ensuring that relayers have the proper incentives to handle cross-chain messages of delegations.
 messages.
 
 # Alternatives Considered
