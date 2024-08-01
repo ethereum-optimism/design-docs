@@ -1,6 +1,6 @@
 # Purpose
 
-The primary purpose of this design document is to give an approach to support voting power delegation across multiple L2's that employ the `GovernanceDelegation` and `GovernanceToken` as pre-deploys. It also gives context around the desired behavior of the interactions between the contracts that exist on both OP mainnet as well as each of these bespoke chains. Furthermore, this document serves as an exploration into a few choice mechanisms that allow users the ability to do partial delegation with tokens they posses on each of the respective chains.
+The primary purpose of this design document is to outline an approach to support cross-chain voting power delegations of the `GovernanceToken`. This document also aims to provide context around the desired behavior of the interactions between the contracts that exist on both OP mainnet as well as each of these bespoke chains. Furthermore, user flows and use cases are outlined to provide a more comprehensive understanding of the proposed changes.
 
 # Summary
 
