@@ -12,13 +12,17 @@
 
 *Describe the specific problem that the document is seeking to address as well as information needed to understand the problem and design space. If more information is needed on the costs of the problem, this is a good place to that information.*
 
-# Alternatives Considered
-
-*List out a short summary of each possible solution that was considered. Comparing the effort of each solution* 
-
 # Proposed Solution
 
 *A high level overview of the proposed solution. When there are multiple alternatives there should be an explanation of why one solution was picked over other solutions. As a rule of thumb, including code snippets (except for defining an external API) is likely too low level.*
+
+## Resource Usage
+
+*What is the resource usage of the proposed solution? Does it consume a large amount of computational resources or time?*
+
+# Alternatives Considered
+
+*List out a short summary of each possible solution that was considered. Comparing the effort of each solution* 
 
 # Risks & Uncertainties
 
