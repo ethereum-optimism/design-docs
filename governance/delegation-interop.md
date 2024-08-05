@@ -30,8 +30,6 @@ power.
 
 ## Implementation
 
-Again, the implementation involves updates the Governor that will ensure that for voting power that has been migrated can be retrieved and updated based on the state on each of the L2 chains. It accomplishes this by keeping track of the token nonce and block numbers of each checkpoint in the mainnet contract. Instead of directly sending messages between the different instances, Governors on non-OP mainnet chains will now emit events regarding these blocks in the their checkpoint updates.
-
 The new storage values will be used to keep track of both the voting power that has been accumulated on the native chain as well as others thus not breaking backwards compatibility for non-migrated tokens. Indexers will now need to be aware of the events being emitted on both OP mainnet and the other L2's that implement the `GovernanceToken` to show checkpoints that have yet to be processed on the mainnet contract. Each L2 will now have the total cumulative voting power for every partial delegation. Vote retrieval on mainnet will take in a parameter that specifies the height of the latest block it cares about of a given L2 chain.
 
 ```mermaid
