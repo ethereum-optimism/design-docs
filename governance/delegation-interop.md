@@ -38,14 +38,10 @@ sequenceDiagram
   participant GovernanceDelegationA as GovernanceDelegation (Chain A)
   participant GovernanceDelegationB as GovernanceDelegation (Chain B)
   participant Inbox as CrossL2Inbox
-  participant Messenger_A as L2ToL2CrossDomainMessenger (Chain A)
-  participant Messenger_B as L2ToL2CrossDomainMessenger (Chain B)
   delegate->>GovernanceDelegationA: delegate(delegatee)
   GovernanceDelegationA->>GovernanceDelegationA: announcePastVotes(delegatee, blockNumber)
-  GovernanceDelegationA->>Messenger_A: sendMessage(nativeChainId, message)
-  Messenger_A->>Inbox: executeMessage()
-  Inbox->>Messenger_B: relayMessage()
-  Messenger_B->>GovernanceDelegationB: getPastVotes(delegate, blockNumber, chainId)
+  GovernanceDelegationA->>CrossL2Inbox: emitEvent(nativeChainId, event)
+  Inbox->>GovernanceDelegationB: getPastVotes(delegate, blockNumber, chainId)
 ```
 
 ## Invariants
