@@ -290,3 +290,5 @@ The deploy scripts and OP Stack Manager code will be written in such a way to de
 
 1. Need to make sure this architecture actually works for the interop team for the goal of deduplicating deploy scripts.
 2. Need to verify which fault proof contract inputs should be exposed to users vs. which are "static" or can be inferred from other inputs.
+3. It must be sufficiently extensible to handle new features such as supporting the `DataAvailabilityChallenge` contract required for Alt-DA.
+4. The exact transition plan from the current legacy `DeployConfig.s.sol` to this new system is not yet defined. We'll likely want a script that can convert legacy deploy configs to the new modular format to ease the transition.
