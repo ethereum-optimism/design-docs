@@ -42,11 +42,11 @@ This is not ideal for various reasons:
 
 # Proposed Solution
 
-There are two steps to deploying L1 contracts:
+There are three aspects to deploying L1 contracts:
 
-1. **Deploy Superchain Contracts**. This only occurs occasionally, as the Superchain contracts are shared between many OP chains.
+1. **Deploy Superchain Contracts**. Superchain contracts are shared between many OP chains, so this occurs only occasionally in production.
 2. **Deploy Shared Implementation Contracts**. This occurs once per [contracts release](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/VERSIONING.md).
-3. **Deploy OP Chain Contracts**. This occurs for once every OP chain deployment.
+3. **Deploy OP Chain Contracts**. This occurs for every OP chain deployment.
 
 For each step we define the step inputs (configuration), sub-steps that occur, and the step outputs (artifacts).
 For each we start by listing the sub-steps, then define the inputs and outputs for each sub-step, and use those to define the inputs and outputs for the step as a whole.
