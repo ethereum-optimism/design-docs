@@ -29,7 +29,7 @@ The interop team needs a way to configure new multi-L2 deployments: The number o
 
 Outside of interop, deployment also seems increasingly complex and opaque, while it does not have to be, due to the same configuration and composability troubles.
 
-Part of the solution to this is described in https://github.com/ethereum-optimism/design-docs/pull/52,and the other part involves restructuring our Solidity config processing and deploy scripts.
+Part of the solution to this is described in [design doc 52](https://github.com/ethereum-optimism/design-docs/pull/52), and the other part involves restructuring our Solidity config processing and deploy scripts.
 This design doc focuses on the L1 contract configuration and deployment part of the solution.
 
 # Alternatives Considered
