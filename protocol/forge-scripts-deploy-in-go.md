@@ -86,7 +86,7 @@ Note that with many of these, Go instrumentation can really improve integration:
 ## Forge-artifacts as Go FS
 
 A Go FS is a simple filesystem abstraction: it provides read-only access to some source of files.
-A local directly can be wrapped into such FS, but also tarballs, or even data embedded in the Go binary, can be represented as Go FS.
+A local directory can be wrapped into such FS, but also tarballs, or even data embedded in the Go binary, can be represented as Go FS.
 By using this FS abstraction, we can make the access to artifacts very simple, and "mount" the relevant FS into it.
 
 For Go tests, this would be the local FS.
