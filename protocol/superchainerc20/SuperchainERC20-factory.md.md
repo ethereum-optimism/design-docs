@@ -37,7 +37,7 @@ Factories will live in each L2 as a predeploy on the same address, which is cruc
 
 **Creation method**
 
-The `OptimismSuperchainERC20` addresses should be independent of the implementations. `CREATE` was discarded due to nonce dependability, and `CREATE2` was discarded because of its dependence on the creation code. For these reasons, the factory should use `CREATE3`.
+The `OptimismSuperchainERC20` addresses should be independent of the implementations. `CREATE` was discarded due to nonce dependability, and `CREATE2` was discarded because of its dependence on the creation code. For these reasons, the factory should use `CREATE3`. The safest way to use `CREATE3` is through [CreateX](https://github.com/pcaversaccio/createx), which will be a pre-install in the OP stack.
 
 The salt will be composed of the L1 address and the token metadata. This implies that the same L1 token can have multiple SuperchainERC20 representation, as long as the metadata also changes.
 
@@ -53,24 +53,22 @@ The Beacon Contract holds the implementation address for the BeaconProxies. It w
 
 **Implementations**
 
-In an implementation update, the upgraded chains must perform a hardfork to change the constant value in the Beacon Contract representing the implementation address. 
-The address of the implementation will be determined similarly to [other upgrade transactions](https://github.com/ethereum-optimism/specs/blob/1f8ace7f21e44ff028951965ab552c81b892f199/specs/fjord/derivation.md#gaspriceoracle-deployment) .
-
-
+In an implementation update, the upgraded chains must perform a protocl upgrade to change the constant value in the Beacon Contract representing the implementation address. 
+The address of the implementation will be determined similarly to [other upgrade transactions](https://github.com/ethereum-optimism/specs/blob/1f8ace7f21e44ff028951965ab552c81b892f199/specs/fjord/derivation.md#gaspriceoracle-deployment).
 
 ### Factory Upgradability
 
-The factory will be a simple Proxy contract pointing to the current implementation. In case of an upgrade to the factory, the upgrading chains will need to deploy the new implementation and perform a hardfork to update the implementation address.
+The factory will be a simple Proxy contract pointing to the current implementation. In case of an upgrade to the factory, the upgrading chains will need to deploy the new implementation and perform a protocol upgrade to update the implementation address.
 
 ### Deployment history
 
-The factory will store a `deployments` mapping that the `L2StandardBridge` will check for access control when converting between the SuperchainERC20 and their corresponding legacy representations (see the [liquidity migration specs](https://github.com/ethereum-optimism/specs/pull/294) for more details).
+The factory will store a `deployments` mapping that maps each deployed `OptimismSuperchainERC20` address to the corresponding L1 address (remote address).
 
 ```solidity
 mapping(address superc20 => address remoteToken) public deployments;
 ```
 
-that maps each deployed `OptimismSuperchainERC20` address to the corresponding L1 address (remote address).
+This mapping is necessary to implement the conversion between legacy and superchain tokens in the `L2StandardBridge`. This is because the `L2StandardBridge` will check the mapping with the superchain token address to check it's been deployed by the official factory and verify it shares the `remoteToken` with the legacy token (see the [liquidity migration specs](https://github.com/ethereum-optimism/specs/pull/294) for more details).
 
 ## Implementation
 
@@ -88,19 +86,35 @@ contract OptimismSuperchainERC20Factory is ISemver {
   event OptimismSuperchainERC20Deployed(address indexed superchainERC20, address indexed remoteToken, string name, string symbol, uint8 decimals);
 
   constructor() {}
+  function deploy(
+      address _remoteToken,
+      string memory _name,
+      string memory _symbol,
+      uint8 _decimals
+  ) external returns (address _superchainERC20) {
+    bytes memory initCallData = abi.encodeCall(
+      SUPERCHAIN_IMPL.initialize,
+      (_remoteToken, _name, _symbol, _decimals)
+    );
 
-  function deploy(address _remoteToken, string memory _name, string memory _symbol, uint8 _decimals) external returns (address _superchainERC20) {
-    bytes memory _creationCode = abi.encodePacked(
-        type(BeaconProxy).creationCode,
-        abi.encode(Predeploy.OptimismSuperchainERC20Beacon, abi.encodeCall(SUPERCHAIN_IMPL.initialize.selector, (_remoteToken, _name, _symbol, _decimals)))
+    bytes memory _creationCode = bytes.concat(
+      type(BeaconProxy).creationCode,
+      abi.encode(Predeploy.OptimismSuperchainERC20Beacon, initCallData)
     );
 
     bytes32 salt = keccak256(abi.encode(_remoteToken, _name, _symbol, _decimals));
-    _superchainERC20 = CREATE3.deploy(salt, _creationCode);
+
+    _superchainERC20 = Preinstall.CreateX.deployCreate3(salt, creationCode);
 
     deployments[_superchainERC20] = _remoteToken;
 
-    emit OptimismSuperchainERC20Deployed(_superchainERC20, _remoteToken _name, _symbol, _decimals);
+    emit OptimismSuperchainERC20Deployed(
+      _superchainERC20,
+      _remoteToken,
+      _name,
+      _symbol,
+      _decimals
+    );
   }
 }
 ```
@@ -144,7 +158,7 @@ sequenceDiagram
   participant Alice
   participant FactoryProxy
   participant FactoryImpl
-  participant CREATE3Proxy
+  participant CreateX
   participant BeaconProxy as OptimismSuperchainERC20 BeaconProxy
   participant Beacon Contract
   participant Implementation
@@ -152,15 +166,33 @@ sequenceDiagram
   Alice->>FactoryProxy: deploy(remoteToken, name, symbol, decimals)
   FactoryProxy->>FactoryImpl: delegatecall()
   FactoryProxy-->FactoryProxy: deployments[superchainERC20]=remoteToken
-  FactoryProxy->>CREATE3Proxy: create2()
-  CREATE3Proxy->>BeaconProxy: create()
+  FactoryProxy->>CreateX: deployCreate3()
+  CreateX->>BeaconProxy: create()
   BeaconProxy-->Beacon Contract: reads implementation()
   BeaconProxy->>Implementation: delegatecall()
+  BeaconProxy->>Implementation: initialize()
 ```
 
 ### `SuperchainERC20` implementation upgrade
 
 1. Anyone can deploy a new implementation on each chain to be upgraded.
-2. Core developers and Foundation will organize a hardfork between the upgraded chains.
-3. The hardfork will update the implementation address on the Beacon Contract.
+2. Core developers and Foundation will organize a protocol upgrade between the upgraded chains.
+3. The protocol upgrade will update the implementation address on the Beacon Contract.
 
+### Convert
+```mermaid
+sequenceDiagram
+  participant Alice
+  participant L2StandardBridge
+  participant factory as OptimismMintableERC20Factory
+  participant superfactory as SuperchainERC20Factory
+  participant legacy as from Token
+  participant SuperERC20 as to Token
+  Alice->>L2StandardBridge: convert(from, to, amount)
+  L2StandardBridge-->factory: deposits[optimismMintableERC20Addr] = remoteAddr1
+  L2StandardBridge-->superfactory: deposits[superchainERC20Addr] = remoteAddr2
+  L2StandardBridge-->L2StandardBridge: checks remoteAddr1=remoteAddr2!=address(0)
+  L2StandardBridge->>legacy: IERC20(from).burn(Alice, amount)
+  L2StandardBridge->>SuperERC20: IERC20(to).mint(Alice, amount)
+  L2StandardBridge-->L2StandardBridge: emit Converted(from, to, Alice, amount)
+```
