@@ -22,12 +22,12 @@ Adding this milestone will allow the interop team to build testing infrastructur
 
 *Some text copied from https://github.com/ethereum-optimism/design-docs/pull/52, which is related to this design doc.*
 
-The current L2 chain deployment approach originates from a time with Hardhat, single L1 target, and a single monolithic set of features.
-Since then the system has migrated to Foundry and extended for more features, but remains centered around a single monolithic deploy-config for all its features.
-
-The interop team needs a way to configure new multi-L2 deployments: The number of ways to compose L2s in tests grows past what a single legacy config template can support.
-
-Outside of interop, deployment also seems increasingly complex and opaque, while it does not have to be, due to the same configuration and composability troubles.
+> The current L2 chain deployment approach originates from a time with Hardhat, single L1 target, and a single monolithic set of features.
+> Since then the system has migrated to Foundry and extended for more features, but remains centered around a single monolithic deploy-config for all its features.
+>
+> The interop team needs a way to configure new multi-L2 deployments: The number of ways to compose L2s in tests grows past what a single legacy config template can support.
+>
+> Outside of interop, deployment also seems increasingly complex and opaque, while it does not have to be, due to the same configuration and composability troubles.
 
 Part of the solution to this is described in [design doc 52](https://github.com/ethereum-optimism/design-docs/pull/52), and the other part involves restructuring our Solidity config processing and deploy scripts.
 This design doc focuses on the L1 contract configuration and deployment part of the solution.
@@ -44,9 +44,9 @@ This is not ideal for various reasons:
 
 There are three aspects to deploying L1 contracts:
 
-1. **Deploy Superchain Contracts**. Superchain contracts are shared between many OP chains, so this occurs only occasionally in production.
-2. **Deploy Shared Implementation Contracts**. This occurs once per [contracts release](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/VERSIONING.md).
-3. **Deploy OP Chain Contracts**. This occurs for every OP chain deployment.
+1. **Deploy Superchain Contracts**. Superchain contracts are shared between many OP chains, so this occurs only occasionally in production, but is needed for every OP chain deployment in devnet and testnet.
+2. **Deploy Shared Implementation Contracts**. This occurs once per [contracts release](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/VERSIONING.md) in production, but is needed for every OP chain deployment in devnet and testnet.
+3. **Deploy OP Chain Contracts**. This occurs for every OP chain deployment in production, devnet, and testnet.
 
 For each step we define the step inputs (configuration), sub-steps that occur, and the step outputs (artifacts).
 For each we start by listing the sub-steps, then define the inputs and outputs for each sub-step, and use those to define the inputs and outputs for the step as a whole.
@@ -57,12 +57,14 @@ However, feel free to comment on specifics if you think they're important.
 
 TOML is used because it is what the superchain-registry is standardizing on, it can be parsed by forge and go, it supports comments (unlike JSON), and it does not have the [quirks](https://noyaml.com/) of YAML.
 
-Each step is a separate forge script that takes the input TOML file as the only input, and outputs a TOML file.
-To make the artifact self-contained, the outputs also include the inputs.
-This allows a single artifact to be used to convey all information needed about a deployment.
+Each step is a separate forge script that is structured as follows:
 
-These forge scripts can be wrapped with go code to facilitate e2e testing by the interop team.
-The go code should leverage the same file-based interface to ensure equivalence between the forge script execution and the go execution.
+- It may be invoked two ways: by providing input TOML file as the only input, or by providing an Input configuration struct as the only input. This way go code and other forge scripts can call it without any File IO, but users can have a file-based interface.
+- Similarly, outputs may be structs or TOML files for the same reasons.
+- To make the output artifact self-contained, the outputs may also include the inputs. This allows a single artifact to be used to convey all information needed about a deployment.
+
+This design allows forge scripts can be wrapped with go code to facilitate e2e testing by the interop team.
+The go code can leverage the struct-based interface to ensure equivalence between the forge script execution and the go execution.
 
 ## Step 1: Deploy Superchain contracts
 
@@ -93,6 +95,8 @@ protocolVersionsOwner = "0x1234..."
 
 [superchain_config]
 guardian = "0x1234..."
+# The paused variable must be part of the interface for dev/testing, but we will
+# have it default to false so it can be hidden from users to simplify the interface.
 paused = false
 
 [protocol_versions]
@@ -279,11 +283,13 @@ basefeeScalar = 1
 blobBaseFeeScalar = 1
 
 [fault_proofs]
-# left out for brevity
+# Left out for brevity. Note that we may be able to mock the FP system as a way
+# to reduce scope for M0.5. It still needs to be implemented in M1, but this
+# may help ship something usable for interop sooner
 ```
 
 The initial version of these input files will be minimal and only include the required inputs to deploy standard chains.
-Future versions will include more inputs to support more complex deployments, such as custom gas tokens or alt-DA.
+Future versions will include more inputs to support more complex deployments, such as custom gas tokens or alt-DA (it is currently TBD whether this will be part of Milestone 0.5).
 The deploy scripts and OP Stack Manager code will be written in such a way to default to standard chains and only require additional inputs for non-standard chains.
 
 # Risks & Uncertainties
