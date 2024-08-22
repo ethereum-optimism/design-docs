@@ -15,7 +15,7 @@ when handling invalid batches.
 
 The derivation pipeline is set up as a series of stages. It takes work to progress from one stage to the next.
 Sometimes this work involves many remote HTTP requests, other times it requires in memory manipulation of
-data structures. Its not ideal when there is an error in a later stage that causes a lot of additional work
+data structures. It's not ideal when there is an error in a later stage that causes a lot of additional work
 to be done in an earlier stage to recover. In practice, this looks like some sort of invalid batch was deserialized
 and errors during its processing.
 
