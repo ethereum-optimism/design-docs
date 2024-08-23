@@ -91,22 +91,6 @@ Below are references for this project:
 - **Detection:** Compilation fails.
 - **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
 
-### Disabled initialization of immutable variables in the constructor
-
-- **Description:** Version 0.8.20 disabled initialization of immutable variables in try-catch statements.
-- **Risk Assessment:** None
-- **Mitigations:** _What mitigations are in place, or what should we add, to reduce the chance of this occurring?_
-- **Detection:** Compilation fails.
-- **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
-
-### Deprecation of block.difficulty
-
-- **Description:** Version 0.8.18 deprecated the use of block.difficulty
-- **Risk Assessment:** _Simple low/medium/high rating of impact (severity) + likelihood._
-- **Mitigations:** _What mitigations are in place, or what should we add, to reduce the chance of this occurring?_
-- **Detection:** _How do we detect if this occurs?_
-- **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
-
 ### Set default EVM version to cancun
 
 - **Description:** Version 0.8.25 sets the default evm version to cancun
