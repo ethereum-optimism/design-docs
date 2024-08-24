@@ -2,15 +2,18 @@
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
 
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [[Name of Failure Mode 1]](#name-of-failure-mode-1)
-  - [[Name of Failure Mode 2]](#name-of-failure-mode-2)
+  - [Missing side effect on `.selector` access bug (Bug fixed after 0.8.15)](#missing-side-effect-on-selector-access-bug-bug-fixed-after-0815)
+  - [Storage write removal before conditional termination (Bug fixed after 0.8.15)](#storage-write-removal-before-conditional-termination-bug-fixed-after-0815)
+  - [Deprecation of early EVM versions](#deprecation-of-early-evm-versions)
+  - [Set default EVM version to cancun](#set-default-evm-version-to-cancun)
+  - [Deprecation of block.difficulty](#deprecation-of-blockdifficulty)
 - [Audit Requirements](#audit-requirements)
 - [Action Items](#action-items)
 - [Appendix](#appendix)
-  - [Appendix A: This is a Placeholder Title](#appendix-a-this-is-a-placeholder-title)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -97,6 +100,14 @@ Below are references for this project:
 - **Risk Assessment:** _Simple low/medium/high rating of impact (severity) + likelihood._
 - **Mitigations:** As at 0.8.15, the default EVM version is 'London', if no explicit version override is declared, 'Cancun' will be used rather. A mitigation is to set/declare an explicit EVM version.
 - **Detection:** _How do we detect if this occurs?_
+- **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
+
+### Deprecation of block.difficulty
+
+- **Description:** Version 0.8.18 deprecated the use of block.difficulty.
+- **Risk Assessment:** No instance of this in current contract.
+- **Mitigations:** _What mitigations are in place, or what should we add, to reduce the chance of this occurring?_
+- **Detection:** Compilation fails.
 - **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
 
 ## Audit Requirements
