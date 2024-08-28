@@ -95,7 +95,7 @@ sequenceDiagram
   Governor->>Governor: votableSupply(delegate)
   GovernanceDelegation->>Inbox: getPastVotes(delegate, blockNumber, chainId)
   Governor->>Inbox: consume(nativeChainId, L2BlockNumber, event)
-  Governor->>updateCheckpoint(nativeChaindId, checkpoint, L2BlockNumber)
+  Governor->>Governor: updateCheckpoint(nativeChainId, checkpoint, L2BlockNumber)
 ```
 
 ## Invariants
