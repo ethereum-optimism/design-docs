@@ -2,6 +2,7 @@
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 **Table of Contents**
 
 - [Introduction](#introduction)
@@ -45,22 +46,20 @@ _Italics are used to indicate things that need to be replaced._
 
 ## Introduction
 
-This document covers [Smart Contracts: Update all 0.8.15 code to 0.8.25](https://github.com/ethereum-optimism/optimism/issues/11527).
+This document covers solidity version upgrade of all OP Stack smart contracts from 0.8.15 code to 0.8.25.
 
 Below are references for this project:
 
-- _Link 1, e.g. project charter or design doc_
+- [Issue 11527: Smart Contracts: Update all 0.8.15 code to 0.8.25](https://github.com/ethereum-optimism/optimism/issues/11527).
 
 ## Failure Modes and Recovery Paths
-
-**_Use one sub-header per failure mode, so the full set of failure modes is easily scannable from the table of contents._**
 
 ### Missing side effect on `.selector` access bug (Bug fixed after 0.8.15)
 
 - **Description:**
   - Introduced: v0.6.2
   - Fixed: v0.8.21
-  - Explanation: The legacy compiler assumes that conditions used to determine which selector is used/removed have no side effects. So if the result of the condition is known at compile time the legacy compiler will hardcode the corresponding selector (since selectors are known at compile time). This bug does no exist when the conditional is used with ohter types of constants.
+  - Explanation: The legacy compiler assumes that conditionals used to determine which selector is used/removed have no side effects. So if the result of the conditional is known at compile time the legacy compiler will hardcode the corresponding selector (since selectors are known at compile time). This bug does no exist when the conditional is used with other types of constants.
 - **Risk Assessment:**
   - Severity: High (if present)
   - Likelihood: Low (and mostly present in anti-patterns like using conditionals that have side effects)
@@ -72,7 +71,7 @@ Below are references for this project:
 
 - Introduced: v0.8.13
 - Fixed: v0.8.17
-- Explanation: Incorrect assumption that a storage write is redundant so the optimizer removes it. But this assumption can be wrong when the developer intended otherwise. A storage write is considered redundant when the storage slot is rewritten to written to twice within an execution context without that slot being read before the second write or execution unconditionally terminates before the slot is read again.
+- Explanation: Incorrect assumption that a storage write is redundant so the optimizer removes it. But this assumption can be wrong when the developer intended otherwise. A storage write is considered redundant when the storage slot is written to twice within an execution context without that slot being read before the second write or execution unconditionally terminates before the slot is read again.
   This bug can only occur if a contract contains pattern:
   - A storage write. Note that the write may still be removed even if it happens only conditionally or within a call to a function that ends up being inlined.
   - A call to a function that conditionally terminates using inline assembly as described above, but also has a different code path that returns to the caller.
@@ -98,7 +97,7 @@ Below are references for this project:
 
 - **Description:** Version 0.8.25 sets the default evm version to cancun
 - **Risk Assessment:** _Simple low/medium/high rating of impact (severity) + likelihood._
-- **Mitigations:** As at 0.8.15, the default EVM version is 'London', if no explicit version override is declared, 'Cancun' will be used rather. A mitigation is to set/declare an explicit EVM version.
+- **Mitigations:** As at 0.8.15, the default EVM version is 'London', if no explicit version override is declared, 'Cancun' will be used rather. A mitigation is explicitly declaring the intended EVM version to use for compilation regardless of if its the same as the default the compiler uses. That way, a new compiler version that changes the default EVM version does not change the one that is intended to be used. In this scenario, this is not possible because the intended EVM version is the same as the compiler versions default.
 - **Detection:** _How do we detect if this occurs?_
 - **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
 
@@ -119,8 +118,6 @@ _Will this project require an audit according to the guidance in [OP Labs Audit 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
-- [ ] _Action item 2 (Assignee: tag assignee)_
-- [ ] _Action item 3 (Assignee: tag assignee)_
 
 ## Appendix
 
