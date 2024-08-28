@@ -92,7 +92,7 @@ sequenceDiagram
   participant GovernanceToken
   participant Inbox as CrossL2Inbox
   delegate->>Governor: castVote(proposalId, support)
-  Governor->>votableSupply(delegate)
+  Governor->>Governor: votableSupply(delegate)
   GovernanceDelegation->>Inbox: getPastVotes(delegate, blockNumber, chainId)
   Governor->>Inbox: consume(nativeChainId, L2BlockNumber, event)
   Governor->>updateCheckpoint(nativeChaindId, checkpoint, L2BlockNumber)
