@@ -2,23 +2,18 @@
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
 **Table of Contents**
 
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
   - [Missing side effect on `.selector` access bug (Bug fixed after 0.8.15)](#missing-side-effect-on-selector-access-bug-bug-fixed-after-0815)
   - [Storage write removal before conditional termination (Bug fixed after 0.8.15)](#storage-write-removal-before-conditional-termination-bug-fixed-after-0815)
-  - [Deprecation of early EVM versions](#deprecation-of-early-evm-versions)
-  - [Set default EVM version to cancun](#set-default-evm-version-to-cancun)
-  - [Deprecation of block.difficulty](#deprecation-of-blockdifficulty)
+  - [Change in Default EVM version between different Solidity versions](#change-in-default-evm-version-between-different-solidity-versions)
 - [Audit Requirements](#audit-requirements)
 - [Action Items](#action-items)
 - [Appendix](#appendix)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-_Italics are used to indicate things that need to be replaced._
 
 |                     |                                    |
 | ------------------- | ---------------------------------- |
@@ -64,50 +59,41 @@ Below are references for this project:
   - Severity: High (if present)
   - Likelihood: Low (and mostly present in anti-patterns like using conditionals that have side effects)
 - **Mitigations:** Using a solidity version above 0.8.20, if lower versions must be used, conditionals should have no side effects.
-- **Detection:** On the rare scenario (when using solidity version earlier than 0.8.21) where a conditional results in a constant boolean, has a side effect and accesses `.selector` method on function types, that conditional is prone to this bug.
-- **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
+- **Detection:** Confidence on the absence of this bug can be stronger with robust unit tests that check that all side effects of a call happens and correctly.
+- **Recovery Path(s)**: Redeployment and upgrade of the affected contracts
 
 ### Storage write removal before conditional termination (Bug fixed after 0.8.15)
 
-- Introduced: v0.8.13
-- Fixed: v0.8.17
-- Explanation: Incorrect assumption that a storage write is redundant so the optimizer removes it. But this assumption can be wrong when the developer intended otherwise. A storage write is considered redundant when the storage slot is written to twice within an execution context without that slot being read before the second write or execution unconditionally terminates before the slot is read again.
-  This bug can only occur if a contract contains pattern:
-  - A storage write. Note that the write may still be removed even if it happens only conditionally or within a call to a function that ends up being inlined.
-  - A call to a function that conditionally terminates using inline assembly as described above, but also has a different code path that returns to the caller.
-  - Any continuing control flow path does one of the following:
-    - It overwrites the storage write in (1).
-    - It reverts.
+- **Description:**
+
+  - Introduced: v0.8.13
+  - Fixed: v0.8.17
+  - Explanation: Incorrect assumption that a storage write is redundant so the optimizer removes it. But this assumption can be wrong when the developer intended otherwise. A storage write is considered redundant when the storage slot is written to twice within an execution context without that slot being read before the second write or execution unconditionally terminates before the slot is read again.
+
+    According to the solidity blog, this bug can only occur if a contract contains pattern:
+
+    1. A storage write. Note that the write may still be removed even if it happens only conditionally or within a call to a function that ends up being inlined.
+    2. A call to a function that conditionally terminates using inline assembly as described above, but also has a different code path that returns to the caller.
+    3. Any continuing control flow path does one of the following:
+       - It overwrites the storage write in (1).
+       - It reverts.
+
 - **Risk Assessment:**
   - Severity: High (if present)
   - Likelihood: Low
-- **Mitigations:** Use a solidity version above 0.8.17
+- **Mitigations:** Use a solidity version above 0.8.17.
 - **Detection:** If a solidity contract (using solidity version earlier than 0.8.17) follows the pattern described above, its potentially vulnerable to this.
-- **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
+- **Recovery Path(s)**: Redeployment and upgrade of the affected contracts
 
-### Deprecation of early EVM versions
-
-- **Description:** Version 0.8.22 of solidity deprecated EVM versions "homestead", "tangerineWhistle", "spuriousDragon" and "byzantium". This would mean that compiling with these versions but on solidity 0.8.25 would not be possible
-- **Risk Assessment:** _Simple low/medium/high rating of impact (severity) + likelihood._
-- **Mitigations:** _What mitigations are in place, or what should we add, to reduce the chance of this occurring?_
-- **Detection:** Compilation fails.
-- **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
-
-### Set default EVM version to cancun
+### Change in Default EVM version between different Solidity versions
 
 - **Description:** Version 0.8.25 sets the default evm version to cancun
-- **Risk Assessment:** _Simple low/medium/high rating of impact (severity) + likelihood._
-- **Mitigations:** As at 0.8.15, the default EVM version is 'London', if no explicit version override is declared, 'Cancun' will be used rather. A mitigation is explicitly declaring the intended EVM version to use for compilation regardless of if its the same as the default the compiler uses. That way, a new compiler version that changes the default EVM version does not change the one that is intended to be used. In this scenario, this is not possible because the intended EVM version is the same as the compiler versions default.
-- **Detection:** _How do we detect if this occurs?_
-- **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
-
-### Deprecation of block.difficulty
-
-- **Description:** Version 0.8.18 deprecated the use of block.difficulty.
-- **Risk Assessment:** No instance of this in current contract.
-- **Mitigations:** _What mitigations are in place, or what should we add, to reduce the chance of this occurring?_
-- **Detection:** Compilation fails.
-- **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
+- **Risk Assessment:**
+  - Severity: Low/Medium/High
+  - Likelihood: Medium
+- **Mitigations:** As at 0.8.15, the default EVM version is 'London', if no explicit version override is declared, 'Cancun' will be used rather which if not intended can lead to code that either does not deploy or reverts un-ideally at runtime even though non-fork tests might have passed. A mitigation is explicitly declaring the intended EVM version to use for compilation regardless of if its the same as the default the compiler uses. That way, a new compiler version that changes the default EVM version does not change the one that is intended to be used. In this scenario however, this is not possible because the intended EVM version is the same as the compiler's EVM version default.
+- **Detection:** Running unit tests as fork test also.
+- **Recovery Path(s)**: Redeployment and upgrade of the affected contracts
 
 ## Audit Requirements
 
