@@ -15,13 +15,13 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-|                     |                                    |
-| ------------------- | ---------------------------------- |
-| Author              | Michael Amadi                      |
-| Created at          | 2024-08-20                         |
-| Needs Approval From | _Security Reviewer Name_           |
-| Other Reviewers     | _Reviewer Name 1, Reviewer Name 2_ |
-| Status              | Draft                              |
+|                     |               |
+| ------------------- | ------------- |
+| Author              | Michael Amadi |
+| Created at          | 2024-08-20    |
+| Needs Approval From | Matt Solomon  |
+| Other Reviewers     | Mark Tyneway  |
+| Status              | Draft         |
 
 > [!NOTE]
 > 📢 Remember:
