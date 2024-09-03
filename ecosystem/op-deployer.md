@@ -114,7 +114,7 @@ genesisTime = 1234567890
 ```
 
 Only the minimum necessary state is stored. For example, the rollup config can be derived from deploy config
-variables and therefore can be generated on-the-fly when it is needed. `op-deployer` will expose utility subcommands 
+variables and therefore can be generated on-the-fly when it is needed. `op-deployer` will expose utility subcommands
 output any generated data, such as the rollup config, to the console.
 
 `op-deployer` itself will be a single Go binary that can be run from the command line. Some stages - like those that
@@ -123,22 +123,41 @@ containers that run the necessary tools. This way both local development and pre
 Given the overall migration towards Go tooling over Forge for genesis creation and deployments, we expect that the
 number of tools requiring Docker/shell integrations will decrease over time.
 
-Each stage will be represented as a standalone Go function for easy integration with additional tooling. 
+Each stage will be represented as a standalone Go function for easy integration with additional tooling.
+
+## Deploy Config Cleanup
+
+The deployment config file is a hodgepodge of almost 100 variables which all need to be set in order to deploy a chain.
+Some of these variables are only used in specific contexts, but all of them need to be set in order for some of our
+tools to work. Additionally, the deploy config expects to deploy a single L2, which makes it impossible to deploy
+multiple chains.
+
+To fix this, we will:
+
+- Remove the L1 genesis variables from the deploy config. Deploying a new l1 should be a separate process from
+  deploying an L2.
+- Remove legacy config variables that are no longer used, like `l1UseClique` or `deploymentWaitConfirmations`.
+- Split the deploy config into multiple stanzas, so that irrelevant config variables can be ignored. For example,
+  the DA configuration must be specified right now for the config to validate, even when it's not used by a given chain.
+- Remove booleans that are used to enable/disable features. This data belongs inside of the deployment intent, not
+  the config - the config describes the chain, not the deployment process.
+
+Some of this is already started by the OP Stack Manager work. The `op-deployer` project will complete it.
 
 # Alternatives Considered
 
 ## Imperative deployment tools
 
-An earlier version of this design considered building a set of imperative deployment tools that could be 
-orchestrated together like a Linux pipe. This was rejected in favor of the declarative approach described above. 
-Users can still build custom tooling by calling out to the individual stages of the pipeline, but the primary 
+An earlier version of this design considered building a set of imperative deployment tools that could be
+orchestrated together like a Linux pipe. This was rejected in favor of the declarative approach described above.
+Users can still build custom tooling by calling out to the individual stages of the pipeline, but the primary
 interface should be the deployment intent since it lets us abstract away the upgrade complexity.
 
 # Risks & Uncertainties
 
-- `op-deployer` can be used to version the smart contracts as well. We'll need to define how we want `op-deployer` 
+- `op-deployer` can be used to version the smart contracts as well. We'll need to define how we want `op-deployer`
   to work with the smart contract versioning system.
-- We'll need to make sure that all deployment tooling runs through `op-deployer`. This will require a migration, as 
-  well as buy-in from several different teams, in order to avoid creating another fragmented tool. For example, 
-  `op-deployer` would replace the `getting-started` script in the fault proofs repo, as well as much of the tooling 
+- We'll need to make sure that all deployment tooling runs through `op-deployer`. This will require a migration, as
+  well as buy-in from several different teams, in order to avoid creating another fragmented tool. For example,
+  `op-deployer` would replace the `getting-started` script in the fault proofs repo, as well as much of the tooling
   the Kurtosis devnet uses to deploy new chains.
