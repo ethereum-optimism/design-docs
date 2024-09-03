@@ -71,7 +71,7 @@ l1ChainID = 11_155_111
 useFaultProofs = true
 fundDevAccounts = true
 # Define the version of the smart contracts to deploy
-contractsVersion = "1.2.0"
+contractsVersion = "op-contracts/1.2.0"
 # Override specific variables in the deploy config globally
 overrides = { }
 
