@@ -9,8 +9,8 @@ changes to the `Governor` contract itself to properly support the checkpointing 
 # Summary
 
 Below you will find an outline of changes to the functionality of the governor as well as the stated purpose of such a mechanism to support vote aggregation. It forwards a solution
-in which each an additional hook is to be added on token transfers and delegation emitted events, in which the `Governor` then consumes both the message itself and the L2 block times
-or block numbers associated in a mapping for every checkpoint that could exist on the respective chains, i.e. `chainId`. In short the new governor attempts to reconcile the state of voting power across each chain by adding this additional storage field that contains the voting power at a given height.
+in which each an additional hook is to be added on token transfers and delegation emitted events. The `Governor` then consumes both these messages and a corresponding L2 block time or
+or block number. These are then stored in a mapping for every checkpoint that exists on each of the respective chains, i.e. `chainId`. In short the new governor attempts to reconcile the state of voting power across each chain by utilizng this storage field that contains the voting power at a given block height.
 
 # Problem Statement + Context
 
@@ -38,11 +38,18 @@ This scenario allows users to freely delegate across the superchain as needed. D
 
 **Impact on users:** Delegates won't need to worry about voting on different chains. Voting becomes easier and simpler, as it occurs on the OP Mainnet chain by combining their voting power at the time of a vote.
 
+As for the first solution, this has been explored by other projects in the space namely Wormhole. This hub and spoke model for conducting votes, and having each governor run their
+proposals on the native chain. The tally is then counted by the hub chain once the voting period has ended. While this model simplifies the design greatly, it presents a difficult UX 
+question of displaying users voting power on all of the chains and requires a soft governance layer where proposals are recreated on each chain. Users then must track their holdings 
+across each chain and send N transactions for a single proposal, where N is then number of chains in which they hold voting power.
+
 ## Ongoing Discussions and Considerations
 
 There is an ongoing discussion about having each chain be responsible for tracking its respective balances to determine voting power. Given that proposals may not be supported across all chains, it's crucial that the solution's main considerations pertain to OP Mainnet and its voting periods.
 
 This approach allows the cost of operating such a system to be the responsibility of the protocol itself, rather than relying on external relayers. It also addresses the context of not supporting proposals that would only live on a single chain.
+
+Another potential issue, is the ability to multiply a token holders voting power by timing a transfer of tokens to another L2, such that the checkpoint on origin chain has be updated by the governor, but on not so for the destination chain. To mitigate this, voting periods should be announced and the updates can be pulled atomically for a given timestamp range.
 
 # Proposed Solution
 
