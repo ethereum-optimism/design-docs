@@ -6,9 +6,14 @@
 
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [Missing side effect on `.selector` access bug (Bug fixed after 0.8.15)](#missing-side-effect-on-selector-access-bug-bug-fixed-after-0815)
-  - [Storage write removal before conditional termination (Bug fixed after 0.8.15)](#storage-write-removal-before-conditional-termination-bug-fixed-after-0815)
-  - [Change in Default EVM version between different Solidity versions](#change-in-default-evm-version-between-different-solidity-versions)
+  - [Solidity Bugs Fixed](#solidity-bugs-fixed)
+    - [Missing side effect on `.selector` access bug (Bug fixed after 0.8.15)](#missing-side-effect-on-selector-access-bug-bug-fixed-after-0815)
+    - [Storage write removal before conditional termination (Bug fixed after 0.8.15)](#storage-write-removal-before-conditional-termination-bug-fixed-after-0815)
+    - [Change in Default EVM version between different Solidity versions](#change-in-default-evm-version-between-different-solidity-versions)
+  - [Other Failure Modes](#other-failure-modes)
+    - [Chosen solidity version is too recent and might contain unknown bugs](#chosen-solidity-version-is-too-recent-and-might-contain-unknown-bugs)
+    - [Stack too deep errors during compilation](#stack-too-deep-errors-during-compilation)
+    - [Contracts exceeding code size when compiled](#contracts-exceeding-code-size-when-compiled)
 - [Audit Requirements](#audit-requirements)
 - [Action Items](#action-items)
 - [Appendix](#appendix)
@@ -41,15 +46,22 @@
 
 ## Introduction
 
-This document covers solidity version upgrade of all OP Stack smart contracts from 0.8.15 code to 0.8.25.
+This document covers solidity version upgrade of all OP Stack smart contracts from 0.8.15 code to a more recent version with support for transient storage and mcopy opcodes (i.e versions >=0.8.24).
 
 Below are references for this project:
 
-- [Issue 11527: Smart Contracts: Update all 0.8.15 code to 0.8.25](https://github.com/ethereum-optimism/optimism/issues/11527).
+- [Issue 11527: Smart Contracts: Update all 0.8.15 code to a more recent version](https://github.com/ethereum-optimism/optimism/issues/11527).
 
 ## Failure Modes and Recovery Paths
 
-### Missing side effect on `.selector` access bug (Bug fixed after 0.8.15)
+### Solidity Bugs Fixed
+
+This section lists solidity bugs that were fixed as failure modes and important changes to default values used for compilation and explains why these might be a risk for us. This set of bug fixes and changes was chosen because:
+
+- Bug fixes: These are bugs that are only introduced when code is written a specific way, though meant to be correct but the compiler generates incorrect bytecode that can include a vulnerability.
+- Changes to default compilation settings: These are changes that if not put into consideration when writing and compiling code can lead to generating non-optimized, non-compiling and/or non-executable code.
+
+#### Missing side effect on `.selector` access bug (Bug fixed after 0.8.15)
 
 - **Description:**
   - Introduced: v0.6.2
@@ -62,7 +74,7 @@ Below are references for this project:
 - **Detection:** Confidence on the absence of this bug can be stronger with robust unit tests that check that all side effects of a call happens and correctly.
 - **Recovery Path(s)**: Redeployment and upgrade of the affected contracts
 
-### Storage write removal before conditional termination (Bug fixed after 0.8.15)
+#### Storage write removal before conditional termination (Bug fixed after 0.8.15)
 
 - **Description:**
 
@@ -85,25 +97,61 @@ Below are references for this project:
 - **Detection:** If a solidity contract (using solidity version earlier than 0.8.17) follows the pattern described above, its potentially vulnerable to this.
 - **Recovery Path(s)**: Redeployment and upgrade of the affected contracts
 
-### Change in Default EVM version between different Solidity versions
+#### Change in Default EVM version between different Solidity versions
 
 - **Description:** Version 0.8.25 sets the default evm version to cancun
 - **Risk Assessment:**
   - Severity: Low/Medium/High
   - Likelihood: Medium
 - **Mitigations:** As at 0.8.15, the default EVM version is 'London', if no explicit version override is declared, 'Cancun' will be used rather which if not intended can lead to code that either does not deploy or reverts un-ideally at runtime even though non-fork tests might have passed. A mitigation is explicitly declaring the intended EVM version to use for compilation regardless of if its the same as the default the compiler uses. That way, a new compiler version that changes the default EVM version does not change the one that is intended to be used. In this scenario however, this is not possible because the intended EVM version is the same as the compiler's EVM version default.
-- **Detection:** Running unit tests as fork test also.
+- **Detection:** Running unit tests as fork test.
 - **Recovery Path(s)**: Redeployment and upgrade of the affected contracts
+
+### Other Failure Modes
+
+#### Chosen solidity version is too recent and might contain unknown bugs
+
+- **Description:** Choosing a very recent solidity version which hasn't stood a relatively long enough test of time can pose the risk of having an unknown bug introduced into the OP Stack smart contracts.
+- **Risk Assessment:**
+  - Severity: High
+  - Likelihood: Low/Medium
+- **Mitigations:** Might be safer to use a solidity version 1 or 2 releases earlier than the latest.
+- **Detection:** -
+- **Recovery Path(s)**: Redeployment and upgrade of the affected contracts
+
+#### Stack too deep errors during compilation
+
+- **Description:** Current OP Stack contracts only compile with the legacy pipeline with the optimizer on. Compiling with the optimizer off or using the via-ir pipeline result in stack too deep errors. When upgrading to a new solidity version, we have to make sure that successful compilation using the current build settings is possible.
+- **Risk Assessment:**
+  - Severity: -
+  - Likelihood: -
+- **Mitigations:** -
+- **Detection:** During compilation
+- **Recovery Path(s)**: Code modification (local variable scoping, local variables in memory etc), build settings modification or/and usage of a different compiler version.
+
+#### Contracts exceeding code size when compiled
+
+- **Description:** There are a few OP Stack contracts that are close to the contract code size limit. We have to ensure that the chosen compiler version to upgrade to compiles all OP Stack contracts successfully and without any exceeding the contract code size limit.
+- **Risk Assessment:**
+  - Severity: -
+  - Likelihood: -
+- **Mitigations:** -
+- **Detection:** During compilation
+- **Recovery Path(s)**: Code modification (runtime code size optimization), build settings modification or/and usage of a different compiler version.
 
 ## Audit Requirements
 
 _Will this project require an audit according to the guidance in [OP Labs Audit Framework: When to get external security review and how to prepare for it](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864)? Please explain your reasoning._
+
+This project would not require an audit.
 
 ## Action Items
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
+- [ ] Contracts compile successfully with upgraded solidity version and without stack too deep error(s)
+- [ ] Contracts compile successfully with upgraded solidity version and without any contract intended to be deployed exceeding the contract code size limit (24576 bytes)
 
 ## Appendix
 
