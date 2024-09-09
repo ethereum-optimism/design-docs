@@ -13,18 +13,18 @@ The Holocene hardfork introduces several changes to batch derivation:
 
 - _Partial Span Batch Validity_ determines the validity of singular batches within a span batch
 individually, only invalidating the remaining span batch upon the first invalid batch.
-- _Steady Batch Derivation_ derives invalid singluar batches immediately as deposit-only
+- _Steady Batch Derivation_ derives invalid singular batches immediately as deposit-only
 blocks.
 - _Strict Batch Ordering_ requires batches within and across channels to be strictly ordered.
 
-The design space and some proposed solutions will be discussed, together with pratical implications
+The design space and some proposed solutions will be discussed, together with practical implications
 for batcher implementations that have to satisfy the stricter rules.
 
 # Partial Span Batch Validity
 
 ## Problem Statement + Context
 
-Before Holocene, Span Batch validity is handled atomically, i.e., either all singluar batches that
+Before Holocene, Span Batch validity is handled atomically, i.e., either all singular batches that
 can be derived from a span batch are valid, or if any of them is invalid (during batch queue
 checks), the whole span batch is dropped. This has negative implications for Fault Proofs: in a
 worst-case scenario, if the to-be-fault-proven block is the first batch in a span batch, to
@@ -90,7 +90,7 @@ at most one staging channel, for which it collects frames, that must arrive in o
 
 The following will explore the open design space, presenting options, and propose a solution.
 The principle I would apply to answer open design questions is that the new rules should generally
-choose the design that leads to faster progess of derivation, even if it means deriving
+choose the design that leads to faster progress of derivation, even if it means deriving
 empty batches earlier.
 Spoiler: Option 1 will always be the proposed option.
 
@@ -105,7 +105,7 @@ There's an open design space around how to handle some scenarios for missing or 
 - How do we handle the current staging channel if an out of order frame (that is not the first
 frame) arrives? There's only one valid option, to drop the out-of-order frame, keeping the currently
 staged channel. Note that this will give the staging channel a chance to be continued or closed
-properly by the next in-order frame. If this doesn't happen, at the lastest the next first frame
+properly by the next in-order frame. If this doesn't happen, at the latest the next first frame
 will drop the staging channel and start a new one.
 
 ### Proposed solution
@@ -188,7 +188,7 @@ progresses (open question: is this true, in view of lingering `undecided` batche
 # Steady Batch Derivation
 
 Steady Batch Derivation changes how invalid batches and payload attributes at different stages in
-the derivation pipieline are treated.
+the derivation pipeline are treated.
 - Batch queue: if a batch is found to be invalid at the batch queue stage (`BatchDrop`), it is immediately replaced by an empty
   batch, leading to deposit-only (first batch of an epoch) or empty payload attributes.
 - Engine queue: if the payload attributes are found by the EL client to be
@@ -242,7 +242,7 @@ from pre-Holocene L1 blocks.
 # Alternatives Considered
 
 We could implement only some of the three changes to derivation. However, the synergies among the
-changes make it worthwile to apply them at once. E.g. strict batch ordering simplifies several
+changes make it worthwhile to apply them at once. E.g. strict batch ordering simplifies several
 stages in the derivation pipeline, thereby simplifying the reasoning about aspects like the right
 sync start behavior, which helps in implementing partial span batch validity more easily.
 Furthermore, the structural changes necessary in the derivation pipeline to apply multiple subsets
