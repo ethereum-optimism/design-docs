@@ -90,9 +90,9 @@ This removes the necessity to buffer more than one channel, and the channel bank
 at most one staging channel, for which it collects frames, that must arrive in order.
 
 The following will explore the open design space, presenting options, and propose a solution.
-The principle I would apply to answer open design questions is that the new rules should generally
-choose the design that leads to faster progress of derivation, even if it means deriving
-empty batches earlier.
+In order to guide decisions on open design questions, we will consider the 
+_principle of fastest derivation_: the new rules should lead to faster derivation progress where possible,
+even if it means deriving empty batches earlier. 
 Spoiler: Option 1 will always be the proposed option.
 
 ## Out of order frames
@@ -111,7 +111,7 @@ will drop the staging channel and start a new one.
 
 ### Proposed solution
 
-Applied to above open question, this means choosing option 1. This has the
+Following the principle of fastest derivation, this means choosing option 1. This has the
 additional advantage that the sync start algorithm simplifies significantly, because a fist frame
 _always_ marks the start of a new channel, and guarantees that there won't be any buffered channels
 in the channel bank.
@@ -128,7 +128,7 @@ The batch queue also becomes simpler as batches have to arrive in order.
 
 ### Proposed solution
 
-Following the principle of fast derivation, option 1 is proposed to be chosen. Besides guaranteeing
+Following the principle of fastest derivation, option 1 is proposed to be chosen. Besides guaranteeing
 faster derivation, it also avoids waiting for full sequencing windows on gaps to be resolved, which
 is quite unlikely, unless the batcher implementation would be specially tuned to backfill gaps. If a
 gap occurs, it is actually much more likely that the next batches will be even further in the
