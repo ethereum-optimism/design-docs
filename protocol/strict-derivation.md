@@ -35,6 +35,12 @@ batch upon hitting an invalid derived singular batch (call this behavior "forwar
 vastly improves this scenario, since batch queue validity is then final for any singular
 batch, not just regular singular batches.
 
+Note that forward-invalidation is natural for span batches because of its data structure: Singular
+batches within span batches don't explicitly state the parent hash, so they have to be assumed to
+implicitly reference the parent singular batch. So if that parent singular batch is invalid and
+replaced by an empty batch, for consistency reasons, all future singular batches in a span batch
+have to be considered invalid as well.
+
 In late 2023 while Delta was still in development, the problem of partial span batch validity was
 [already discussed](https://www.notion.so/oplabs/Handling-Invalid-Batches-48bb972368ce409c84bd9189eddd0577)
 and for simplicity it was decided to use the atomic validity model. However, above discussion
