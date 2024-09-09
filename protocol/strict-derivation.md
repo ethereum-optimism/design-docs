@@ -47,25 +47,6 @@ and for simplicity it was decided to use the atomic validity model. However, abo
 focusses on implications of the atomic validity model for EL-sync. We're now concerned with behavior
 around CL client restarts and reorgs.
 
-### Mid-way restart
-
-One concern that was raised with partial span batch validity is how to deal with mid-way restarts,
-i.e. when the CL client restarts, loosing its internal derivation pipeline state while the safe head
-of the EL client is in the middle of a span batch. In particular, the correct behavior needs to
-cover the case where a L1 reorg happened in the meantime that reorged out the L1 block that
-contained the span batch.
-
-I fail to see currently how partial span batch validity makes this case worse or different. With
-atomic span batch validity, there's the pending-safe state of derived blocks that might be reorged
-out later by a backwards-invalidating singular batch derived from a span batch. So if we only
-forwards-invalidate, this becomes easier.
-
-And in any case, a restart or reorg needs to reconstruct the derivation pipeline state from the new
-(sync-start) L1 block, so I don't understand how reconstructing span batch derivation state is
-different from reconstructing the channel bank and batch queue in general. If a restart or reorg
-happens in the middle of deriving singular batches from a channel, we're in a similar situation that
-is solved by going back far enough for the sync-start.
-
 ## Proposed Design
 
 To resolve open questions regarding the implementation of Partial Span Batch Validity, I propose to
@@ -88,6 +69,25 @@ dropped, as it doesn't contain any new batches (this would also happen if applyi
 to each derived singular batch individually).
 
 Those checks are done once per span batch before the batch queue derives any singular batches.
+
+### Mid-way restart
+
+One concern that was raised with partial span batch validity is how to deal with mid-way restarts,
+i.e. when the CL client restarts, losing its internal derivation pipeline state while the safe head
+of the EL client is in the middle of a span batch. In particular, the correct behavior needs to
+cover the case where a L1 reorg happened in the meantime that reorged out the L1 block that
+contained the span batch.
+
+I fail to see currently how partial span batch validity makes this case worse or different. With
+atomic span batch validity, there's the pending-safe state of derived blocks that might be reorged
+out later by a backwards-invalidating singular batch derived from a span batch. So if we only
+forwards-invalidate, this becomes easier.
+
+And in any case, a restart or reorg needs to reconstruct the derivation pipeline state from the new
+(sync-start) L1 block, so I don't understand how reconstructing span batch derivation state is
+different from reconstructing the channel bank and batch queue in general. If a restart or reorg
+happens in the middle of deriving singular batches from a channel, we're in a similar situation that
+is solved by going back far enough for the sync-start.
 
 # Strict Batch Ordering
 
@@ -129,8 +129,12 @@ The batch queue also becomes simpler as batches have to arrive in order.
 - How to treat _older_ batches is easy: they are dropped.
 - Similarly to out of order frames, how to treat future batches (gaps) has two options:
   - Option 1: immediately fill the gap with deposit-only blocks, and then process the batch.
+  It is noteworthy that the future batch can then only be valid if it built on top of a gap of empty batches.
   - Option 2: drop future batches, and wait for up to a full sequencing window for the next
   batch to arrive.
+  - Note that the pre-Holocene behavior is to cache _future_ batches for later checking when the gap
+  has been closed. It is one goal of Holocene to remove as much buffering as possible, so this
+  behavior is not considered a valid option.
 
 ### Proposed solution
 
@@ -152,8 +156,10 @@ batches, as long as the sequencer is creating unsafe blocks that follow the same
 auto-derivation would for gaps. However, this would need to be investigated more deeply.
 
 Note that the new strict ordering rules of the batch queue will always lead to an empty batch queue
-when the origin of the derivation pipeline progresses to the next L1 block (what about
-`undecided` though?).
+when the origin of the derivation pipeline progresses to the next L1 block.
+In order to guarantee this invariant fully, we might need to add an extra rule to the derivation
+pipeline to only progress to the next L1 block for derivation if all `undecided` batches have been
+decided upon by retrieving the previously temporarily missing L1 and L2 blocks.
 
 ## Batcher hardening
 
@@ -190,7 +196,7 @@ Strict Batch Ordering leads to a simpler sync start algorithm. It may be suffici
 the L1 chain until finding a batcher transaction that starts a new channel, i.e., containing a first
 frame. The strict ordering rules, as detailed above, would in such a case drop any pre-existing
 staging channel, and the batch queue should always be empty right after the pipeline origin
-progresses (open question: is this true, in view of lingering `undecided` batches?).
+progresses.
 
 # Steady Batch Derivation
 
@@ -202,8 +208,23 @@ the derivation pipeline are treated.
   [`INVALID`](https://github.com/ethereum/go-ethereum/blob/7fd7c1f7dd9ba8d90399df2f080e4101ae37a255/beacon/engine/errors.go#L63)
   they are replaced by deposit-only/empty payload attributes and reinserted into the EL.
 
-At this point, there are no open questions about the design of this protocol change. I assume that
-the actual implementation will raise questions on certain details.
+## L1 origin selection
+
+There's an open design space about how to select the L1 origin when deriving one or more
+deposit-only blocks.
+
+- A simple default rule could be to generate blocks in a way to maintain a steady L1/L2 block ratio,
+e.g. bumping the L1 origin selection every 6 blocks in the case of mainnet.
+- Edge case: we were already very near the sequencer drift limit, and need to select a new origin
+faster.
+- Edge case: L1 missed a slot, and the L1 origin cannot advance as expected.
+- So maybe a better rule is to first eagerly advance the L1 origin as quickly as possible, and only
+if a newer L1 origin isn't available, keep it. This solves for missed slots and will implicitly and
+automatically maintain a good L1/L2 block ratio. We then just need a clear definition of "L1 origin
+is/isn't available".
+  - To mimic sequencer behavior, and avoid being hit by shallow L1 reorgs, we could add an
+  in-protocol L1 validation depth. So eagerly advancing the L1 origin while maintaining a timestamp
+  distance of this validation depth times the L1 bock time.
 
 # Activation rules & actions
 
@@ -228,14 +249,18 @@ The principle of eager derivation of later stages should guarantee at this point
 been applied directly on top of the current safe chain have already been exhausted from the batch
 queue. So what is left should be `undecided` and `future` batches. (Note: I'm not sure on this one.)
 I see two options on how to handle a non-empty batch queue at this point:
-- Option 1: Drop future batches, continue resolving undecided batches, if any are left, and apply
+- Option 1: When the L1 origin reaches the Holocene activation block, discard all batches in the
+batch queue. Could also be applied to the Channel Bank to give us a nice clean starting point.
+  - The batcher would have to be aware of that rule and consider any blocks it submitted in channels
+  that didn't close prior to the Holocene activation block as needing to be resubmitted.
+- Option 2: Drop future batches, continue resolving undecided batches, if any are left, and apply
 new Holocene rules.
-- Option 2: The Batch Queue will just start applying Holocene rules from this moment onwards. This will then
+- Option 3: The Batch Queue will just start applying Holocene rules from this moment onwards. This will then
 automatically derive gaps as empty batches, discard out of order batches, etc. A problem with this
 option is that the sync start for a while after Holocene would still need to apply the pre-Holocene
 algorithm to restore the derivation pipeline state.
 
-I'm undecided at this point which option is better. I'd prefer to pick the one that leads to a
+At this point I prefer Option 1. I'd like to pick the one that leads to a
 simpler implementation, minimizing complexity where possible. Since almost always a healthy batcher
 implementation during normal network conditions will already produce batches according to Holocene
 rules, we don't need to optimize for the prettiest activation rules, as long as they work
@@ -260,10 +285,36 @@ derivation changes in one go.
 
 ## Unsafe reorgs
 
-Before Steady Batch Derivation, invalid batches got chances to be replaced by valid future
-batches. Because they will now be immediately derived as deposit-only blocks, there is a theoretical
-heightened risk for unsafe head reorgs. However, we haven't experienced this on OP Mainnet or other mainnet
-OP Stack chains yet. The batcher wouldn't automatically detect this and resend 
+Before Steady Batch Derivation, invalid batches got chances to be replaced by valid future batches.
+Because they will now be immediately derived as deposit-only blocks, there is a theoretical
+heightened risk for unsafe head reorgs. To the best of our knowledge, we haven't
+experienced this on OP Mainnet or other mainnet OP Stack chains yet.
+
+The current rules of Steady Batch Derivation can indeed lead to a previously valid submitted batch
+to now be invalid, and then immediately be derived as deposit-only blocks, causing a long L2 unsafe
+reorg. The same batcher tx may still be included on L1. However, given that span batches are only
+forward-invalidated with Holocene, I think the L2 unsafe reorg would be limited to the L2 section
+that references the reorged-out L1 section. However, more batcher txs that might already have landed
+on L1 as well would cause more deposit-only blocks to be derived.
+
+I think this is the trade-off of Steady Batch Derivation.
+
+### Last L1 origin of channel
+
+One solution that I can think of that may alleviate this problem is to reference the last L1 origin
+in the channel metadata (in a new channel format), and then drop the channel directly in the channel
+bank before even decoding any batches from it, that would then at some point be derived as
+deposit-only blocks. This way, the batcher could get a "second chance" to submit a channel that
+includes the correct reorged-to L1 origin chain. This is very similar to how span batches contain
+the last L1 origin as `l1_origin_check` in their prefix, just moved one layer up to the channel
+container. Having the channel contain such an L1 origin check has the advantage that the derivation
+pipeline wouldn't too eagerly derive deposit-only blocks, and to recover from L1 reorgs. I think
+this solution would also still maintain the nice properties of Strict Batch Ordering, that there's
+only one staging channel, and that we don't buffer out of order frames or batches. However, this is
+also the disadvantage that it violates the above stated principle of fastest derivation.
+
+If Proofs and Interop experts can confirm that such a solution would still lead to the sought after
+improvements for Proofs and Interop, resp., we could consider including it as part of Holocene.
 
 ## Multiple batchers & strict ordering
 
