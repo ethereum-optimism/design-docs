@@ -30,8 +30,9 @@ checks), the whole span batch is dropped. This has negative implications for Fau
 worst-case scenario, if the to-be-fault-proven block is the first batch in a span batch, to
 determine its validity at the batch queue stage, the validity of the full span batch has to be
 determined, as any later invalid singular batch would also invalidate all prior batches in the same
-span batch. So only invalidating the remaining span batch upon hitting an invalid derived singular
-batch vastly improves this scenario, since batch queue validity is then final for any singular
+span batch (call this behavior "backwards invalidating"). So only invalidating the remaining span
+batch upon hitting an invalid derived singular batch (call this behavior "forwards invalidating")
+vastly improves this scenario, since batch queue validity is then final for any singular
 batch, not just regular singular batches.
 
 In late 2023 while Delta was still in development, the problem of partial span batch validity was
