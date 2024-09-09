@@ -9,8 +9,8 @@
   - [Solidity Bugs Fixed](#solidity-bugs-fixed)
     - [Missing side effect on `.selector` access bug (Bug fixed after 0.8.15)](#missing-side-effect-on-selector-access-bug-bug-fixed-after-0815)
     - [Storage write removal before conditional termination (Bug fixed after 0.8.15)](#storage-write-removal-before-conditional-termination-bug-fixed-after-0815)
-    - [Change in Default EVM version between different Solidity versions](#change-in-default-evm-version-between-different-solidity-versions)
   - [Other Failure Modes](#other-failure-modes)
+    - [Change in Default EVM version between different Solidity versions](#change-in-default-evm-version-between-different-solidity-versions)
     - [Chosen solidity version is too recent and might contain unknown bugs](#chosen-solidity-version-is-too-recent-and-might-contain-unknown-bugs)
     - [Stack too deep errors during compilation](#stack-too-deep-errors-during-compilation)
     - [Contracts exceeding code size when compiled](#contracts-exceeding-code-size-when-compiled)
@@ -97,6 +97,8 @@ This section lists solidity bugs that were fixed as failure modes and important 
 - **Detection:** If a solidity contract (using solidity version earlier than 0.8.17) follows the pattern described above, its potentially vulnerable to this.
 - **Recovery Path(s)**: Redeployment and upgrade of the affected contracts
 
+### Other Failure Modes
+
 #### Change in Default EVM version between different Solidity versions
 
 - **Description:** Version 0.8.25 sets the default evm version to cancun
@@ -106,8 +108,6 @@ This section lists solidity bugs that were fixed as failure modes and important 
 - **Mitigations:** As at 0.8.15, the default EVM version is 'London', if no explicit version override is declared, 'Cancun' will be used rather which if not intended can lead to code that either does not deploy or reverts un-ideally at runtime even though non-fork tests might have passed. A mitigation is explicitly declaring the intended EVM version to use for compilation regardless of if its the same as the default the compiler uses. That way, a new compiler version that changes the default EVM version does not change the one that is intended to be used. In this scenario however, this is not possible because the intended EVM version is the same as the compiler's EVM version default.
 - **Detection:** Running unit tests as fork test.
 - **Recovery Path(s)**: Redeployment and upgrade of the affected contracts
-
-### Other Failure Modes
 
 #### Chosen solidity version is too recent and might contain unknown bugs
 
