@@ -13,25 +13,26 @@ The Holocene hardfork introduces several changes to batch derivation:
 
 - _Partial Span Batch Validity_ determines the validity of singular batches within a span batch
 individually, only invalidating the remaining span batch upon the first invalid batch.
-- _Steady Batch Derivation_ derives invalid singluar batches immediately as deposit-only
+- _Steady Batch Derivation_ derives invalid singular batches immediately as deposit-only
 blocks.
 - _Strict Batch Ordering_ requires batches within and across channels to be strictly ordered.
 
-The design space and some proposed solutions will be discussed, together with pratical implications
+The design space and some proposed solutions will be discussed, together with practical implications
 for batcher implementations that have to satisfy the stricter rules.
 
 # Partial Span Batch Validity
 
 ## Problem Statement + Context
 
-Before Holocene, Span Batch validity is handled atomically, i.e., either all singluar batches that
+Before Holocene, Span Batch validity is handled atomically, i.e., either all singular batches that
 can be derived from a span batch are valid, or if any of them is invalid (during batch queue
 checks), the whole span batch is dropped. This has negative implications for Fault Proofs: in a
 worst-case scenario, if the to-be-fault-proven block is the first batch in a span batch, to
 determine its validity at the batch queue stage, the validity of the full span batch has to be
 determined, as any later invalid singular batch would also invalidate all prior batches in the same
-span batch. So only invalidating the remaining span batch upon hitting an invalid derived singular
-batch vastly improves this scenario, since batch queue validity is then final for any singular
+span batch (call this behavior "backwards invalidating"). So only invalidating the remaining span
+batch upon hitting an invalid derived singular batch (call this behavior "forwards invalidating")
+vastly improves this scenario, since batch queue validity is then final for any singular
 batch, not just regular singular batches.
 
 In late 2023 while Delta was still in development, the problem of partial span batch validity was
@@ -89,15 +90,15 @@ This removes the necessity to buffer more than one channel, and the channel bank
 at most one staging channel, for which it collects frames, that must arrive in order.
 
 The following will explore the open design space, presenting options, and propose a solution.
-The principle I would apply to answer open design questions is that the new rules should generally
-choose the design that leads to faster progess of derivation, even if it means deriving
-empty batches earlier.
+In order to guide decisions on open design questions, we will consider the 
+_principle of fastest derivation_: the new rules should lead to faster derivation progress where possible,
+even if it means deriving empty batches earlier. 
 Spoiler: Option 1 will always be the proposed option.
 
 ## Out of order frames
 
 There's an open design space around how to handle some scenarios for missing or out of order frames:
-- How do we handle incoming _first_ frames while the current channel isn't closed yet?
+- How do we handle "foreign first frames" -- namely, incoming _first_ frames which do not belong to the current channel?
   - Option 1: discard the current channel and open a new one for the given frame.
   - Option 2: discard the foreign frame and wait for the duration of the channel timeout for the
     next correct frame and only then discard the current staging channel and open a new staging
@@ -105,12 +106,12 @@ There's an open design space around how to handle some scenarios for missing or 
 - How do we handle the current staging channel if an out of order frame (that is not the first
 frame) arrives? There's only one valid option, to drop the out-of-order frame, keeping the currently
 staged channel. Note that this will give the staging channel a chance to be continued or closed
-properly by the next in-order frame. If this doesn't happen, at the lastest the next first frame
+properly by the next in-order frame. If this doesn't happen, at the latest the next first frame
 will drop the staging channel and start a new one.
 
 ### Proposed solution
 
-Applied to above open question, this means choosing option 1. This has the
+Following the principle of fastest derivation, this means choosing option 1. This has the
 additional advantage that the sync start algorithm simplifies significantly, because a fist frame
 _always_ marks the start of a new channel, and guarantees that there won't be any buffered channels
 in the channel bank.
@@ -127,7 +128,7 @@ The batch queue also becomes simpler as batches have to arrive in order.
 
 ### Proposed solution
 
-Following the principle of fast derivation, option 1 is proposed to be chosen. Besides guaranteeing
+Following the principle of fastest derivation, option 1 is proposed to be chosen. Besides guaranteeing
 faster derivation, it also avoids waiting for full sequencing windows on gaps to be resolved, which
 is quite unlikely, unless the batcher implementation would be specially tuned to backfill gaps. If a
 gap occurs, it is actually much more likely that the next batches will be even further in the
@@ -188,7 +189,7 @@ progresses (open question: is this true, in view of lingering `undecided` batche
 # Steady Batch Derivation
 
 Steady Batch Derivation changes how invalid batches and payload attributes at different stages in
-the derivation pipieline are treated.
+the derivation pipeline are treated.
 - Batch queue: if a batch is found to be invalid at the batch queue stage (`BatchDrop`), it is immediately replaced by an empty
   batch, leading to deposit-only (first batch of an epoch) or empty payload attributes.
 - Engine queue: if the payload attributes are found by the EL client to be
@@ -242,7 +243,7 @@ from pre-Holocene L1 blocks.
 # Alternatives Considered
 
 We could implement only some of the three changes to derivation. However, the synergies among the
-changes make it worthwile to apply them at once. E.g. strict batch ordering simplifies several
+changes make it worthwhile to apply them at once. E.g. strict batch ordering simplifies several
 stages in the derivation pipeline, thereby simplifying the reasoning about aspects like the right
 sync start behavior, which helps in implementing partial span batch validity more easily.
 Furthermore, the structural changes necessary in the derivation pipeline to apply multiple subsets
