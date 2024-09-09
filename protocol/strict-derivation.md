@@ -98,7 +98,7 @@ Spoiler: Option 1 will always be the proposed option.
 ## Out of order frames
 
 There's an open design space around how to handle some scenarios for missing or out of order frames:
-- How do we handle "foreign frames" -- namely, incoming _first_ frames which do not belong to the current channel?
+- How do we handle "foreign first frames" -- namely, incoming _first_ frames which do not belong to the current channel?
   - Option 1: discard the current channel and open a new one for the given frame.
   - Option 2: discard the foreign frame and wait for the duration of the channel timeout for the
     next correct frame and only then discard the current staging channel and open a new staging
