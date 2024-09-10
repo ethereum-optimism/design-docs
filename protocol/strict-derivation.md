@@ -225,6 +225,10 @@ is/isn't available".
   - To mimic sequencer behavior, and avoid being hit by shallow L1 reorgs, we could add an
   in-protocol L1 validation depth. So eagerly advancing the L1 origin while maintaining a timestamp
   distance of this validation depth times the L1 bock time.
+  - I believe that, in reality, this validation depth would naturally be observed anyways, because
+  deposit-only blocks would only be derived for invalid or gapped batches, which must already have
+  landed in a channel on L1 by a sequencer that itself is observing a validation depth when creating
+  blocks. So this rule should check out nicely.
 
 # Activation rules & actions
 
