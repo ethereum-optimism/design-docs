@@ -238,37 +238,40 @@ stage's _origin_ (not to be confused with the _L1 origin of an L2 block_).
 Note that this is in contrast to how Delta activated span batches, which was by first parsing the
 span batch and then checking the span batch's L1 origin timestamp.
 
+## Frame Queue, Channel Bank, Batch Queue
+
 However, we need to specify how existing buffered frames, channels and batches are treated at
 activation, since the stricter rules of Holocene take effect.
-To start with a derivation pipeline state that is consistent with Holocene rules, I propose the
-following special activation effects to take place when the pipeline's origin reaches the activation
-timestamp, which is similar to applying Holocene rules retroactively.
-- Channel Bank:
-  1. All channels that don't consist of contiguous frames that include the first, are dropped. 
-  2. All but the youngest (in terms of L1 inclusion) channel are dropped.
-  3. This optional left-over channel
-     will be the start staging channel for the Holocene channel bank.
+There are multiple options to enter Holocene with a derivation pipeline state that is consistent
+with Holocene rules.
 
-The principle of eager derivation of later stages should guarantee at this point that all batches that could have
-been applied directly on top of the current safe chain have already been exhausted from the batch
-queue. So what is left should be `undecided` and `future` batches. (Note: I'm not sure on this one.)
-I see two options on how to handle a non-empty batch queue at this point:
-- Option 1: When the L1 origin reaches the Holocene activation block, discard all batches in the
-batch queue. Could also be applied to the Channel Bank to give us a nice clean starting point.
-  - The batcher would have to be aware of that rule and consider any blocks it submitted in channels
-  that didn't close prior to the Holocene activation block as needing to be resubmitted.
-- Option 2: Drop future batches, continue resolving undecided batches, if any are left, and apply
-new Holocene rules.
-- Option 3: The Batch Queue will just start applying Holocene rules from this moment onwards. This will then
-automatically derive gaps as empty batches, discard out of order batches, etc. A problem with this
-option is that the sync start for a while after Holocene would still need to apply the pre-Holocene
-algorithm to restore the derivation pipeline state.
+- Option 1: When the L1 origin reaches the Holocene activation block, discard all frames in the
+  Frame Queue, channels in the Channel Bank, and batches in the Batch Queue.
+  This gives us a nice clean starting point.
+- Option 2: is similar to applying Holocene rules retroactively:
+  - Channel Bank:
+    1. All channels that don't consist of contiguous frames that include the first, are dropped. 
+    2. All but the youngest (in terms of L1 inclusion) channel are dropped.
+    3. This optional left-over channel
+       will be the start staging channel for the Holocene channel bank.
+  - Batch Queue: The principle of eager derivation of later stages should guarantee at this point
+  that all batches that could have been applied directly on top of the current safe chain have
+  already been exhausted from the batch queue. So what is left should only be `future` batches.
+  I see two options on how to handle a non-empty batch queue at this point:
+    - Option 2.a: Drop any remaining future batches (Option 1 just applied to the Batch Queue).
+    - Option 2.b: Apply Holocene rules from this moment onwards. This will then automatically derive
+    gaps as empty batches, discard out of order batches, etc. A problem with this option is that the
+    sync start for a while after Holocene would still need to apply the pre-Holocene algorithm to
+    restore the derivation pipeline state.
 
-At this point I prefer Option 1. I'd like to pick the one that leads to a
-simpler implementation, minimizing complexity where possible. Since almost always a healthy batcher
-implementation during normal network conditions will already produce batches according to Holocene
-rules, we don't need to optimize for the prettiest activation rules, as long as they work
-consistently.
+At this point I prefer Option 1. I'd like to pick the one that leads to a simpler implementation,
+minimizing complexity where possible. Since almost always a healthy batcher implementation during
+normal network conditions will already produce batches according to Holocene rules, we don't need to
+optimize for the prettiest activation rules, as long as they work consistently.
+The batcher would have to be aware of those rules and consider any blocks it submitted in channels
+that didn't close prior to the Holocene activation block as needing to be resubmitted.
+
+## Span Batches
 
 Another open question is how to handle span batches that come from pre-Holocene channels.
 I propose that, for simplicity of implementation, if they are found to be valid as a span batch, to
