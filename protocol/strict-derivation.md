@@ -211,24 +211,45 @@ the derivation pipeline are treated.
 ## L1 origin selection
 
 There's an open design space about how to select the L1 origin when deriving one or more
-deposit-only blocks.
+deposit-only blocks. I see 3 sensible options:
 
-- A simple default rule could be to generate blocks in a way to maintain a steady L1/L2 block ratio,
-e.g. bumping the L1 origin selection every 6 blocks in the case of mainnet.
-- Edge case: we were already very near the sequencer drift limit, and need to select a new origin
-faster.
-- Edge case: L1 missed a slot, and the L1 origin cannot advance as expected.
-- So maybe a better rule is to first eagerly advance the L1 origin as quickly as possible, and only
-if a newer L1 origin isn't available, keep it. This solves for missed slots and will implicitly and
-automatically maintain a good L1/L2 block ratio. We then just need a clear definition of "L1 origin
-is/isn't available".
-  - To mimic sequencer behavior, and avoid being hit by shallow L1 reorgs, we could add an
-  in-protocol L1 validation depth. So eagerly advancing the L1 origin while maintaining a timestamp
-  distance of this validation depth times the L1 bock time.
-  - I believe that, in reality, this validation depth would naturally be observed anyways, because
-  deposit-only blocks would only be derived for invalid or gapped batches, which must already have
-  landed in a channel on L1 by a sequencer that itself is observing a validation depth when creating
-  blocks. So this rule should check out nicely.
+- Option 1: Eagerly advance the L1 origin. This solves for missing L1 slots and will implicitly and
+automatically maintain a good L1/L2 block ratio.
+  - This guaranteed fast deposit inclusion for users and is similar to how a live sequencer
+  operates.
+  - Option 1.a: is a variation of this, where an in-protocol validation depth is maintained, so that
+  there's a constant sequencer drift, e.g. of 4 L1 blocks. This is even more similar to how a live
+  sequencer operates. This has the benefit that there's minimal disruption to the way that L1
+  origins change when going in and out of auto-derivation.
+  - Note that both, Options 1 and 1.a, wouldn't really suffer from shallow L1 reorgs, because only
+  invalid batches coming from L1 can cause this behavior, so if derivation is at the point where it
+  auto-derives blocks, a certain L1 inclusion block validation depth is already maintained.
+- Option 2: look at the last L1/L2-block-time-ratio-many (6 on mainnet) blocks and generate blocks
+in a way to maintain a steady L1/L2 block ratio, e.g. bumping the L1 origin selection every 6 blocks
+in the case of mainnet.
+  - This is similar to Option 1, but rather maintains the current sequencer drift, instead of
+  possibly more eagerly advancing it to get closer to the latest L1 origin.
+  - Edge case: the safe head is already very near the sequencer drift limit, and a newer origin
+  needs to be selected faster. This complicates this solution.
+  - Edge case: L1 missed a slot, and the L1 origin cannot advance as expected. This also needs to be
+  taken care of in Option 1.
+- Option 3: keep last L1 origin as long as possible, so until hitting the sequencing window. This is
+the simplest option, but also means that a sequencer has to fast-advance the L1 origin to catch up
+again. And if the L1 origin already slipped out of the drift window, a sequencer would need to
+continue creating deposit-only blocks until inside the drift window again.
+
+At this point I favor Option 1 because it makes auto-derivation behave similar to a live sequencer.
+Option 2 is quite similar, but gives the sequencer more influence about the "start point" from which
+a steady drift is maintained, which might have unintended consequences. I also see the simplicity of
+Option 3 as an advantage. I would be interested to hear from Proofs/Interop experts which of
+these behaviors play most nicely with Proofs/Interop.
+
+Option 1 (and maybe 2 too) has an interesting side effect: this rule can be used by a sequencer (on
+an almost empty chain) to encode a range of empty batches by just posting a single sort of
+checkpoint batch at the end of the range to then trigger the gap to be auto-derived by these rules.
+For this to fully check out, the sequencer would need a special _gap-sequencing mode_, in which it
+strictly creates blocks according to these rules. It can then safely mark the end of any such gap
+with a single batch.
 
 # Activation rules & actions
 
