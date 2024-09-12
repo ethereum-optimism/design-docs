@@ -2,6 +2,7 @@
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 **Table of Contents**
 
 - [Introduction](#introduction)
@@ -143,12 +144,13 @@ This section lists solidity bugs that were fixed as failure modes and important 
 
 _Will this project require an audit according to the guidance in [OP Labs Audit Framework: When to get external security review and how to prepare for it](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864)? Please explain your reasoning._
 
-This project would not require an audit.
+This project would not require an audit. An audit would require a bytecode audit which is not practical. Also, historically, we trust compiler generated code and don't audit bytecode so we are continuing to do the same here.
 
 ## Action Items
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
+- [ ] Decide on the solidity version to upgrade to
 - [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
 - [ ] Contracts compile successfully with upgraded solidity version and without stack too deep error(s)
 - [ ] Contracts compile successfully with upgraded solidity version and without any contract intended to be deployed exceeding the contract code size limit (24576 bytes)
