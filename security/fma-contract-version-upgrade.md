@@ -144,7 +144,7 @@ This section lists solidity bugs that were fixed as failure modes and important 
 
 _Will this project require an audit according to the guidance in [OP Labs Audit Framework: When to get external security review and how to prepare for it](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864)? Please explain your reasoning._
 
-This project would not require an audit. An audit would require a bytecode audit which is not practical. Also, historically, we trust compiler generated code and don't audit bytecode so we are continuing to do the same here.
+This project would not require an audit. Because we don't expect to change Solidity code aside from the pragmas, an audit would have to review the bytecode diff, which is not practical. Also, historically, we trust compiler generated code and don't audit bytecode so we are continuing to do the same here.
 
 ## Action Items
 
