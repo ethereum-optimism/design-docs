@@ -27,7 +27,7 @@
 | Created at          | 2024-08-20    |
 | Needs Approval From | Matt Solomon  |
 | Other Reviewers     | Mark Tyneway  |
-| Status              | Draft         |
+| Status              | In Review     |
 
 > [!NOTE]
 > 📢 Remember:
