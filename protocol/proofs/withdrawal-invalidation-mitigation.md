@@ -25,7 +25,7 @@ against `DisputeGame` contracts that were created with a timestamp greater than 
 submitted prior to the activation of the fallback mechanism.
 
 Withdrawal invalidation is a powerful tool in the incident response playbook as it can mitigate the
-impact of a large number of invalid dispute games at the same time. However, the it also forces
+impact of a large number of invalid dispute games at the same time. However, it also forces
 users to resubmit their withdrawal proofs and wait an additional 7 days to execute a withdrawal.
 Users have reported that this invalidation and additional delay period is a pain point. This user
 impact means that the fallback is highly disruptive as a standard security mechanism.
