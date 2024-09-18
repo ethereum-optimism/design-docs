@@ -34,7 +34,7 @@ TBD
 ## Defer Deployment of Dispute Game Types
 
 Remove the `FaultDisputeGame` and its dependent contracts (including `AnchorStateRegistry`) from the initial L1
-deployment. The `DisputeGameFactory` would still be deployment, but with no supported game types. It would be impossible
+deployment. The `DisputeGameFactory` would still be deployed, but with no supported game types. It would be impossible
 to create any dispute games and thus withdrawals would be disabled. The `faultGameGenesisOutputRoot` and
 `faultGameAbsolutePrestate` values would not be required ahead of this initial L1 deployment as they are only used by
 the dispute game implementations.
