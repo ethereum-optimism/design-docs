@@ -86,6 +86,7 @@ It’s important to notice that, even though this functions get implemented in t
     - If bridging functions are implemented on the ERC20, updates to the bridge might require updates to every ERC20. This might be easy to do for implementations that use a BeaconProxy structure, but not in other cases.
 - **Easier for integrators:** integrators must deal with a single entrypoint instead of many. This would improve their devX considerably.
 - **Improved indexing and monitoring:** only monitoring events and traces coming from a single source would be necessary instead of many. Improved monitoring correlates with improved security.
+- **Improved backwards compatibility:** the only modifications required to implement interop for a token are including `remoteToken` and giving mint and burn permissions to the `L2StandardBridge`, which can be implemented before the hardfork. This would not be possible with the current design. 
 - **Homogeneous implementation:** tokens on other chains do not implement bridging functionalities, which leads to a fragmented developer experience.
 
 ### Cons of using the alternative design
