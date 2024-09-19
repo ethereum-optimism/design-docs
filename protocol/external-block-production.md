@@ -3,6 +3,7 @@
 #### Metadata
 
 Authors: @dmarzzz, @avalonche, @ferranbt 
+
 Created: September 19, 2024.
 
 # Purpose
@@ -11,7 +12,7 @@ The purpose of this design-doc is to propose and get buy-in in on a first step t
 
 # Summary
 
-This document proposes a sidecar to `op-node` for requesting block production from an external party. This sidecar has two roles: 1) obfuscate the presence of builder software from the `op-node` and `op-geth` and 2) manage communication with a block builder and handle block delivery to `op-node`. The first role is achieved via the sidecar forwarding all API calls to it's local `op-geth` and delivering 1 block exactly for each block request from `op-node`. The second role is achieved by the sidecar implementing the communication protocol with the builder, including authentication, and payload selection rules.
+This document proposes a sidecar to `op-node` for requesting block production from an external party. This sidecar has two roles: 1) obfuscate the presence of builder software from the `op-node` and `op-geth` software and 2) manage communication with a block builder and handle block delivery to `op-node`. The first role is achieved via the sidecar forwarding all API calls to it's local `op-geth` and delivering 1 block exactly for each block request from `op-node`. The second role is achieved by the sidecar implementing the communication protocol with the builder, including authentication, and payload selection rules.
 
 By decoupling the block construction process from the Sequencer's Execution Engine, operators can tailor transaction sequencing rules without diverging from the standard Optimism Protocol Client. This flexibility allows individual chains to experiment on sequencing features, providing a means for differentiation. This minimum viable design also includes a local block production fallback as a training wheel to ensure liveness and network performance in the event of local Block Builder failure.
 
@@ -37,6 +38,7 @@ Key components and their interactions:
    - `op-node`: Initiates the block production process via engine API calls.
    - block builder sidecar: Forwards all API calls to local `op-geth` and multiplexes `engine_FCU` (with Payload Attributes)
    - `op-geth`: The local execution engine.
+   - `Eth JSON RPC`: Accepts standard RPC requests from user's and multiplexes `eth_sendRawTransaction` to the builder client. This can be achieved in the chain operators load balancer or with a simple nginx-style proxy. Future work could perform multiplexing of transactions through the sidecar to ensure that the block builder is not censor'ing.
 
 2. Builder System:
    - `builder-op-node`: A stock version of the op-node client.
@@ -55,7 +57,10 @@ This design achieves the two main roles of the sidecar:
 
 2. External Communication Management: The sidecar handles all communication with the external builder, including authentication and payload selection.
 
-## Boost sync
+### Liveness Failsafe
+To maintain network liveness while utilizing the "block builder sidecar", the local block from the Proposer's `op-geth` will be used in the event a block builder's payload is invalid or does not come in time. This fallback mechanism should be seen as a training wheel.
+
+### Boost sync
 
 Our experience has shown that there can be a notable delay in the synchronization process of the builder-op-geth with the latest tip of the chain. When relying solely on p2p communication and the op-node, we've observed this delay to typically range from about 200 to 300 milliseconds, though this can vary. To address this issue and improve efficiency, we are implementing a `boost sync` mechanism to rapidly transmit the tip of the block to the builder-op-geth.
 
@@ -68,6 +73,10 @@ Preemptively sending these API calls from the sidecar, instead of waiting for th
 ## Resource Usage
 
 This approach doubles the amount of bandwidth needed for sending a block to the `op-node` by accepting an external block from the block builder. However, the sidecar only forwards one payload to `op-node` based on its selection criteria.
+
+## Software Maintence
+
+Flashbots will develop and maintain the initial versions of this software in a modular and contributor friendly manner to the standards of our existing Ethereum L1 `mev-boost` sidecar. We will take a crawl, walk, run approach with this software by trial'ing it with one OP-stack chain outside of local testing. From there, we can decide if the feature set is standardized enough to begin efforts to merge into the OP-stack, or in the event we want to delay this decision further, Flashbots will contribute this sidecar to the docker compose setup of OP stack and assist in ensuring smooth operation during any hardfork related work as we have historically done on Ethereum L1.
 
 ## Tradeoffs
 
