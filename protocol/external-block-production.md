@@ -1,5 +1,10 @@
 # External Block Production
 
+#### Metadata
+
+Authors: @dmarzzz, @avalonche, @ferranbt 
+Created: September 19, 2024.
+
 # Purpose
 
 The purpose of this design-doc is to propose and get buy-in in on a first step towards building the ideal software and API for connecting proposers in the OP Stack (`op-node`) to an external block builder.
