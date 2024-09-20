@@ -64,6 +64,32 @@ Finally, the `ProxyAdminOwner` would deploy the `FaultDisputeGame` and dependent
 * It remains unclear at what point a chain can be added to the superchain-registry or how a version of `op-program` that
   supports the new chain would be created.
 
+## Precalculate L1 Addresses
+
+Since the L1 deployment addresses are deterministic for a given seed, it may be possible to pre-generate them, then
+generate the L2 genesis block and chain configs prior to deploying the L1 contracts. This would allow the contracts
+to be deployed with the correct fault proof genesis block. If the config could be added to the superchain registry
+prior to deploying the L1 contracts, it would also allow a suitable fault proof absolute prestate hash to be specified.
+
+One challenge here is that the `SystemConfig` contract stores the start block automatically based on the block it is
+deployed in. This value affects the L2 genesis. While it does have some support for custom values, that's intended for
+legacy chains. It is as yet unknown if setting a start block number from before the `SystemConfig` contract is actually
+deployed causes any problems. Notably, the L1 start block timestamp is used as the genesis time for the L2 chain.
+Delays in deploying the L1 contracts and actually starting the chain could then mean a large number of empty blocks need
+to be generated before proper sequencing can begin for the chain. The L1 starting block hash is included in the rollup
+config so a future block number can't be used.
+
+### Pros
+
+* L1 contract deployment remains atomic
+
+### Cons
+
+* If there is any issue with the L1 contract deployment, the L2 genesis and config in the superchain registry may need
+  to be adjusted. Given the need for review, this could be a slow feedback loop.
+* After the chain is added to the superchain-registry, the registry needs to be updated in the monorepo and likely a new
+  release of `op-program` tagged that includes the new chain config.
+
 # Risks & Uncertainties
 
 <!-- An overview of what could go wrong.
