@@ -52,7 +52,7 @@ An additional benefit of this approach is it facilitates multi-architecture MIPS
 ## State Version
 
 This approach implies that the `StateVersion` must be used to also encode the VM version. As such, every change to the STF, no matter how little will require a new version.
-However, `StateVersion` is a uint8 field and it's not terribly unlikely that there are under 256 VM implementations. 
+However, `StateVersion` is a uint8 field and it's not terribly unlikely that there are over 256 VM implementations. 
 As such, we need a new wider field in the encoded state file to encapsulate the VM version.
 
 ## Supporting new cannon embeds 
