@@ -41,7 +41,7 @@ This would look like follows:
     - The `L2StandardBridge` already had mint and burn permissions on the `SuperchainERC20`,  which was necessary for the conversion, so the modification would not require permission changes.
 - The `OptimismSuperchainERC20` will remain a contract separate from the `OptimismMintableERC20` and require liquidity migration using the `convert` function in the `L2StandardBridge`.
     - This is necessary to conserve the invariant of the same address corresponding to the same (trusted) implementation, which is key to cross-chain access control.
-    - The standard’s implementation would now be identical to the `OptimismMintableERC20`. The only difference will be that the `OptimismSuperchainERC20` will be Beacon Proxied and the `OptimismMintableERC20` will not.
+    - The OptimismSuperchainERC20 will be a Beacon Proxy. The OptimismSuperchainERC20 implementation would now be similar to the OptimismMintableERC20 implementation (give mint and burn rights to the L2StandardBridge and include a remoteToken ), but with an initialize function to replace the constructor.
     - It is possible to reuse the `OptimismMintableERC20Factory` and avoid introducing a new predeploy factory.
 
 **Code modifications:**
@@ -87,7 +87,7 @@ It’s important to notice that, even though this functions get implemented in t
 - **Easier for integrators:** integrators must deal with a single entrypoint instead of many. This would improve their devX considerably.
 - **Improved indexing and monitoring:** only monitoring events and traces coming from a single source would be necessary instead of many. Improved monitoring correlates with improved security.
 - **Improved backwards compatibility:** the only modifications required to implement interop for a token are including `remoteToken` and giving mint and burn permissions to the `L2StandardBridge`, which can be implemented before the hardfork. This would not be possible with the current design. 
-- **Homogeneous implementation:** tokens on other chains do not implement bridging functionalities, which leads to a fragmented developer experience.
+- **Homogeneous implementation:** most tokens on other chains do not implement bridging functionalities (except for OFTs and some others), which leads to a fragmented developer experience.
 
 ### Cons of using the alternative design
 
