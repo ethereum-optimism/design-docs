@@ -2,10 +2,11 @@
 
 ## Context
 
-The `DeputyGuardianModule` is an important component for the Superchain security model.
-The `DeputyGuardianModule`, also known as _DGM_, is a smart contract deployed on L1 (currently [here](https://etherscan.io/address/0xc6901f65369fc59fc1b4d6d6be7a2318ff38db5b)) that has, for example, the ability to widely pause the Superchain.
-The _DGM_ is owned by the _Foundation Operation Safe_ so only operation run from the _Foundation Operation Safe_ can be executed into the _DGM_.
-To make sure we can widely pause the Superchain rapidly enough in case of an emergency, we need to presign the pause transaction from the signers of the _FoS_. These transactions are also known as `PSP` for PreSigned Pause transactions.
+The `DeputyGuardianModule` is an important component for the Superchain security model. \
+The `DeputyGuardianModule`, also known as _DGM_, is a smart contract deployed on L1 (currently [here](https://etherscan.io/address/0xc6901f65369fc59fc1b4d6d6be7a2318ff38db5b)) that has, for example, the ability to widely pause the Superchain. \
+The `DGM` is owned by the _Foundation Operation Safe_ so only operation run from the _Foundation Operation Safe_ can be executed into the `DGM`. \
+To make sure we can widely pause the Superchain rapidly enough in case of an emergency, we need to presign the pause transaction from the signers of the _FoS_. \
+These transactions are also known as `PSP` for PreSigned Pause transactions. \
 This process requires a ceremony and this is slow and tedious to put in place.
 
 The list of available actions that the `DeputyGuardianModule` can execute are:
@@ -19,11 +20,12 @@ The list of available actions that the `DeputyGuardianModule` can execute are:
 
 ## Problem Statement
 
-The existing `DeputyGuardianModule` is not _proxified_. This is inconvenient each time we want to upgrade the `DeputyGuardianModule` to add a new feature or to fix a potential bug.
-As this is not a proxy this require to redeploy the `DeputyGuardianModule` on L1. And also, to update the `Guardian` contract to add the new `DeputyGuardianModule` address as authorized module.
-Moreover, changing the `DeputyGuardianModule` will break the current PSPs setup as these pause transactions are presigned with the **previous** `DeputyGuardianModule`.
-Thus, we need to generate new PSPs through the tedious process of a ceremony to add the new `DeputyGuardianModule` for making the PSPs valid again.
-We are clearly seeing that this is not a sustainable solution for the long term.
+The existing `DeputyGuardianModule` is not _proxified_. \
+This is inconvenient each time we want to upgrade the `DeputyGuardianModule` to add a new feature or to fix a potential bug. \
+As this is not a proxy this require to redeploy the `DeputyGuardianModule` on L1. And also, to update the `Guardian` contract to add the new `DeputyGuardianModule` address as authorized module. \
+Moreover, changing the `DeputyGuardianModule` will break the current PSPs setup as these pause transactions are presigned with the **previous** `DeputyGuardianModule`. \
+Thus, we need to generate new PSPs through the tedious process of a ceremony to add the new `DeputyGuardianModule` for making the PSPs valid again. \
+We are clearly seeing that this is not a sustainable solution for the long term. 
 
 Additionally, we have to simulate the new PSPs and share them with other member of the Superchain.
 
