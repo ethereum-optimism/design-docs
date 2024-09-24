@@ -1,22 +1,22 @@
 # Purpose
 
-OP Stack Manager is a contract that will deploy the L1 contracts for standard OP Stack chains in a single transaction.
+OP Contracts Manager is a contract that will deploy the L1 contracts for standard OP Stack chains in a single transaction.
 However, we also have use cases for deploying non-standard chains, such as deploying devnet and testnet contracts while developing interop.
 This document will outline an architecture that:
 
-- Enables the OP Stack Manager to deploy these non-standard chains as an initial milestone.
+- Enables the OP Contracts Manager to deploy these non-standard chains as an initial milestone.
 - Gets us most of the way towards supporting standard chains deployments for the subsequent milestone.
 
 # Summary
 
-The original OP Stack Manager (OPSM) milestones were:
+The original OP Contracts Manager (OPCM) milestones were:
 
 - Milestone 1: Eliminating key handover complexity.
 - Milestone 2: Simplifying Superchain upgrades.
 - Milestone 3: Supporting interop upgrades.
 
-This design doc proposes the architecture for a Milestone 0.5 of "OPSM is used for all interop devnet & testnet L1 deployments".
-Adding this milestone will allow the interop team to build testing infrastructure that wraps OPSM, unifying our development, testnet, and production testing and deployment processes.
+This design doc proposes the architecture for a Milestone 0.5 of "OPCM is used for all interop devnet & testnet L1 deployments".
+Adding this milestone will allow the interop team to build testing infrastructure that wraps OPCM, unifying our development, testnet, and production testing and deployment processes.
 
 # Problem Statement + Context
 
@@ -34,10 +34,10 @@ This design doc focuses on the L1 contract configuration and deployment part of 
 
 # Alternatives Considered
 
-The primary alternative is for the interop team to not use OPSM for devnet and testnet deployments.
+The primary alternative is for the interop team to not use OPCM for devnet and testnet deployments.
 This is not ideal for various reasons:
 
-- Duplication of effort: The interop team would need to develop and maintain their own deployment scripts, even though new ones will already be written for OPSM.
+- Duplication of effort: The interop team would need to develop and maintain their own deployment scripts, even though new ones will already be written for OPCM.
 - Divergence: With duplication, it's likely the interop team's deployment scripts diverge from the production deployment scripts, leading to inconsistencies and bugs.
 
 # Proposed Solution
@@ -290,7 +290,7 @@ blobBaseFeeScalar = 1
 
 The initial version of these input files will be minimal and only include the required inputs to deploy standard chains.
 Future versions will include more inputs to support more complex deployments, such as custom gas tokens or alt-DA (it is currently TBD whether this will be part of Milestone 0.5).
-The deploy scripts and OP Stack Manager code will be written in such a way to default to standard chains and only require additional inputs for non-standard chains.
+The deploy scripts and OP Contracts Manager code will be written in such a way to default to standard chains and only require additional inputs for non-standard chains.
 
 # Risks & Uncertainties
 
