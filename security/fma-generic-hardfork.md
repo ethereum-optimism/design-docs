@@ -18,7 +18,7 @@
 
 - **Risk Assessment:** Medium severity as no funds are at risk, though it is a full liveness failure that would be messy to recover from and require releasing and distributing an updated configuration and/or release. Likelihood is low, especially as we are using the same mechanics for dynamically upgrading L2 contracts from Ecotone, which involves inserting appropriate deposit transactions in the activation block.
 
-- **Mitigations:** We have implemented extensive unit and end-to-end testing of the Fjord activation flow.  We will be testing the activation as well on our devnets and testnets.
+- **Mitigations:** We have implemented extensive unit and end-to-end testing of the activation flow.  We will be testing the activation as well on our devnets and testnets.
 
 - **Detection:** Detection is straightforward as the chain will stop producing blocks.
 
@@ -75,3 +75,12 @@
 - **Detection:** An un-executed safe transaction is easily detectable. In the case of a misconfigured game implementation, the op-dispute-mon will alert proofs-squad and security on any attempt to exploit this misconfiguration.
 
 - **Recovery Path(s)**: Reschedule upgrade, possibly releasing new binary though without immediate urgency.
+
+### Chain split (across clients)
+
+- **Description:** Differences in implementation across clients (e.g. `op-geth` versus `op-reth`) cause a chain split due to different effective consensus rules.
+- **Risk Assessment:** medium severity / medium likelihood
+- **Mitigations:** 
+Multi-client testing
+- **Detection:** Replicas of one kind of client will diverge from the sequencer
+- **Recovery Path(s)**: Most likely we would have the op-node/op-geth chain be the canonical one as this is the reference implementation.
