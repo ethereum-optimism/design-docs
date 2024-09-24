@@ -1,6 +1,6 @@
 ## Summary
 
-This design doc evaluates the pros and cons of moving the interop specific functions from the [`SuperchainERC20` standard](https://github.com/ethereum-optimism/specs/blob/main/specs/interop/token-bridging.md) to the `L2StandardBridge`. The goal of this document is to open up the discussion and ensure that the best design path is taken.
+This design doc evaluates the pros and cons of moving the interop specific functions from the [`SuperchainERC20` standard](https://github.com/ethereum-optimism/specs/blob/main/specs/interop/token-bridging.md) to a new `SuperchainERC20Bridge` predeploy. The goal of this document is to open up the discussion and ensure that the best design path is taken.
 
 ## The current design
 
@@ -34,33 +34,33 @@ sequenceDiagram
 
 ## The alternative design
 
-Even though the current design works well, it's not obvious that it is the best approach. An alternative design could move the interop functions from the token to the `L2StandardBridge`.
+Even though the current design works well, it's not obvious that it is the best approach. An alternative design could move the interop functions from the token to a `SuperchainERC20Bridge` contract.
 This would look like follows:
 
-- The `L2StandardBridge` will include both `sendERC20` and `relayERC20` with the same logic, but adding the token address as an input.
-    - The `L2StandardBridge` already had mint and burn permissions on the `SuperchainERC20`,  which was necessary for the conversion, so the modification would not require permission changes.
+- The `SuperchainERC20Bridge` will include both `sendERC20` and `relayERC20` with the same logic, but adding the token address as an input.
+- The `SuperchainERC20Bridge` will require mint and burn permissions on the `SuperchainERC20`.
+- The `SuperchainERC20` tokens will still be required to have the same address across chain. This is a very nice way of trusting cross-chain messages without the need for a complex registry (a source of truth to know which token to mint given a burnt token address in a source chain). Notice this is an opinionated design, as it is possible to implement the same interop functionalities with the registry.
 - The `OptimismSuperchainERC20` will remain a contract separate from the `OptimismMintableERC20` and require liquidity migration using the `convert` function in the `L2StandardBridge`.
-    - This is necessary to conserve the invariant of the same address corresponding to the same (trusted) implementation, which is key to cross-chain access control.
-    - The OptimismSuperchainERC20 will be a Beacon Proxy. The OptimismSuperchainERC20 implementation would now be similar to the OptimismMintableERC20 implementation (give mint and burn rights to the L2StandardBridge and include a remoteToken ), but with an initialize function to replace the constructor.
-    - It is possible to reuse the `OptimismMintableERC20Factory` and avoid introducing a new predeploy factory.
+    - This implies that the `OptimismSuperchainERC20` will need to provide mint and burn rights to both the `L2StandardBridge` and `SuperchainERC20Bridge`.
+- The `OptimismSuperchainERC20` will be a Beacon Proxy. The `OptimismSuperchainERC20` implementation would now be similar to the `OptimismMintableERC20` implementation (give mint and burn rights to the `L2StandardBridge` and include a `remoteToken`), but with an initialize function to replace the constructor.
+- It is possible to reuse the `OptimismMintableERC20Factory` and avoid introducing a new predeploy factory.
 
 **Code modifications:**
 
-- The `OptimismMintableERC20Factory` will be upgraded to deploy `OptimismSuperchainERC20` , with the corresponding `init_code` as the `OptimismMintableERC20`s and using CREATE3.
-- The `BeaconContract` and `convert` function will work the same way.
-    - The `OptimismSuperchainERC20Factory` will of course be modified to deploy the new simpler implementations, but will still record deployments in a mapping.
+- The `OptimismSuperchainERC20Factory` will of course be modified to deploy the new simpler implementations, but will still record deployments in a mapping.
+- We will develop the `SuperchainERC20Bridge` logic.
 
 The updated flow would look like follows:
 
 ```mermaid
 sequenceDiagram
   participant from
-  participant L2SBA as L2StandardBridge (Chain A)
+  participant L2SBA as SuperchainERC20Bridge (Chain A)
   participant SuperERC20_A as SuperchainERC20 (Chain A)
   participant Messenger_A as L2ToL2CrossDomainMessenger (Chain A)
   participant Inbox as CrossL2Inbox
   participant Messenger_B as L2ToL2CrossDomainMessenger (Chain B)
-  participant L2SBB as L2StandardBridge (Chain B)
+  participant L2SBB as SuperchainERC20Bridge (Chain B)
   participant SuperERC20_B as SuperchainERC20 (Chain B)
   participant Recipient as to
 
@@ -86,7 +86,7 @@ It’s important to notice that, even though this functions get implemented in t
     - If bridging functions are implemented on the ERC20, updates to the bridge might require updates to every ERC20. This might be easy to do for implementations that use a BeaconProxy structure, but not in other cases.
 - **Easier for integrators:** integrators must deal with a single entrypoint instead of many. This would improve their devX considerably.
 - **Improved indexing and monitoring:** only monitoring events and traces coming from a single source would be necessary instead of many. Improved monitoring correlates with improved security.
-- **Improved backwards compatibility:** the only modifications required to implement interop for a token are including `remoteToken` and giving mint and burn permissions to the `L2StandardBridge`, which can be implemented before the hardfork. This would not be possible with the current design. 
+- **Improved backwards compatibility:** to implement interop for an existing token it would not be necessary to upgrade the whole implementation, but only give mint and burn permissions to the `SuperchainERC20Bridge` and somehow be able to deploy to the same address on the other chains.
 - **Homogeneous implementation:** most tokens on other chains do not implement bridging functionalities (except for OFTs and some others), which leads to a fragmented developer experience.
 
 ### Cons of using the alternative design
