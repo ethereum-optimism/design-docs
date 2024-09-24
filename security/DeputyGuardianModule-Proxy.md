@@ -37,6 +37,8 @@ Thus, this will not invalidate the PSPs and we will not need to regenerate new P
 The owner of the proxy contract `DeputyGuardianModuleProxy` would be the `Security Council` as the `DeputyGuardianModule` is doing action into the `Guardian` contract that is owned by the `Security Council`.
 This will means that only the security council would be able to upgrade the implementation of the `DeputyGuardianModuleProxy`.
 
+In this solution, we propose to follow the current proxy standard used by the rest of the contracts. 
+
 ## Alternatives Considered
 
 No other alternatives were considered for now.
@@ -49,3 +51,5 @@ We don't see any particular risk with this current design for the long term as t
 
 A potential issue can occur with the PSPs coverage.
 During the upgrade the PSPs are going to be invalid so we need to make sure to presign new PSPs with the new `DeputyGuardianModuleProxy` address and simulate the PSPs accordingly.
+
+Now, we are using a proxy executing the same actions than before will cost a more gas. We should ensure there no previous call that can run out of gas (really unlikely).
