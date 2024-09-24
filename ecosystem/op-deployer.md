@@ -102,7 +102,7 @@ l1FeeVaultRecipient = "0x6b0c2542fa2cadced5c7f64ef6fb9ebbce7630ff"
 sequencerFeeVaultRecipient = "0xb4e5b724bbc54c95d292613d956871281120ead6"
 
 # Address of OPCM so that other addresses can be retrieved from on-chain data
-opStackManagerAddress = "0x79c6c6b1844e3db7c30107f189cfb095bd2c4b5d"
+opContractsManagerAddress = "0x79c6c6b1844e3db7c30107f189cfb095bd2c4b5d"
 
 # Genesis data
 genesis = "base64://abcd..."
