@@ -1,4 +1,4 @@
-# [Project Name]: Failure Modes and Recovery Path Analysis
+# Holocene Hardfork: Failure Modes and Recovery Path Analysis
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -7,7 +7,7 @@
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
   - [[Name of Failure Mode 1]](#name-of-failure-mode-1)
   - [[Name of Failure Mode 2]](#name-of-failure-mode-2)
-  - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
+  - [Generic items we need to take into account](#generic-items-we-need-to-take-into-account)
 - [Audit Requirements](#audit-requirements)
 - [Action Items](#action-items)
 - [Appendix](#appendix)
@@ -19,58 +19,63 @@
 
 | | |
 |--------|--------------|
-| Author | *Author Name* |
-| Created at | *YYYY-MM-DD* |
-| Needs Approval From | *Security Reviewer Name* |
-| Other Reviewers | *Reviewer Name 1, Reviewer Name 2* |
-| Status | *Draft / In Review / Implementing Actions / Final* |
+| Author | George Knee |
+| Created at | 2024-09-24 |
+| Needs Approval From | maurelian |
+| Other Reviewers |  |
+| Status | Draft |
 
-> [!NOTE]
-> 📢 Remember:
->
-> - The single approver in the “Need Approval From” must be from the Security team.
-> - Maintain the “Status” property accordingly.
-
-> [!TIP]
-> Guidelines for writing a good analysis, and what the reviewer will look for:
->
-> - Show your work: Include steps and tools for each conclusion.
-> - Completeness of risks considered.
-> - Include both implementation and operational failure modes
-> - Provide references to support the reviewer.
-> - The size of the document will likely be proportional to the project's complexity.
-> - The ultimate goal of this document is to identify action items to improve the security of the  project. The FMA review process can be accelerated by proactively identifying action items during the writing process.
 
 ## Introduction
 
-This document covers *[project name, high-level summary of the project, and scope of this analysis].*
+This document is intended to be shared in a public space for reviews and visibility purposes. It covers the Holocene hardfork, which involves the following changes: 
+- (Consensus Layer) Holocene Derivation
+- (Smart Contracts) Deterministic Standard L2 Genesis
+- (Execution Layer & Smart Contracts) Configurable EIP-1559 Parameters via SystemConfig
+- (Execution Layer) L2ToL1MessagePasser Storage Root in Header
+- (Smart Contracts) Update to the MIPS contract
 
 Below are references for this project:
 
-- *Link 1, e.g. project charter or design doc*
-- *Link 2, etc.*
+- [PID: Holocene hardfork upgrade](https://www.notion.so/PID-Holocene-hardfork-upgrade-00ee1ffc414a407088fdb49841771527?pvs=21)
+- [Github tracker](https://github.com/orgs/ethereum-optimism/projects/84/views/6)
+- [Specs](https://specs.optimism.io/protocol/holocene/derivation.html?highlight=holocene#holocene-derivation)
+
 
 ## Failure Modes and Recovery Paths
 
-***Use one sub-header per failure mode, so the full set of failure modes is easily scannable from the table of contents.***
+### (Holocene Derivation) The batcher violates the new (stricter) ordering rules
 
-### [Name of Failure Mode 1]
+- **Description:** 
+If the batcher:
+    - sends transactions out of order, or
+    - orders frames within a transaction out of order
+This will lead to the consensus client hitting error conditions when it loads the frames from L1. According to the spec, frames will be dropped in order to maintain a contiguous frame queue. If those frames are not resent in a timely manner on L1, the safe chain would halt.
+    
+- **Risk Assessment:** medium severity / medium likelihood
+- **Mitigations:** 
+The batcher implementation could:
+- leverage nonce management to avoid sending transactions out of order in the first place (see spec)
+- be hardened so detect the chain halt and resubmit the frames which were dropped (see spec) either:
+   - as a part of normal operation
+   - as a part of its startup behavior (i.e. to be triggered by a restart)
+   - as a part of an emergency mode triggered by an admin API, this could allow for manual intervention
+- continually check for contiguity in its internal state, and panic if this is violated (possibly then triggering some recovery behavior)
+- **Detection:** L2 safe chain halt
+- **Recovery Path(s)**: We would need to get the batcher to resubmit the transaction sent out of order. No governance or hardfork needed to recover.
 
-- **Description:** *Details of the failure mode go here. What the causes and effects of this failure?*
-- **Risk Assessment:** *Simple low/medium/high rating of impact (severity) + likelihood.*
-- **Mitigations:** *What mitigations are in place, or what should we add, to reduce the chance of this occurring?*
-- **Detection:** *How do we detect if this occurs?*
-- **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
+### (Holocene Derivation) Derivation Deadlock (either specification or op-node bug)
 
-### [Name of Failure Mode 2]
+- **Description:** 
+It is possible that either i) the Holocene Derivation Specification or ii) the consensus client implementation has overlooked a corner case such that derivation simply halts when that corner case arises.
+- **Risk Assessment:** high severity / medium likelihood
+- **Mitigations:** 
+Multi client testing should help surface and consensus client bugs, possibly including fuzzing of some description.
+We should backport as much insight as possible from the implementation (which is code) to the specs (which is just words). Here's an example of doing just that [holocene: fix frame queue specs of derivation](https://github.com/ethereum-optimism/specs/pull/386).
+- **Detection:** L2 safe chain halt
+- **Recovery Path(s)**: We would need to fix the the implementation via a hardfork.
 
-- **Description:** *Details of the failure mode go here. What the causes and effects of this failure?*
-- **Risk Assessment:** *Simple low/medium/high rating of impact (severity) + likelihood.*
-- **Mitigations:** *What mitigations are in place, or what should we add, to reduce the chance of this occurring?*
-- **Detection:** *How do we detect if this occurs?*
-- **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
-
-### Generic items we need to take into account:
+### Generic items we need to take into account
 See [./fma-generic-hardfork.md](./fma-generic-hardfork.md). 
 
 - [ ] Check this box to confirm that these items have been considered and updated if necessary.
@@ -78,7 +83,7 @@ See [./fma-generic-hardfork.md](./fma-generic-hardfork.md).
 
 ## Audit Requirements
 
-*Will this project require an audit according to the guidance in [OP Labs Audit Framework: When to get external security review and how to prepare for it](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864)? Please explain your reasoning.*
+This may require a mini audit due to updates to the MIPS contract.
 
 ## Action Items
 
@@ -88,11 +93,3 @@ Below is what needs to be done before launch to reduce the chances of the above 
 - [ ] *Action item 2 (Assignee: tag assignee)*
 - [ ] *Action item 3 (Assignee: tag assignee)*
 
-## Appendix
-
-### Appendix A: This is a Placeholder Title
-
-*Appendices must include any additional relevant info, processes, or documentation that is relevant for verifying and reproducing the above info. Examples:*
-
-- *If you used certain tools, specify their versions or commit hashes.*
-- *If you followed some process/procedure, document the steps in that process or link to somewhere that process is defined.*
