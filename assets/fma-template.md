@@ -72,7 +72,7 @@ Below are references for this project:
 ### Generic items we need to take into account:
 See [./fma-generic-hardfork.md](./fma-generic-hardfork.md). 
 
-- [x] Check this box to confirm that these items have been considered and updated if necessary.
+- [ ] Check this box to confirm that these items have been considered and updated if necessary.
 
 
 ## Audit Requirements
