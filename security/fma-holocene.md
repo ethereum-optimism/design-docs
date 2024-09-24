@@ -5,13 +5,11 @@
 
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [[Name of Failure Mode 1]](#name-of-failure-mode-1)
-  - [[Name of Failure Mode 2]](#name-of-failure-mode-2)
+  - [(Holocene Derivation) The batcher violates the new (stricter) ordering rules](#holocene-derivation-the-batcher-violates-the-new-stricter-ordering-rules)
+  - [(Holocene Derivation) Derivation Deadlock (either specification or op-node bug)](#holocene-derivation-derivation-deadlock-either-specification-or-op-node-bug)
   - [Generic items we need to take into account](#generic-items-we-need-to-take-into-account)
 - [Audit Requirements](#audit-requirements)
 - [Action Items](#action-items)
-- [Appendix](#appendix)
-  - [Appendix A: This is a Placeholder Title](#appendix-a-this-is-a-placeholder-title)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 

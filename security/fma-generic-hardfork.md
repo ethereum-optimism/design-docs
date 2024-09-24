@@ -7,6 +7,7 @@
   - [Incomplete Activation](#incomplete-activation)
   - [Hard fork Failure to Activate](#hard-fork-failure-to-activate)
   - [Invalid `DisputeGameFactory.setImplementation` execution](#invalid-disputegamefactorysetimplementation-execution)
+- [Chain split (across clients)](#chain-split-across-clients)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
