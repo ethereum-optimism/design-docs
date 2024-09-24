@@ -69,6 +69,12 @@ Below are references for this project:
 - **Detection:** *How do we detect if this occurs?*
 - **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
 
+### Generic items we need to take into account:
+See [./fma-generic-hardfork.md](./fma-generic-hardfork.md). 
+
+- [x] Check this box to confirm that these items have been considered and updated if necessary.
+
+
 ## Audit Requirements
 
 *Will this project require an audit according to the guidance in [OP Labs Audit Framework: When to get external security review and how to prepare for it](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864)? Please explain your reasoning.*
