@@ -2,6 +2,11 @@
 
 ## Context
 
+![image](https://github.com/user-attachments/assets/466c7d28-f4d1-425d-82ec-eb1326287689)
+
+
+
+
 The `DeputyGuardianModule` is an important component for the Superchain security model. \
 The `DeputyGuardianModule`, also known as _DGM_, is a smart contract deployed on L1 (currently [here](https://etherscan.io/address/0xc6901f65369fc59fc1b4d6d6be7a2318ff38db5b)) that has, for example, the ability to widely pause the Superchain. \
 The `DGM` is owned by the _Foundation Operation Safe_ so only operation run from the _Foundation Operation Safe_ can be executed into the `DGM`. \
@@ -18,6 +23,7 @@ The list of available actions that the `DeputyGuardianModule` can execute are:
 | pause() | Pause the withdrawal of the Superchain |
 | setAnchorState()| Set a state into `AnchorStateRegistry` |
 
+
 ## Problem Statement
 
 The existing `DeputyGuardianModule` is not _proxified_. \
@@ -30,6 +36,8 @@ We are clearly seeing that this is not a sustainable solution for the long term.
 Additionally, we have to simulate the new PSPs and share them with other member of the Superchain.
 
 ## Proposed Solution
+
+![image](https://github.com/user-attachments/assets/099258f4-19fb-44b8-84e9-670b78a2f868)
 
 Here we propose some modification of the architecture with a proxy contract on top of the `DeputyGuardianModule`, this will allow us to upgrade the `DeputyGuardianModule` and keeping the same address.
 Thus, this will not invalidate the PSPs and we will not need to regenerate new PSPs each time we upgrade the `DeputyGuardianModule`.
