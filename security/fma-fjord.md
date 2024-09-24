@@ -14,10 +14,6 @@
     - [Brotli/FastLZ size mismatch exploit](#brotlifastlz-size-mismatch-exploit)
     - [P256VERIFY is too expensive for Fault Proofs](#p256verify-is-too-expensive-for-fault-proofs)
     - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
-      - [Chain Halt at Activation](#chain-halt-at-activation)
-      - [Incomplete Activation](#incomplete-activation)
-      - [Hard fork Failure to Activate](#hard-fork-failure-to-activate)
-      - [Invalid `DisputeGameFactory.setImplementation` execution](#invalid-disputegamefactorysetimplementation-execution)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 

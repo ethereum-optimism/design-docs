@@ -1,3 +1,15 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Generic items we need to take into account for any hardfork:](#generic-items-we-need-to-take-into-account-for-any-hardfork)
+  - [Chain Halt at Activation](#chain-halt-at-activation)
+  - [Incomplete Activation](#incomplete-activation)
+  - [Hard fork Failure to Activate](#hard-fork-failure-to-activate)
+  - [Invalid `DisputeGameFactory.setImplementation` execution](#invalid-disputegamefactorysetimplementation-execution)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ### Generic items we need to take into account for any hardfork:
 
 #### Chain Halt at Activation
