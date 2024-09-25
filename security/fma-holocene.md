@@ -4,23 +4,31 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 - [Introduction](#introduction)
-- [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [(Holocene Derivation) The batcher violates the new (stricter) ordering rules](#holocene-derivation-the-batcher-violates-the-new-stricter-ordering-rules)
-  - [(Holocene Derivation) Derivation Deadlock (either specification or op-node bug)](#holocene-derivation-derivation-deadlock-either-specification-or-op-node-bug)
-  - [Generic items we need to take into account](#generic-items-we-need-to-take-into-account)
+- [Failure Modes and Recovery Paths (Holocene Derivation)](#failure-modes-and-recovery-paths-holocene-derivation)
+  - [The batcher violates the new (stricter) ordering rules](#the-batcher-violates-the-new-stricter-ordering-rules)
+    - [Description](#description)
+    - [Risk Assessment](#risk-assessment)
+    - [Mitigations](#mitigations)
+    - [Detection](#detection)
+    - [Recovery Path(s)](#recovery-paths)
+  - [Derivation Deadlock (either specification or op-node bug)](#derivation-deadlock-either-specification-or-op-node-bug)
+    - [Description](#description-1)
+    - [Risk Assessment](#risk-assessment-1)
+    - [Mitigations](#mitigations-1)
+    - [Detection](#detection-1)
+    - [Recovery Path(s):](#recovery-paths)
+- [Failure Modes and Recovery Paths (Generic Items)](#failure-modes-and-recovery-paths-generic-items)
 - [Audit Requirements](#audit-requirements)
 - [Action Items](#action-items)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-*Italics are used to indicate things that need to be replaced.*
 
 | | |
 |--------|--------------|
 | Author | George Knee |
 | Created at | 2024-09-24 |
 | Needs Approval From | maurelian |
-| Other Reviewers |  |
+| Other Reviewers |   |
 | Status | Draft |
 
 
@@ -40,40 +48,48 @@ Below are references for this project:
 - [Specs](https://specs.optimism.io/protocol/holocene/derivation.html?highlight=holocene#holocene-derivation)
 
 
-## Failure Modes and Recovery Paths
+## Failure Modes and Recovery Paths (Holocene Derivation)
 
-### (Holocene Derivation) The batcher violates the new (stricter) ordering rules
+### The batcher violates the new (stricter) ordering rules
 
-- **Description:** 
+#### Description
+
 If the batcher:
-    - sends transactions out of order, or
-    - orders frames within a transaction out of order
-This will lead to the consensus client hitting error conditions when it loads the frames from L1. According to the spec, frames will be dropped in order to maintain a contiguous frame queue. If those frames are not resent in a timely manner on L1, the safe chain would halt.
+  - sends transactions out of order, or
+   - orders frames within a transaction out of order
+
+This will lead to the consensus client hitting error conditions when it loads the frames from L1. According to the spec, frames will be dropped in order to maintain a contiguous frame queue. If those frames are not re-sent in a timely manner on L1, the safe chain would halt.
     
-- **Risk Assessment:** medium severity / medium likelihood
-- **Mitigations:** 
+#### Risk Assessment
+ medium severity / medium likelihood
+#### Mitigations
 The batcher implementation could:
-- leverage nonce management to avoid sending transactions out of order in the first place (see spec)
-- be hardened so detect the chain halt and resubmit the frames which were dropped (see spec) either:
-   - as a part of normal operation
-   - as a part of its startup behavior (i.e. to be triggered by a restart)
-   - as a part of an emergency mode triggered by an admin API, this could allow for manual intervention
+  - leverage nonce management to avoid sending transactions out of order in the first place (see [spec](https://specs.optimism.io/protocol/holocene/derivation.html?highlight=holocene#batcher-hardening))
+  - be hardened so detect the chain halt and resubmit the frames which were dropped (see [spec](https://specs.optimism.io/protocol/holocene/derivation.html?highlight=holocene#batcher-hardening)) either:
+    - as a part of normal operation
+    - as a part of its startup behavior (i.e. to be triggered by a restart)
+    - as a part of an emergency mode triggered by an admin API, this could allow for manual intervention
 - continually check for contiguity in its internal state, and panic if this is violated (possibly then triggering some recovery behavior)
-- **Detection:** L2 safe chain halt
-- **Recovery Path(s)**: We would need to get the batcher to resubmit the transaction sent out of order. No governance or hardfork needed to recover.
+#### Detection
+L2 safe chain halt
+#### Recovery Path(s)
+We would need to get the batcher to resubmit the transaction sent out of order. No governance or hardfork needed to recover.
 
-### (Holocene Derivation) Derivation Deadlock (either specification or op-node bug)
+### Derivation Deadlock (either specification or op-node bug)
 
-- **Description:** 
+#### Description
 It is possible that either i) the Holocene Derivation Specification or ii) the consensus client implementation has overlooked a corner case such that derivation simply halts when that corner case arises.
-- **Risk Assessment:** high severity / medium likelihood
-- **Mitigations:** 
+#### Risk Assessment
+** high severity / medium likelihood
+#### Mitigations 
 Multi client testing should help surface and consensus client bugs, possibly including fuzzing of some description.
 We should backport as much insight as possible from the implementation (which is code) to the specs (which is just words). Here's an example of doing just that [holocene: fix frame queue specs of derivation](https://github.com/ethereum-optimism/specs/pull/386).
-- **Detection:** L2 safe chain halt
-- **Recovery Path(s)**: We would need to fix the the implementation via a hardfork.
+#### Detection
+L2 safe chain halt
+#### Recovery Path(s):
+We would need to fix the the implementation via a hardfork.
 
-### Generic items we need to take into account
+## Failure Modes and Recovery Paths (Generic Items)
 See [./fma-generic-hardfork.md](./fma-generic-hardfork.md). 
 
 - [ ] Check this box to confirm that these items have been considered and updated if necessary.
@@ -88,6 +104,4 @@ This may require a mini audit due to updates to the MIPS contract.
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
-- [ ] *Action item 2 (Assignee: tag assignee)*
-- [ ] *Action item 3 (Assignee: tag assignee)*
 
