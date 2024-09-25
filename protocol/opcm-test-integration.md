@@ -42,10 +42,12 @@ A plausible PR stack for achieving this might be:
     Chain that it deploys. That needs to be fixed to prepare for the OPCM.
 3. Deploy the Superchain contracts using the OPCM's `DeploySuperchain.s.sol`. With the previous PRs,
     this will hopefully be straight-forward.
-4. Deploy the OP Chain Contracts using the `OPContractsManager` contract. This will be much simpler
-    if we can delete the `OptimismPortal`, `L2OutputOracle` and `useFaultProofs` flag. Otherwise we
-    will accomplish this using two entirely distinct flows depending on the value of
-    `useFaultProofs`:
+4.  Replace `deployImplementations()` and `initializeImplementations()` with the equivalent OPCM's
+    `DeployImplementations`.
+5. Deploy the OP Chain Contracts using the `OPContractsManager` contract (replacing
+    `deployProxies()` with the equivalent OPCM's `DeployOpChain`). This will be much simpler if we
+    can delete the `OptimismPortal`, `L2OutputOracle` and `useFaultProofs` flag. Otherwise we will
+    accomplish this using two entirely distinct flows depending on the value of `useFaultProofs`:
       1. `true` -> deploy using OPCM
       2. `false` -> deploy using the existing `deploy{ContractName}()` functions. It maybe possible
          to reuse some of the contracts deployed by the OPCM which do not vary pre and post fault
