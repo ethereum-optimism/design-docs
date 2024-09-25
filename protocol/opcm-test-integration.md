@@ -53,10 +53,25 @@ A plausible PR stack for achieving this might be:
          delete the deploy functions for those contracts, and will be investigated during
          development.
 
+## Alternatives Considered
+
+1. A larger refactoring would attempt to consolidate some of the various contracts (`CommonTest`,
+`Setup`, `Deploy`, `DeployConfig`) in the Test Setup flow seen below. This should be done in the
+future, but increases complexity for now.
+
+2. We could attempt to replace the
+   [hardhat.json](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/deploy-config/hardhat.json#L1)
+   used as the testing deploy config with the new toml based intents. This also increases the diff,
+   and so we will instead etch the IO contracts and set the inputs as read from that config.
+
+## Risks & Uncertainties
+
+This code path is complex, there may be dependencies on it that have not yet been identified.
+
 ## Appendix
 
-The following content was created while investigating the current test setup flow, and
-is provided here for reference.
+The following content was created while investigating the current test setup flow, and is provided
+here for reference.
 
 ##### Summary of the current Test Setup
 
