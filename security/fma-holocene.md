@@ -4,7 +4,7 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 - [Introduction](#introduction)
-- [Failure Modes and Recovery Paths (Holocene Derivation)](#failure-modes-and-recovery-paths-holocene-derivation)
+- [Holocene Derivation](#holocene-derivation)
   - [The batcher violates the new (stricter) ordering rules](#the-batcher-violates-the-new-stricter-ordering-rules)
     - [Description](#description)
     - [Risk Assessment](#risk-assessment)
@@ -17,7 +17,11 @@
     - [Mitigations](#mitigations-1)
     - [Detection](#detection-1)
     - [Recovery Path(s):](#recovery-paths)
-- [Failure Modes and Recovery Paths (Generic Items)](#failure-modes-and-recovery-paths-generic-items)
+- [Deterministic Standard L2 Genesis](#deterministic-standard-l2-genesis)
+- [Configurable EIP-1559 Parameters via SystemConfig](#configurable-eip-1559-parameters-via-systemconfig)
+- [L2ToL1MessagePasser Storage Root in Header](#l2tol1messagepasser-storage-root-in-header)
+- [Update to the MIPS contract](#update-to-the-mips-contract)
+- [Generic Items](#generic-items)
 - [Audit Requirements](#audit-requirements)
 - [Action Items](#action-items)
 
@@ -41,6 +45,8 @@ This document is intended to be shared in a public space for reviews and visibil
 - (Execution Layer) L2ToL1MessagePasser Storage Root in Header
 - (Smart Contracts) Update to the MIPS contract
 
+Each change has it's own section below with a list of Failure Modes.
+
 Below are references for this project:
 
 - [PID: Holocene hardfork upgrade](https://www.notion.so/PID-Holocene-hardfork-upgrade-00ee1ffc414a407088fdb49841771527?pvs=21)
@@ -48,7 +54,7 @@ Below are references for this project:
 - [Specs](https://specs.optimism.io/protocol/holocene/derivation.html?highlight=holocene#holocene-derivation)
 
 
-## Failure Modes and Recovery Paths (Holocene Derivation)
+##  Holocene Derivation
 
 ### The batcher violates the new (stricter) ordering rules
 
@@ -89,7 +95,11 @@ L2 safe chain halt
 #### Recovery Path(s):
 We would need to fix the the implementation via a hardfork.
 
-## Failure Modes and Recovery Paths (Generic Items)
+##  Deterministic Standard L2 Genesis
+##  Configurable EIP-1559 Parameters via SystemConfig
+##  L2ToL1MessagePasser Storage Root in Header
+##  Update to the MIPS contract
+##  Generic Items
 See [./fma-generic-hardfork.md](./fma-generic-hardfork.md). 
 
 - [ ] Check this box to confirm that these items have been considered and updated if necessary.
