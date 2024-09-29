@@ -184,7 +184,7 @@ DataAvailabilityChallenge contract.
 <!-- List out a short summary of each possible solution that was considered.
 Comparing the effort of each solution -->
 
-As mentioned above, L3s could integrate third-party DA services on their own, but they would have to manage the complexities of integration. Different DA services have varying interfaces and security assumptions, particularly for DA bridges. It would be beneficial to have an enshrined 4844-compatible L2 DA layer, allowing L3s (most of which are app-specific) to focus on their application logic rather than spending time on infrastructure
+As mentioned above, L3s could integrate third-party DA services on their own, but they would need to manage the complexities of integration. Different DA services come with varying interfaces and security assumptions, especially concerning DA bridges. Having an enshrined 4844-compatible L2 DA layer would allow L3s (most of which are app-specific) to focus on their application logic, rather than spending time dealing with infrastructure.
 
 # Risks & Uncertainties
 
