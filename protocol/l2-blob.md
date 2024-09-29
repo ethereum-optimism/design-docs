@@ -4,7 +4,7 @@
 
 <!-- It is fine to remove this section from the final document,
 but understanding the purpose of the doc when writing is very helpful. -->
-Currently, EIP-4844 BLOB transactions are disabled on the OP Stack because Layer 2 (L2) BLOBs offer no advantage over L2 calldata when both use the same L1 DA. This forces L3s settled on L2 to rely on the same DA as their L2, unless they want to integrate third-party DA providers or manage the security risks associated with DA bridges. However, different DA solutions have their own advantages—L1 DA provides better security, while [Alt-DA](https://github.com/ethereum-optimism/specs/blob/main/specs/experimental/alt-da.md) offers lower costs.
+Currently, EIP-4844 BLOB transactions are disabled on the OP Stack because Layer 2 (L2) BLOBs offer no advantage over L2 calldata when both use the same L1 DA. This forces L3s to rely on the same DA as their L2, unless they want to integrate third-party DA providers or manage the security risks associated with DA bridges. However, different DA solutions have their own advantages—L1 DA provides better security, while [Alt-DA](https://github.com/ethereum-optimism/specs/blob/main/specs/experimental/alt-da.md) offers lower costs.
 
 The purpose of this design document is to propose supporting L2 BLOBs based on Alt-DA, allowing us to leverage the advantages of both L1 DA and Alt-DA, creating a hybrid DA solution in the OP Stack.
 
