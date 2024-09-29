@@ -37,7 +37,7 @@ costs on L1 remain high compared to L2, leading to high costs for L2 state propo
 that rely on BLOBs.
 
 The goal of this specification is to **support L2 BLOB transactions in the OP Stack**. This would allow L3 solutions,
-which settle on L2, to have an enshrined 4844-compatiable DA layer that they can use directly, without needing to
+which settle on L2, to have an enshrined 4844-compatible DA layer that they can use directly, without needing to
 integrate third-party DA providers or deal with the security risks associated with DA bridges. Additionally, the
 applications mentioned above could migrate to L2 with minimal costs.
 
@@ -123,7 +123,7 @@ function resolveL2BLOB(
 )
 ```
 
-This new resolve function should use a L1 BLOB transaction to upload the BLOB, then employ the EIP-4844 `blobhash()`
+This new resolve function should use an L1 BLOB transaction to upload the BLOB, then employ the EIP-4844 `blobhash()`
 opcode to obtain the `versionedhash` of the BLOB.
 
 Note that the parameter `challengedOriginBlockNumber` in both the new challenge and resolve functions refers to the
