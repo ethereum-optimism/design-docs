@@ -3,14 +3,14 @@
 #### Metadata
 
 Authors: @puma314.
-Created: September 15, 2014.
+Created: September 15, 2024.
 
 # Purpose
 <!-- This section is also sometimes called “Motivations” or “Goals”. -->
 
 <!-- It is fine to remove this section from the final document,
 but understanding the purpose of the doc when writing is very helpful. -->
-Today, the fee formula for the OP stack is computed as `fee = gas_used * (base_fee + priority_fee) + l1Fee` where, the `l1Fee` is computed as follows ([spec](https://github.com/ethereum-optimism/specs/blob/06a2d0b8e5d08da66612d0e19aa7bc625ceb277e/specs/protocol/fjord/exec-engine.md?plain=1#L28)):
+Today, the fee formula for the OP stack is computed as `totalFee = gasUsed * (baseFee + priorityFee) + l1Fee` where, the `l1Fee` is computed as follows ([spec](https://github.com/ethereum-optimism/specs/blob/06a2d0b8e5d08da66612d0e19aa7bc625ceb277e/specs/protocol/fjord/exec-engine.md?plain=1#L28)):
 
 ```
 l1FeeScaled = l1BaseFeeScalar*l1BaseFee*16 + l1BlobFeeScalar*l1BlobBaseFee
@@ -28,9 +28,9 @@ The purpose of this design doc is to propose a simple addition to the existing f
 While the length will likely be proportional to the length of the full document,
 the summary should be as succinct as possible. -->
 
-We propose the addition of 2 new rollup operator configured scalars (that can be updated via the `SystemConfig`) named `gas_used_scalar` and `constant_scalar` that factor in the fee calculation as follows:
+We propose the addition of 2 new rollup operator configured scalars (that can be updated via the `SystemConfig`) named `operatorFeeScalar` and `operatorFeeConstant` that factor in the fee calculation as follows:
 ```
-fee = constant_scalar + gas_used * (base_fee + priority_fee + gas_used_scalar) + l1Fee
+totalFee = operatorFeeConstant + operatorFeeScalar * gasUsed / 1e6 + gasUsed * (baseFee + priorityFee) + l1Fee
 ```
 
 # Problem Statement + Context
@@ -55,21 +55,37 @@ of why one solution was picked over other solutions.
 As a rule of thumb, including code snippets (except for defining an external API)
 is likely too low level. -->
 
-We propose the addition of 2 new rollup operator configured scalars (that can be updated via the `SystemConfig`) named `gas_used_scalar` and `constant_scalar` that factor in the fee calculation as follows:
+We propose the addition of two new rollup operator-configured scalars, collectively referred to as the **operator fee scalars**. These scalars, `operatorFeeScalar` and `operatorFeeConstant`, play a role in calculating fees as follows.
+
+## Operator Fee Formula
+
 ```
-fee = gas_used * (base_fee + priority_fee) + l1Fee + gas_used_scalar * gas_used + constant_scalar
+operatorFee = operatorFeeConstant + operatorFeeScalar * gasUsed / 1e6
+
+totalFee = operatorFee + gasUsed * (baseFee + priorityFee) + l1Fee
 ```
 
-These scalars should be `u256`, so as to be on the same order of magnitude as the other terms in the fee calculation. These 2 new config values can be added to the [`L1 attributes`](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/ecotone/l1-attributes.md) transaction, with a very small diff to the proof.
+The `operatorFeeScalar` will be a `u32`, scaled by 1e6 in a similar fashion to the `baseFeeScalar` and `blobBaseFeeScalar`. The `operatorFeeConstant` will be a `u64`.
 
-The chain operator will have control over these values (similar to `baseFeeScalar` and `blobBaseFeeScalar`) and these values will be set and updated in the exact same way as the existing `scalar` attributes.
+The `operatorFee` will be directed to a new `FeeVault`, the `OperatorFeeVault`, in a similar fashion to the way the existing `l1Fee` is being directed to the `l1FeeVault`.
 
-**Analysis**
+## Setting the Operator Fee Scalars
 
-* **Alt-DA**: For chains using alt-DA, the `constant_scalar` is useful if there is a relatively constant overhead to posting to another DA layer. 
-* **ZK Proving**: For chains with ZK proving, ZKP generation costs are usually proportional to `gas_used` with a fixed overhead per transaction, making use of both the `constant_scalar` and the `gas_used_scalar`.
-* **Custom gas token**: For chains with a custom gas token, both scalars can be useful as a ratio between the cost of the gas token and ETH to balance costs vs. the fee computation.
+These 2 new config values can be added to the [`L1 attributes`](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/ecotone/l1-attributes.md) transaction, with a very small diff to the proof.
 
+The chain governor (aka [System Config Owner](https://specs.optimism.io/protocol/configurability.html#system-config-owner)) will be responsible for updating these values. We expose a new function in the `SystemConfig` contract for updating the `operatorFeeScalar` and `operatorFeeConstant`.
+
+```solidity
+function setOperatorFeeScalars(uint32 operatorFeeScalar, uint64 operatorFeeConstant) external onlyOwner;
+```
+
+In order to ensure a smooth network upgrade process, these scalars are automatically set to zero at the start of the upgrade. 
+
+## Analysis
+
+* **Alt-DA**: For chains using alt-DA, the `operatorFeeConstant` is useful if there is a relatively constant overhead to posting to another DA layer. 
+* **ZK Proving**: For chains with ZK proving, ZKP generation costs are usually proportional to `gasUsed` with a fixed overhead per transaction, making use of both the `operatorFeeConstant` and the `operatorFeeScalar`.
+* **Custom gas token**: For chains with a custom gas token, both operator fee scalars can be useful as a ratio between the cost of the gas token and ETH to balance costs vs. the fee computation.
 
 ## Resource Usage
 
