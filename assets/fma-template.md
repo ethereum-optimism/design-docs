@@ -69,10 +69,6 @@ Below are references for this project:
 - **Detection:** *How do we detect if this occurs?*
 - **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
 
-## Audit Requirements
-
-*Will this project require an audit according to the guidance in [OP Labs Audit Framework: When to get external security review and how to prepare for it](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864)? Please explain your reasoning.*
-
 ## Action Items
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
@@ -80,6 +76,10 @@ Below is what needs to be done before launch to reduce the chances of the above 
 - [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
 - [ ] *Action item 2 (Assignee: tag assignee)*
 - [ ] *Action item 3 (Assignee: tag assignee)*
+
+## Audit Requirements
+
+*Given the failure modes and action items, will this project require an audit? See [OP Labs Audit Framework: When to get external security review and how to prepare for it](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864) for a reference decision making framework. Please explain your reasoning.*
 
 ## Appendix
 
