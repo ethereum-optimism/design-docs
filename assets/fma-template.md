@@ -20,15 +20,19 @@
 |--------|--------------|
 | Author | *Author Name* |
 | Created at | *YYYY-MM-DD* |
-| Needs Approval From | *Security Reviewer Name* |
-| Other Reviewers | *Reviewer Name 1, Reviewer Name 2* |
+| Initial Reviewers | *Reviewer Name 1, Reviewer Name 2* |
+| Need Approval From | *Security Reviewer Name* |
 | Status | *Draft / In Review / Implementing Actions / Final* |
 
 > [!NOTE]
 > 📢 Remember:
 >
-> - The single approver in the “Need Approval From” must be from the Security team.
-> - Maintain the “Status” property accordingly.
+> - The single approver in the “Need Approval From” must be from the Security team. 
+> - Maintain the “Status” property accordingly. An FMA document can have the following statuses:
+>   - **Draft 📝:** Doc is created but not yet ready for review.
+>   - **In Review 🔎:** Security is reviewing, and Engineering is iterating on the design. A checklist of action items will be created during this phase.
+>   - **Implementing Actions 🛫:** Security has signed off on the content of the document, including the resulting action items. Engineering is responsible for implementing the the action items, and updating the checklist.
+>   - **Final 👍:** Security will transition the status of the document to Final once all action items are completed.
 
 > [!TIP]
 > Guidelines for writing a good analysis, and what the reviewer will look for:
