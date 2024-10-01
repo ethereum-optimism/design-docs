@@ -1,0 +1,128 @@
+# Purpose
+
+<!-- This section is also sometimes called “Motivations” or “Goals”. -->
+
+<!-- It is fine to remove this section from the final document,
+but understanding the purpose of the doc when writing is very helpful. -->
+
+# Summary
+
+<!-- Most (if not all) documents should have a summary.
+While the length will likely be proportional to the length of the full document,
+the summary should be as succinct as possible. -->
+
+The L2 predeploys are refactored in a way such that the network specific configuration
+is all sourced from a single location where it is ultimately set from L1 deposit transactions.
+Any initializable logic in the L2 predeploys is also removed, to make the deposit transaction
+based upgrade scheme simple to reason about.
+
+This will accelerate the ability to ship secure software, as we will be able to get chains
+on the same versions of the software and know which versions work very well together.
+
+# Problem Statement + Context
+
+<!-- Describe the specific problem that the document is seeking to address as well
+as information needed to understand the problem and design space.
+If more information is needed on the costs of the problem,
+this is a good place to that information. -->
+
+There is currently no good way to do releases of L2 predeploys. Historically, chains
+have launched with an arbitrary commit for their L2 genesis, making the block history integrity
+checks that are part of the superchain registry very difficult. We tell chains that are
+trying to launch to use governance approved L1 contracts, the same should apply for L2.
+
+Given all of the work for making releases and upgrades nice for the L1 contracts and the client software,
+it is at a waste if we cannot also have good releases of the L2 predeploys.
+
+Right now, OP Mainnet is running contracts at various versions of the software. It is actually very difficult
+to reproduce the exact OP Mainnet set of contracts being used. It would require cherry picking bytecode from many
+different commits. We run no tests against this particular combination of contracts. We believe it is safe
+given our development practices, but every time that we do want to do a release it results in a lot of time
+being spent trying to make sure that we are upgrading to a compatible set of contracts.
+
+# Proposed Solution
+
+<!-- A high level overview of the proposed solution.
+When there are multiple alternatives there should be an explanation
+of why one solution was picked over other solutions.
+As a rule of thumb, including code snippets (except for defining an external API)
+is likely too low level. -->
+
+A WIP implementation can be found [here](https://github.com/ethereum-optimism/optimism/pull/12057).
+The specs can be found [here](https://github.com/ethereum-optimism/specs/tree/17ef36cdc3bb9893b206a93464122d56730d30fb/specs/protocol/holocene).
+
+Similar to the L1 MCP project, we move all of the network specific configuration out of the individual contracts
+themselves and instead place all of it in a single place. The contracts will make a `CALL` rather than using
+`sload` to read the values. These values will be sourced from L1 via deposit transactions that come from
+the `SystemConfig.initialize` call. We need to make sure that the max deposit gas limit is at least able to
+fullfill these deposit transactions.
+
+The general flow is as follows:
+
+```mermaid
+graph LR
+  subgraph L1
+  SystemConfig -- "setConfig(uint8,bytes)" --> OptimismPortal
+  end
+  subgraph L2
+  L1Block
+  BaseFeeVault -- "baseFeeVaultConfig()(address,uint256,uint8)" --> L1Block
+  SequencerFeeVault -- "sequencerFeeVaultConfig()(address,uint256,uint8)" --> L1Block
+  L1FeeVault -- "l1FeeVaultConfig()(address,uint256,uint8)" --> L1Block
+  L2CrossDomainMessenger -- "l1CrossDomainMessenger()(address)" --> L1Block
+  L2StandardBridge -- "l1StandardBridge()(address)" --> L1Block
+  L2ERC721Bridge -- "l1ERC721Bridge()(address)" --> L1Block
+  OptimismMintableERC721Factory -- "remoteChainId()(uint256)" --> L1Block
+  end
+  OptimismPortal -- "setConfig(uint8,bytes)" --> L1Block
+```
+
+This is taken from the [specs](https://github.com/ethereum-optimism/specs/blob/17ef36cdc3bb9893b206a93464122d56730d30fb/specs/protocol/holocene/predeploys.md) and misses the `L2ProxyAdmin`. The `L2ProxyAdmin` must also be deterministic
+and is explored in the following issue: https://github.com/ethereum-optimism/specs/issues/388. There is general
+consensus on using the `DEPOSITOR_ACCOUNT` as the owner.
+
+When we do a contract release, we commit to that bytecode as part of consensus. That is the bytecode used
+with deposit transactions doing upgrades to the network. In the L2 genesis creation script, we could have
+a library for each release of the predeploys. The genesis script would take the bytecode from the library if
+configured for a specific hardfork at genesis, otherwise it would use the compiled source code. This gives
+us a lot of flexibility and simplicity when it comes to being able to recreate an L2 genesis deterministically.
+
+The block history integrity check becomes as simple as observing a 32 byte state root matches in the genesis 
+block matches the expected value.
+
+## Resource Usage
+
+<!-- What is the resource usage of the proposed solution?
+Does it consume a large amount of computational resources or time? -->
+
+The additional deposit gas is the only additional resource usage and its covered in the risks section
+at the bottom of this document.
+
+# Alternatives Considered
+
+<!-- List out a short summary of each possible solution that was considered.
+Comparing the effort of each solution -->
+
+There is a long history of alternatives here.
+
+Another option would be to embed these config values directly into the client software's config and have the client
+software create these deposit txs rather than the smart contracts. This is less flexible but comes with the tradeoff
+of additional required rollup config and doesn't solve the problem for existing chains. Existing chains would need a way
+to source this config, it would likely need to be hardcoded in the binary and that isn't super scalable.
+
+# Risks & Uncertainties
+
+<!-- An overview of what could go wrong.
+Also any open questions that need more work to resolve. -->
+
+There is a concern that the sequencer can include transactions before these values are set on L2.
+If we define the `SystemConfig.startBlock` as the [first block to start derivation in](https://github.com/ethereum-optimism/optimism/blob/d05fb505809717282d5cee7264a09d26002a4ddd/op-node/cmd/genesis/cmd.go#L174C30-L174C40),
+which is set on `SystemConfig.initialize` and also the deposit transactions that set these values are
+sent in the same block, then we should have the guarantee that no user transactions are included before
+the deposit transactions.
+
+There is a concern around the max deposit gas limit being too small so that the `SystemConfig` cannot
+deposit all of these values, we should have logic that reverts if the deposit gas limit is too small
+in the `ResourceConfig` sanity check function. Since the `ResourceConfig` can be modified during
+`initialize`, its not that big of a deal and chain operators will see that they need to increase that
+value.
