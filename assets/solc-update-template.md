@@ -8,17 +8,17 @@
 Explain specific feature(s) in the new version that would benefit the OP Stack codebase, with a
 clear explanation of their potential impact and usefulness.
 
-## Summary of Changes
+## Notable Features
 
-Provide a comprehensive summary of all significant features, changes, and bug fixes introduced
-between the current version and the proposed upgrade.
+Highlight any potentially notable features that require special attention during the review
+process. Features should be considered "notable" if they add significant new functionality to
+Solidity or required significant changes to Solidity to be supported.
 
-## Notable Features or Bug Fixes
+## Notable Bug Fixes
 
-Highlight any potentially notable features or bug fixes that require special attention during the
-review process. Features should be considered "notable" if they add significant new functionality
-to Solidity. Bug fixes should be considered "notable" if they are classified at or above a "medium"
-by the Solidity team.
+Highlight any potentially notable bug fixes that require special attention during the review
+process. Bug fixes should be considered "notable" if they are classified at or above a "medium" by
+the Solidity team.
 
 ## Changelog Links
 
