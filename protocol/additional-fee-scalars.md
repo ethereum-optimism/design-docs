@@ -55,7 +55,7 @@ of why one solution was picked over other solutions.
 As a rule of thumb, including code snippets (except for defining an external API)
 is likely too low level. -->
 
-We propose the addition of two new rollup operator-configured scalars, collectively referred to as the **operator fee scalars**. These scalars, `operatorFeeScalar` and `operatorFeeConstant`, play a role in calculating fees as follows.
+We propose the addition of two new rollup operator-configured scalars, collectively referred to as the **operator fee parameters**. These scalars, the `operatorFeeScalar` and `operatorFeeConstant`, play a role in calculating fees as follows.
 
 ## Operator Fee Formula
 

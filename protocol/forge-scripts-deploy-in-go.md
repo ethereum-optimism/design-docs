@@ -41,7 +41,7 @@ in a way that is configurable but not error-prone.
 # Proposed Solution
 
 In [deployment-chains design doc 52](https://github.com/ethereum-optimism/design-docs/pull/52) and
-[OPStackManager design doc 60](https://github.com/ethereum-optimism/design-docs/pull/60) the importance
+[OPContractsManager design doc 60](https://github.com/ethereum-optimism/design-docs/pull/60) the importance
 of Modular configs and incremental deploy steps is outlined.
 
 To utilize those modular configs and deploy steps, we need a way to either 
