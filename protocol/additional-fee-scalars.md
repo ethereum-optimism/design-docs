@@ -76,8 +76,11 @@ These 2 new config values can be added to the [`L1 attributes`](https://github.c
 The chain governor (aka [System Config Owner](https://specs.optimism.io/protocol/configurability.html#system-config-owner)) will be responsible for updating these values. We expose a new function in the `SystemConfig` contract for updating the `operatorFeeScalar` and `operatorFeeConstant`.
 
 ```solidity
-function setOperatorFeeScalars(uint32 operatorFeeScalar, uint64 operatorFeeConstant) external onlyOwner;
+function setOperatorFeeScalars(uint32 operatorFeeScalar, uint64 operatorFeeConstant) external onlyOperatorFeeManager;
 ```
+
+This function will emit a `ConfigUpdate` log-event, with a new `UpdateType`: `UpdateType.OPERATOR_FEE_SCALARS`.
+It is also only callable by the `OperatorFeeManager`, a new role responsible for tuning the operator fee scalars.
 
 In order to ensure a smooth network upgrade process, these scalars are automatically set to zero at the start of the upgrade. 
 
@@ -92,7 +95,9 @@ In order to ensure a smooth network upgrade process, these scalars are automatic
 <!-- What is the resource usage of the proposed solution?
 Does it consume a large amount of computational resources or time? -->
 
-There are basically no additional resources used by this proposal. 
+The L1Attributes deposited transactions includes one extra slot of calldata -- the two new scalars,
+storage packed together.
+The SystemConfig contract stores the two scalars, requiring two new storage slots.
 
 # Alternatives Considered
 
