@@ -62,7 +62,7 @@ directly. Instead, they'll define a _deployment intent_ which will describe the 
 deploy. `op-deployer` will then diff the intent against the current state of the deployment, and run the pipeline to
 ensure that the real deployment matches the intent.
 
-An example deployment intent is below. Deployment intents are encoded as TOML to match what the OP Stack Manager
+An example deployment intent is below. Deployment intents are encoded as TOML to match what the OP Contracts Manager
 expects:
 
 ```toml
@@ -101,8 +101,8 @@ baseFeeVaultRecipient = "0xbc4a9110dad00b4d9fb61743598848ddda6eeb03"
 l1FeeVaultRecipient = "0x6b0c2542fa2cadced5c7f64ef6fb9ebbce7630ff"
 sequencerFeeVaultRecipient = "0xb4e5b724bbc54c95d292613d956871281120ead6"
 
-# Address of OPSM so that other addresses can be retrieved from on-chain data
-opStackManagerAddress = "0x79c6c6b1844e3db7c30107f189cfb095bd2c4b5d"
+# Address of OPCM so that other addresses can be retrieved from on-chain data
+opContractsManagerAddress = "0x79c6c6b1844e3db7c30107f189cfb095bd2c4b5d"
 
 # Genesis data
 genesis = "base64://abcd..."
@@ -142,7 +142,7 @@ To fix this, we will:
 - Remove booleans that are used to enable/disable features. This data belongs inside of the deployment intent, not
   the config - the config describes the chain, not the deployment process.
 
-Some of this is already started by the OP Stack Manager work. The `op-deployer` project will complete it.
+Some of this is already started by the OP Contracts Manager work. The `op-deployer` project will complete it.
 
 # Alternatives Considered
 
