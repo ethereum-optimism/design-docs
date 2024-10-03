@@ -1,17 +1,19 @@
+# Solidity Version Upgrade Proposal
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
 
-- [Solidity Version Upgrade Proposal](#solidity-version-upgrade-proposal)
-  - [Benefits to the OP Stack](#benefits-to-the-op-stack)
-      - [DevX](#devx)
-      - [Gas Optimization](#gas-optimization)
-      - [Features](#features)
-  - [Notable Features](#notable-features)
-  - [Notable Bug Fixes](#notable-bug-fixes)
-  - [Changelog Links](#changelog-links)
-  - [Action Items](#action-items)
-  - [Additional Notes](#additional-notes)
+- [Upgrade Info](#upgrade-info)
+- [Benefits to the OP Stack](#benefits-to-the-op-stack)
+    - [DevX](#devx)
+    - [Gas Optimization](#gas-optimization)
+    - [Features](#features)
+- [Notable Features](#notable-features)
+- [Notable Bug Fixes](#notable-bug-fixes)
+- [Changelog Links](#changelog-links)
+- [Action Items](#action-items)
+- [Additional Notes](#additional-notes)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -23,7 +25,7 @@
 | Other Reviewers     | Matt Solomon, Maurelian |
 | Status              | In Review               |
 
-# Solidity Version Upgrade Proposal
+## Upgrade Info
 
 - **Current Version:** 0.8.15, 0.8.19, 0.8.25.
 - **Proposed Version:** 0.8.25.
@@ -74,9 +76,6 @@
 
 ## Action Items
 
-Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
-
-- [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
 - [ ] Contracts compile successfully with upgraded solidity version and without stack too deep error(s)
 - [ ] Contracts compile successfully with upgraded solidity version and without any contract intended to be deployed exceeding the contract code size limit (24576 bytes)
 
