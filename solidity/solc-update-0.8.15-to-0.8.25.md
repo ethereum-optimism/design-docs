@@ -15,13 +15,13 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-|                     |                |
-| ------------------- | -------------- |
-| Author              | Michael Amadi  |
-| Created at          | 2024-10-02     |
-| Needs Approval From | Kelvin Fichter |
-| Other Reviewers     | Matt Solomon   |
-| Status              | In Review      |
+|                     |                         |
+| ------------------- | ----------------------- |
+| Author              | Michael Amadi           |
+| Created at          | 2024-10-02              |
+| Needs Approval From | Kelvin Fichter          |
+| Other Reviewers     | Matt Solomon, Maurelian |
+| Status              | In Review               |
 
 # Solidity Version Upgrade Proposal
 
@@ -30,12 +30,8 @@
 
 ## Benefits to the OP Stack
 
-Explain specific feature(s) in the new version that would benefit the OP Stack codebase, with a
-clear explanation of their potential impact and usefulness.
-
 #### DevX
 
-- Allow named parameters in mapping types (>=0.8.18): Limits error when reading mappings of high dimensions when called using named parameters.
 - Allow defining custom operators for user-defined value types via using {f as +} for T global syntax (>=0.8.19): This greatly improves type safety.
 - Add support for NatSpec documentation in enum and struct definitions. (>= 0.8.20): Improves documentation and developer experience
 - Include NatSpec from events that are emitted by a contract but defined outside of it in userdoc and devdoc output (>= 0.8.20)
@@ -55,17 +51,9 @@ clear explanation of their potential impact and usefulness.
 
 ## Notable Features
 
-Highlight any potentially notable features that require special attention during the review
-process. Features should be considered "notable" if they add significant new functionality to
-Solidity or required significant changes to Solidity to be supported.
-
 - Deprecate support for "homestead", "tangerineWhistle", "spuriousDragon" and "byzantium" EVM versions: This might need special attention if any contracts are required to be compiled with any of the deprecated EVM versions. This won't be possible with the v0.8.25.
 
 ## Notable Bug Fixes
-
-Highlight any potentially notable bug fixes that require special attention during the review
-process. Bug fixes should be considered "notable" if they are classified at or above a "medium" by
-the Solidity team.
 
 - [Head Overflow Bug in Calldata Tuple ABI-Reencoding](https://soliditylang.org/blog/2022/08/08/calldata-tuple-reencoding-head-overflow-bug/) (Bug fixed in v0.8.16)
 - [Storage write removal before conditional termination](https://soliditylang.org/blog/2022/09/08/storage-write-removal-before-conditional-termination/) (Bug fixed in v0.8.17)
