@@ -73,14 +73,14 @@ The `operatorFee` will be directed to a new `FeeVault`, the `OperatorFeeVault`, 
 
 These 2 new config values can be added to the [`L1 attributes`](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/ecotone/l1-attributes.md) transaction, with a very small diff to the proof.
 
-The chain governor (aka [System Config Owner](https://specs.optimism.io/protocol/configurability.html#system-config-owner)) will be responsible for updating these values. We expose a new function in the `SystemConfig` contract for updating the `operatorFeeScalar` and `operatorFeeConstant`.
+We expose a new function in the `SystemConfig` contract for updating the `operatorFeeScalar` and `operatorFeeConstant`. This function is only callable by the `OperatorFeeManager`, a new role responsible for tuning the operator fee scalars. The `OperatorFeeManager` is administrated by
+the chain governor. 
 
 ```solidity
 function setOperatorFeeScalars(uint32 operatorFeeScalar, uint64 operatorFeeConstant) external onlyOperatorFeeManager;
 ```
 
 This function will emit a `ConfigUpdate` log-event, with a new `UpdateType`: `UpdateType.OPERATOR_FEE_SCALARS`.
-It is also only callable by the `OperatorFeeManager`, a new role responsible for tuning the operator fee scalars.
 
 In order to ensure a smooth network upgrade process, these scalars are automatically set to zero at the start of the upgrade. 
 
