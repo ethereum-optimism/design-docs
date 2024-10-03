@@ -1,3 +1,19 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Custom Gas Token: Failure Modes and Recovery Path Analysis](#custom-gas-token-failure-modes-and-recovery-path-analysis)
+  - [Introduction](#introduction)
+  - [**Failure Modes and Recovery Paths**](#failure-modes-and-recovery-paths)
+    - [Bridge Undercollateralization](#bridge-undercollateralization)
+    - [Non Standard ERC20 Usage](#non-standard-erc20-usage)
+    - [Withdrawal Bricked Bug](#withdrawal-bricked-bug)
+  - [Action Items](#action-items)
+  - [Appendix](#appendix)
+    - [Appendix A: Relation to Existing Chains](#appendix-a-relation-to-existing-chains)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Custom Gas Token: Failure Modes and Recovery Path Analysis
 
 | | |

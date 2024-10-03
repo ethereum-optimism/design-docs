@@ -69,6 +69,12 @@ Below are references for this project:
 - **Detection:** *How do we detect if this occurs?*
 - **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
 
+### Generic items we need to take into account:
+See [./fma-generic-hardfork.md](./fma-generic-hardfork.md). 
+
+- [ ] Check this box to confirm that these items have been considered and updated if necessary.
+
+
 ## Action Items
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:

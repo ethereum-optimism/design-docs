@@ -1,3 +1,16 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Purpose](#purpose)
+- [Summary](#summary)
+- [Problem Statement + Context](#problem-statement--context)
+- [Alternatives Considered](#alternatives-considered)
+- [Proposed Solution](#proposed-solution)
+- [Risks & Uncertainties](#risks--uncertainties)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Purpose
 
 The goal of this document is to ensure project teams understand the importance of a Failure Modes Analysis (FMA) and know how to complete a thorough analysis.
