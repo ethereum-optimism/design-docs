@@ -1,3 +1,13 @@
+# Notice
+
+_This design doc is preserved for historical documentation on how we arrived at the [current Holocene
+derivation specs](https://specs.optimism.io/protocol/holocene/derivation.html). The main change to
+what is described in this design doc is that Steady **Batch** Derivation became Steady **Block**
+Derivation, meaning that only invalid payloads at the engine queue stage get replaced by a
+deposit-only block, whereas invalid batches are immediately dropped and also forwards-invalidate the
+current span batch, if applicable, and remaining channel that the batch originated from._
+
+
 # Purpose
 
 Holocene aims to introduce a set of changes to derivation that improve worst-case scenarios for
@@ -13,8 +23,7 @@ The Holocene hardfork introduces several changes to batch derivation:
 
 - _Partial Span Batch Validity_ determines the validity of singular batches within a span batch
 individually, only invalidating the remaining span batch upon the first invalid batch.
-- _Steady Batch Derivation_ derives invalid singular batches immediately as deposit-only
-blocks.
+- _Steady Batch Derivation_ derives invalid singular batches immediately as deposit-only blocks.
 - _Strict Batch Ordering_ requires batches within and across channels to be strictly ordered.
 
 The design space and some proposed solutions will be discussed, together with practical implications
@@ -45,7 +54,7 @@ In late 2023 while Delta was still in development, the problem of partial span b
 [already discussed](https://www.notion.so/oplabs/Handling-Invalid-Batches-48bb972368ce409c84bd9189eddd0577)
 and for simplicity it was decided to use the atomic validity model. However, above discussion
 focusses on implications of the atomic validity model for EL-sync. We're now concerned with behavior
-around CL client restarts and reorgs.
+around CL client restarts and reorgs, and improvements for Fault Proofs and Interop.
 
 ## Proposed Design
 
@@ -59,18 +68,35 @@ This means that sequencer drift validations are applied individually to each sin
 from the span batch. On a failed check, due to Steady Batch Derivation, the singular batch is
 immediately derived as a deposit-only block, and the remaining span batch is invalidated.
 
-There are still checks that naturally apply to the whole span batch due to its data structure:
+There are still checks that naturally apply to the whole span batch due to its data structure, and
+if any of them fail, the whole span batch as a derivation stage is discarded. This will _not_
+trigger auto-derivation of empty batches, but instead discard the span batch and give a future span
+batch the chance to replace this invalid span batch. Note that this will not cause caching of span
+batches, as before, and still lead to the computational improvements that are important for Fault
+Proofs. We call these the Span Batch validity checks, as opposed to the individual singular batch
+checks, and they are:
+- If the span batch _L1 origin check_ is not part of the canonical L1 chain, the span batch is discarded.
 - A span batch only has one parent reference, since all internal batch references are implicit.
 Therefore, a failed parent check invalidates the whole span batch.
-- A failed sequencing window check will always apply to the oldest batches in a span batch, so a
-failed check of the first batch will invalidate the full span batch.
 - If `span_end.timestamp < next_timestamp` (as defined in the Span Batch specs), the whole batch is
 dropped, as it doesn't contain any new batches (this would also happen if applying timestamp checks
 to each derived singular batch individually).
 
-Those checks are done once per span batch before the batch queue derives any singular batches.
+Those checks are done once per span batch before the batch queue would derive any singular batches
+from it.
+
+If `span_start.timestamp > next_timestamp` we don't drop the batch, and allow overlapping duplicate
+batches, just as before.
+
+Note that a failed sequencing window check will always apply to the oldest batches in a span batch, so a
+failed check of the first batch will invalidate the full span batch. But this is strictly speaking
+not a Span Batch validity check and would only happen upon reading the first singular batch from a
+span batch.
 
 ### Mid-way restart
+
+_Note: the following discussion on mid-way restarts has been resolved during the design review
+sessaion as indeed being a non-problem. It is kept for historical context._
 
 One concern that was raised with partial span batch validity is how to deal with mid-way restarts,
 i.e. when the CL client restarts, losing its internal derivation pipeline state while the safe head
@@ -192,26 +218,36 @@ to fully derive up until the latest L1 batcher transactions, and only then conti
 
 ## Sync Start Simplifications
 
-Strict Batch Ordering leads to a simpler sync start algorithm. It may be sufficient to walk back
-the L1 chain until finding a batcher transaction that starts a new channel, i.e., containing a first
-frame. The strict ordering rules, as detailed above, would in such a case drop any pre-existing
-staging channel, and the batch queue should always be empty right after the pipeline origin
-progresses.
+The sync start algoritm benefits from the strict frame ordering rule that drops previously buffered
+frames if a new first frame is found, and the guarantee that the batch queue is empty when the
+derivation pipeline's L1 origin progresses.
+
+The average case is that, starting from
+the safe head's L1 origin, the next frame found is a first and only frame of a channel
+that contains the safe head. Then it is safe to start derivation from this channel, because this
+starting frame would cause any existing frames in the frames queue to be dropped, and the batch
+queue would be empty anyways.
+
+Only if a non-first frame is found after the safe head's L1 origin, does the sync start need
+to walk back a full channel timeout window to find the start of that channel. If nothing is found
+within the channel timeout window, a further walk back, worst case for a full sequencing window, has
+to be done as before.
 
 # Steady Batch Derivation
 
 Steady Batch Derivation changes how invalid batches and payload attributes at different stages in
 the derivation pipeline are treated.
-- Batch queue: if a batch is found to be invalid at the batch queue stage (`BatchDrop`), it is immediately replaced by an empty
-  batch, leading to deposit-only (first batch of an epoch) or empty payload attributes.
+- Batch queue: if a batch is found to be invalid at the batch queue stage (`BatchDrop`), it is
+immediately replaced by an empty batch, leading to deposit-only (first batch of an epoch) or empty
+payload attributes.
 - Engine queue: if the payload attributes are found by the EL client to be
-  [`INVALID`](https://github.com/ethereum/go-ethereum/blob/7fd7c1f7dd9ba8d90399df2f080e4101ae37a255/beacon/engine/errors.go#L63)
-  they are replaced by deposit-only/empty payload attributes and reinserted into the EL.
+[`INVALID`](https://github.com/ethereum/go-ethereum/blob/7fd7c1f7dd9ba8d90399df2f080e4101ae37a255/beacon/engine/errors.go#L63)
+they are replaced by deposit-only/empty payload attributes and reinserted into the EL.
 
 ## L1 origin selection
 
-There's an open design space about how to select the L1 origin when deriving one or more
-deposit-only blocks. I see 3 sensible options:
+There's an open design space about how to select the L1 origin when generating one or more empty
+batches. I see 3 sensible options:
 
 - Option 1: Eagerly advance the L1 origin. This solves for missing L1 slots and will implicitly and
 automatically maintain a good L1/L2 block ratio.
@@ -353,3 +389,22 @@ ordering guarantees transaction inclusion order. When we add some form of multi-
 need to solve correct transaction inclusion ordering from multiple batcher addresses. Note that
 during phases of high throughput, the batcher may send multiple transactions in parallel and then
 relies on the nonce ordering for correct inclusion order of multiple transaction in the mempool.
+
+# Future Work
+
+## Simplified Channel Formal
+
+The channel and frame format are not changed with Holocene. But several features that the current
+channel and frame format provide become unnecessary. The current format allows for frames to arrive
+out of order, and to already submit frames while the channel is still being built. These features
+required each frame to be self-contained, so they have to contain as metadata the channel ID, frame
+number, frame data length and a marker whether they are the last frame of a channel.
+
+Technically, with the Stricter Derivation rules, the channel and frame format could be simplified.
+With the streaming feature of channels dropped, and the strict ordering rules, a new channel format
+could be as simple as holding a single `uint32` channel size at the start of the first frame, while
+still splitting a channel as frames over batcher transactions. Channel IDs could be dropped.
+
+However, the missing metadata could have other side effects that would first need to be investigated
+further. So the introduction of such a simplified channel format is out of scope for Holocene. Its
+impact on saving a few bytes per channel are probably not worth the cost.
