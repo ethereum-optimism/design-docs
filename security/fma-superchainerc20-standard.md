@@ -35,7 +35,7 @@ It does not intend to cover related contracts such as `SuperchainERC20Bridge` or
 - Description: For the `SuperchainERC20Bridge` to validate mints and burns correctly, the `SuperchainERC20` must be deployed at the same address across all interoperable chains. If different addresses are used, the bridge will be unable to successfully finalize the cross-chain transfer.
 - Risk Assessment: Medium
     - Potential impact: High. Inconsistent token addresses will disable interoperability functionalities for the contract.
-    - Likelihood: Very Low. The interoperable set of chains follows the same opcode behavior and ensures identical availability of deployer contracts, such as `create2Deployer`.
+    - Likelihood: Very Low. The interoperable set of chains follows the same opcode behavior and ensures identical availability of deployer contracts, such as `create2Deployer`. Developers are encouraged not to use well-known flagged deployment methods, such as `CREATE`, for these purposes.
 - **Mitigation**: For developers, ensure to employ the appropiate deterministic deployment tools, such as the one at `create2Deployer`.
 - **Detection**: Verify contract addresses upon deployment.
 - **Recovery Path(s)**: Redeploy token contracts correctly.
