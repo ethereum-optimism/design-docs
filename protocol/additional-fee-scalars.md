@@ -2,7 +2,7 @@
 
 #### Metadata
 
-Authors: @puma314.
+Authors: @puma314, @yuwen01.
 Created: September 15, 2024.
 
 # Purpose
@@ -28,10 +28,18 @@ The purpose of this design doc is to propose a simple addition to the existing f
 While the length will likely be proportional to the length of the full document,
 the summary should be as succinct as possible. -->
 
-We propose the addition of 2 new rollup operator configured scalars (that can be updated via the `SystemConfig`) named `operatorFeeScalar` and `operatorFeeConstant` that factor in the fee calculation as follows:
+We propose the addition of 2 new rollup operator configured scalars, collectively named the Operator Fee Parameters. These scalars are named
+`operatorFeeScalar` and `operatorFeeConstant`, and they factor in the fee calculation as follows:
 ```
-totalFee = operatorFeeConstant + operatorFeeScalar * gasUsed / 1e6 + gasUsed * (baseFee + priorityFee) + l1Fee
+operatorFee = operatorFeeConstant + operatorFeeScalar * gasUsed / 1e6
+
+totalFee = operatorFee + gasUsed * (baseFee + priorityFee) + l1Fee
 ```
+
+These scalars will be updated via the `SystemConfig` L1 contract. A new role, the `OperatorFeeManager`, is added 
+to administrate the `operatorFeeScalar` and `operatorFeeConstant`.
+
+A new fee vault, the `OperatorFeeVault`, is added to store the operator fee. 
 
 # Problem Statement + Context
 
@@ -84,6 +92,9 @@ This function will emit a `ConfigUpdate` log-event, with a new `UpdateType`: `Up
 
 In order to ensure a smooth network upgrade process, these scalars are automatically set to zero at the start of the upgrade. 
 
+The operator fee manager is automatically set to the chain governor at the start of the upgrade. The chain governor administers
+the operator fee manager role. 
+
 ## Analysis
 
 * **Alt-DA**: For chains using alt-DA, the `operatorFeeConstant` is useful if there is a relatively constant overhead to posting to another DA layer. 
@@ -97,7 +108,6 @@ Does it consume a large amount of computational resources or time? -->
 
 The L1Attributes deposited transactions includes one extra slot of calldata -- the two new scalars,
 storage packed together.
-The SystemConfig contract stores the two scalars, requiring two new storage slots.
 
 # Alternatives Considered
 
