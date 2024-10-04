@@ -1,4 +1,4 @@
-# Additional fee scalars
+# Operator Fee
 
 #### Metadata
 
@@ -77,20 +77,39 @@ The `operatorFeeScalar` will be a `u32`, scaled by 1e6 in a similar fashion to t
 
 The `operatorFee` will be directed to a new `FeeVault`, the `OperatorFeeVault`, in a similar fashion to the way the existing `l1Fee` is being directed to the `l1FeeVault`.
 
-## Setting the Operator Fee Scalars
+## Setting the Operator Fee Parameters
 
 These 2 new config values can be added to the [`L1 attributes`](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/ecotone/l1-attributes.md) transaction, with a very small diff to the proof.
 
-We expose a new function in the `SystemConfig` contract for updating the `operatorFeeScalar` and `operatorFeeConstant`. This function is only callable by the `OperatorFeeManager`, a new role responsible for tuning the operator fee scalars. The `OperatorFeeManager` is administrated by
+We expose a new function in the `SystemConfig` contract for updating the `operatorFeeScalar` and `operatorFeeConstant`. This function is only callable by the `OperatorFeeManager`, a new role responsible for tuning the operator fee parameters. The `OperatorFeeManager` is administrated by
 the chain governor. 
 
 ```solidity
-function setOperatorFeeScalars(uint32 operatorFeeScalar, uint64 operatorFeeConstant) external onlyOperatorFeeManager;
+function setOperatorFeeParams(uint32 operatorFeeScalar, uint64 operatorFeeConstant) external onlyOperatorFeeManager;
 ```
 
-This function will emit a `ConfigUpdate` log-event, with a new `UpdateType`: `UpdateType.OPERATOR_FEE_SCALARS`.
+This function will emit a `ConfigUpdate` log-event, with a new `UpdateType`: `UpdateType.OPERATOR_FEE_PARAMS`.
 
-In order to ensure a smooth network upgrade process, these scalars are automatically set to zero at the start of the upgrade. 
+In order to ensure a smooth network upgrade process, these parameters are automatically set to zero at the start of the upgrade. 
+
+### Standard values
+
+The standard values for the operator fee parameters are as follows:
+
+`operatorFeeScalar`: Between 0 and `0.5 * (baseFee + priorityFee)`.
+`operatorFeeConstant`: Between 0 and 600 Gwei.
+
+## Operator Fee Manager
+
+The chain governor administers the operator fee manager role. It can change the operator fee manager with the following function:
+
+```solidity
+function setOperatorFeeManager(address operatorFeeManager) external onlyOwner;
+```
+
+This function will emit a `ConfigUpdate` log-event, with a new `UpdateType`: `UpdateType.OPERATOR_FEE_MANAGER`.
+
+The operator fee manager is automatically set to the chain governor at the start of the upgrade.
 
 The operator fee manager is automatically set to the chain governor at the start of the upgrade. The chain governor administers
 the operator fee manager role. 
@@ -99,7 +118,7 @@ the operator fee manager role.
 
 * **Alt-DA**: For chains using alt-DA, the `operatorFeeConstant` is useful if there is a relatively constant overhead to posting to another DA layer. 
 * **ZK Proving**: For chains with ZK proving, ZKP generation costs are usually proportional to `gasUsed` with a fixed overhead per transaction, making use of both the `operatorFeeConstant` and the `operatorFeeScalar`.
-* **Custom gas token**: For chains with a custom gas token, both operator fee scalars can be useful as a ratio between the cost of the gas token and ETH to balance costs vs. the fee computation.
+* **Custom gas token**: For chains with a custom gas token, both operator fee parameters can be useful as a ratio between the cost of the gas token and ETH to balance costs vs. the fee computation.
 
 ## Resource Usage
 
