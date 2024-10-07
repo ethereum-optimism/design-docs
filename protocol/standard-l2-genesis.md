@@ -90,6 +90,59 @@ us a lot of flexibility and simplicity when it comes to being able to recreate a
 The block history integrity check becomes as simple as observing a 32 byte state root matches in the genesis 
 block matches the expected value.
 
+### Rationale Behind Certain Changes
+
+#### SuperchainConfig "Upgrader" Role
+
+This new role is to allow for operational flexibility going into the future. If its not desired to add this role,
+we could make the `guardian` able to faciliate the upgrade transactions. In practice, we may end up setting both
+the `guardian` and the `upgrader` to the same account for the Superchain.
+
+Open to removing this from the spec and just using the `guardian` if preferred, but the possible operational
+flexibility seems useful.
+
+The `upgrader` role can call the `OptimismPortal.upgrade(bytes memory data, uint32 gasLimit)` function
+and it emits a deposit tx from the `DEPOSITOR_ACCOUNT` that calls the `L2ProxyAdmin`. Sourcing the auth
+from the `SuperchainConfig` allows for simple management of this very important role, given that it impacts
+stage 1 status. This is meant to simplify operations, ie remove the concept of the aliased L1 `ProxyAdmin` owner
+being set as the L2 `ProxyAdmin`.
+
+The `data` and `gasLimit` are allowed to be specified since we don't fully know what sorts of calls we may have to do.
+We may only need to do simple `upgradeTo` calls, but we may also need to do `upgradeToAndCall`. To support the
+[liquidity migration](https://github.com/ethereum-optimism/design-docs/blob/4b62eb12eceb8e4867ac101134730102c0f5a989/protocol/superchainerc20/liquidity-migration.md), we need to backport storage slots into the `OptimismMintableERC20Factory`
+contract. We may need to introduce multicall support into the `L2ProxyAdmin` as part of this.
+
+#### L2ProxyAdmin
+
+A new contract exists called the `L2ProxyAdmin`, it simply inherits from the `ProxyAdmin` and overrides the
+`owner()(address)` function to return `DEPOSITOR_ACCOUNT`.
+
+Ideally we can remove the need for legacy proxy types since they don't exist on L2 eventually, but
+that is considered a bonus when we do get around to it.
+
+#### SystemConfig
+
+The `SystemConfig` 
+
+#### Initializable Predeploys Removed
+
+All predeploys are no longer initializable. This allows for upgrades issued by deposit transactions to be very smooth.
+This impacts the following contracts:
+
+- `CrossDomainMessenger`
+- `StandardBridge`
+- `ERC721Bridge`
+
+#### CrossDomainMessenger
+
+Since the `CrossDomainMessenger` is no longer `initializable` we need to slightly modify the semantics around
+the `xDomainMsgSender`. There is actually no need to set the value in storage during `initialize`, we could modify
+the semantics such that if its `address(0)` in storage, then return the default value, otherwise return the
+actual sender value. This should be safe since there is no way to be a sender from `address(0)`.
+
+Given this insight and the fact that there is reentrency check on `relayMessage`, it should be safe to use transient
+storage without a call depth context. There is an [open PR](https://github.com/ethereum-optimism/optimism/pull/12356) to migrate to solc `0.8.25`.
+
 ## Resource Usage
 
 <!-- What is the resource usage of the proposed solution?
@@ -97,6 +150,10 @@ Does it consume a large amount of computational resources or time? -->
 
 The additional deposit gas is the only additional resource usage and its covered in the risks section
 at the bottom of this document.
+
+This approach expands the ABI of the `L1Block` contract, meaning that automatically generated solidity dispatcher
+will binary search over the possible function selectors, consuming a bit more gas. This is something that we could
+avoid by writing a custom dispatcher in a fallback function or by grinding for names of functions.
 
 # Alternatives Considered
 
