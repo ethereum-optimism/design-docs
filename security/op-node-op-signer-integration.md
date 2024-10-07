@@ -90,6 +90,23 @@ Above signing structure is a custom scheme, and does not align with other more o
 
 We could migrate the signing scheme of the p2p gossiped payload to the other methods of signing like the ones mentioned above. However, we need to preserve backwards compatibility of the signing scheme for the existing nodes in the network to continue working after this change. 
 
+## Usage of op-signer
+Previously, the only usage of op-signer was for the transaction signing of batcher and proposer. This uses the sender address of the tx and the secret key.
+
+However, for block payload signing, the sender address is not needed - we only need to sign the signingHash with the private key from the KMS. Therefore, we could make `p2p.signer.address` flag optional because it's required for the op-signer to be integrated with services like op-node (see `op-service/signer/cli.go`)
+
+After generating the appropriate key in the KMS, you have to add additional field to the config.yaml of op-signer as follows: 
+```yaml
+auth:
+  - name: op-node.primary.mainnet.prod.oplabs.cloud
+    key: projects/oplabs-prod-mainnet/locations/eur6/keyRings/testop-signer/cryptoKeys/op-node/cryptoKeyVersions/1
+// ... other existing keys
+  - name: sequencer-batcher.primary.mainnet.prod.oplabs.cloud
+    key: projects/oplabs-prod-mainnet/locations/eur6/keyRings/op-signer/cryptoKeys/batcher/cryptoKeyVersions/1
+```
+for each signing request, op-signer will look at the requesting server's domain, and look at this yaml file for a matching config. Then, it will look for the gcp kms key that matches the `key` name.
+
+
 ## Security
 
 In such service where op-node and op-signer are located in a separate system and need to communicate, we need secure channel, where both parties can trust each other. For this, we use mutual TLS (mTLS). 
