@@ -20,6 +20,21 @@
 - [Configurable EIP-1559 Parameters via SystemConfig](#configurable-eip-1559-parameters-via-systemconfig)
 - [L2ToL1MessagePasser Storage Root in Header](#l2tol1messagepasser-storage-root-in-header)
 - [Update to the MIPS contract](#update-to-the-mips-contract)
+  - [Undetected go1.22 changes](#undetected-go122-changes)
+    - [Risk Assessment](#risk-assessment-2)
+    - [Mitigations](#mitigations-2)
+    - [Detection](#detection-2)
+  - [Divergent FPVM implementations](#divergent-fpvm-implementations)
+    - [Risk Assessment](#risk-assessment-3)
+    - [Mitigations](#mitigations-3)
+    - [Detection](#detection-3)
+- [Kona Updates](#kona-updates)
+  - [Disparate Implementations](#disparate-implementations)
+    - [Description](#description-2)
+    - [Risk Assessment](#risk-assessment-4)
+    - [Mitigiations](#mitigiations)
+    - [Detections](#detections)
+    - [Recovery Path(s):](#recovery-paths-1)
 - [Generic Items](#generic-items)
 - [Audit Requirements](#audit-requirements)
 - [Action Items](#action-items)
@@ -115,6 +130,43 @@ We would need to fix the the implementation via a hardfork. As a hotfix, we woul
 ## L2ToL1MessagePasser Storage Root in Header
 
 ## Update to the MIPS contract
+
+As part of the Holocene change, the Go compiler was updated from 1.21 to 1.22. This impacts the op-program as the go1.22 runtime makes additional syscalls that are not supported by the pre-Holocene MIPS Fault Proof Virtual Machine (FPVM).
+Holocene includes an update to the MIPS FPVM that supports go1.22 programs. This change to the FPVM is very minimal; an update to the `fcntl` syscall emulation that was partially implemented by the pre-Holocene FPVM.
+
+### Undetected go1.22 changes
+
+If there other changes were introduced by go1.22 beyond `fcntl`, and the MIPS FPVM does not emulate them correctly, it could result in blocks that are not fault-provable. This ultimately results in fault dispute games resolving incorrectly.
+
+#### Risk Assessment
+
+medium severity / low likelihood
+
+#### Mitigations
+
+An audit of the the go1.22 changes on the op-program and the FPVM was performed by [3DOC Security](https://x.com/3docSec). The audit did not find any problems related to the go1.22 changes that breaks op-program execution in the FPVM.
+
+Furthermore, any game that resolves incorrectly is subject to the 3.5-day finality delay. This gives the Security Council ample time to detect and respond to invalid games (including blacklisting games and falling back to to permissioned games).
+
+#### Detection
+
+`dispute-mon` detects invalid games and forecasts those that will be resolved incorrectly.
+
+### Divergent FPVM implementations
+
+If the offchain FPVM behaves differently from the MIPS FPVM contract, the op-challenger will be unable to act honestly.
+
+#### Risk Assessment
+
+medium severity / low likelihood
+
+#### Mitigations
+
+The offchain FPVM, unencumbered by governance, can be updated at any time to match the behavior of the MIPS contract.
+
+#### Detection
+
+To reduce the risk of discrepancies, we differentially test the MIPS contract against the offchain FPVM implementation.
 
 ## Kona Updates
 
