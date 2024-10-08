@@ -84,7 +84,7 @@ BLOBs should be sent directly to the L2 sequencer.
 ## Uploading BLOB to Alt-DA
 
 The sequencer is responsible for uploading BLOBs to the Alt-DA layer. When the
-CL (op-node) receives the payload from EL via the engine API, it should inspect the envelope for any `BlobsBundle`
+CL (op-node) of the sequencer receives the payload from its EL via the engine API, it should inspect the envelope for any `BlobsBundle`
 and upload them to the Alt-DA. Only after ensuring successful BLOB uploads can the sequencer upload the block data
 to the L1 DA. Similarly, the sequencer may need to respond to any data availability challenges afterward.
 
