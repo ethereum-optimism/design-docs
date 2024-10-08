@@ -18,7 +18,6 @@
     - [Detection](#detection-1)
     - [Recovery Path(s):](#recovery-paths)
 - [Configurable EIP-1559 Parameters via SystemConfig](#configurable-eip-1559-parameters-via-systemconfig)
-- [L2ToL1MessagePasser Storage Root in Header](#l2tol1messagepasser-storage-root-in-header)
 - [Update to the MIPS contract](#update-to-the-mips-contract)
 - [Generic Items](#generic-items)
 - [Audit Requirements](#audit-requirements)
@@ -94,7 +93,6 @@ L2 safe chain halt
 We would need to fix the the implementation via a hardfork. As a hotfix, we would probably also make an emergency release which migrates back to the old DP at the block where derivation is stuck. We might already implement something like this as a contingency, e.g. adding a holocene_deactivation_time that would then move back to old derivation if this time is set. We could then instruct node operators to set this flag to some value, providing a quick recovery path.
 
 ##  Configurable EIP-1559 Parameters via SystemConfig
-##  L2ToL1MessagePasser Storage Root in Header
 ##  Update to the MIPS contract
 ##  Generic Items
 See [./fma-generic-hardfork.md](./fma-generic-hardfork.md). 
