@@ -111,7 +111,7 @@ As such, Holocene includes an update to MIPS.sol that supports go1.22 programs. 
 
 ### Undetected go1.22 changes
 
-If there other changes were introduced by go1.22 beyond `fcntl`, and the MIPS FPVM does not emulate them correctly, it could result in blocks that are not fault-provable. This ultimately results in fault dispute games resolving incorrectly.
+If there were other changes introduced by go1.22 beyond `fcntl`, and the MIPS FPVM does not emulate them correctly, it could result in blocks that are not fault-provable. This ultimately results in fault dispute games resolving incorrectly.
 
 #### Risk Assessment
 
