@@ -119,7 +119,7 @@ medium severity / low likelihood
 
 #### Mitigations
 
-[An audit](https://gist.github.com/3docSec/068537844f2ddb204324079138f14551) of the the go1.22 changes on the op-program and the FPVM was performed by [3DOC Security](https://x.com/3docSec). The audit did not find any problems related to the go1.22 changes that breaks op-program execution in the FPVM.
+[An audit](https://gist.github.com/3docSec/068537844f2ddb204324079138f14551) of the go1.22 changes on the op-program and the FPVM was performed by [3DOC Security](https://x.com/3docSec). The audit did not find any problems related to the go1.22 changes that breaks op-program execution in the FPVM.
 
 Furthermore, any game that resolves incorrectly is subject to the 3.5-day finality delay. This gives the Security Council ample time to detect and respond to invalid games (including blacklisting games and falling back to to permissioned games).
 
