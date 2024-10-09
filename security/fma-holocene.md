@@ -36,7 +36,7 @@
 
 |                     |             |
 | ------------------- | ----------- |
-| Author              | George Knee |
+| Author              | George Knee, Sebastian Stammler, Roberto Boyardo, Mofi Taiwo |
 | Created at          | 2024-09-24  |
 | Needs Approval From | maurelian   |
 | Other Reviewers     |             |
