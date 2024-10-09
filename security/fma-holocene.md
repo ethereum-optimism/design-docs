@@ -34,18 +34,18 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-| | |
-|--------|--------------|
-| Author | George Knee |
-| Created at | 2024-09-24 |
-| Needs Approval From | maurelian |
-| Other Reviewers |   |
-| Status | Draft |
-
+|                     |             |
+| ------------------- | ----------- |
+| Author              | George Knee |
+| Created at          | 2024-09-24  |
+| Needs Approval From | maurelian   |
+| Other Reviewers     |             |
+| Status              | Draft       |
 
 ## Introduction
 
-This document is intended to be shared in a public space for reviews and visibility purposes. It covers the Holocene hardfork, which involves the following changes: 
+This document is intended to be shared in a public space for reviews and visibility purposes. It covers the Holocene hardfork, which involves the following changes:
+
 - (Consensus Layer) Holocene Derivation
 - (Execution Layer & Smart Contracts) Configurable EIP-1559 Parameters via SystemConfig
 - (Smart Contracts) Update to the MIPS contract
@@ -58,50 +58,67 @@ Below are references for this project:
 - [Github tracker](https://github.com/orgs/ethereum-optimism/projects/84/views/6)
 - [Specs](https://specs.optimism.io/protocol/holocene/derivation.html?highlight=holocene#holocene-derivation)
 
-
-##  Holocene Derivation
+## Holocene Derivation
 
 ### The batcher violates the new (stricter) ordering rules
 
 #### Description
 
 If the batcher:
-  - sends transactions out of order, or
-  - orders frames within transactions out of order, or
-  - orders batches within a channel out of order
+
+- sends transactions out of order, or
+- orders frames within transactions out of order, or
+- orders batches within a channel out of order
 
 This will lead to the consensus client hitting error conditions when it loads the frames from L1. According to the spec, frames will be dropped in order to maintain a contiguous frame queue, and out-of-order batches will be dropped at a later stage in the derivation pipeline. The safe chain would halt until the next batch can be resubmitted in order.
-    
+
 #### Risk Assessment
- low severity / low likelihood
+
+low severity / low likelihood
+
 #### Mitigations
+
 The batcher implementation could:
-  - leverage nonce management to avoid sending transactions out of order in the first place (see [spec](https://specs.optimism.io/protocol/holocene/derivation.html?highlight=holocene#batcher-hardening))
-  - be hardened so detect the chain halt and resubmit the frames which were dropped (see [spec](https://specs.optimism.io/protocol/holocene/derivation.html?highlight=holocene#batcher-hardening)) either:
-    - as a part of normal operation
-    - as a part of its startup behavior (i.e. to be triggered by a restart)
-    - as a part of an emergency mode triggered by an admin API, this could allow for manual intervention
-  - continually check for contiguity in its internal state, and panic or reset if this is violated (possibly then triggering some recovery behavior)
+
+- leverage nonce management to avoid sending transactions out of order in the first place (see [spec](https://specs.optimism.io/protocol/holocene/derivation.html?highlight=holocene#batcher-hardening))
+- be hardened so detect the chain halt and resubmit the frames which were dropped (see [spec](https://specs.optimism.io/protocol/holocene/derivation.html?highlight=holocene#batcher-hardening)) either:
+  - as a part of normal operation
+  - as a part of its startup behavior (i.e. to be triggered by a restart)
+  - as a part of an emergency mode triggered by an admin API, this could allow for manual intervention
+- continually check for contiguity in its internal state, and panic or reset if this is violated (possibly then triggering some recovery behavior)
+
 #### Detection
+
 L2 safe chain halt
+
 #### Recovery Path(s)
+
 We would need to get the batcher to resubmit the transaction sent out of order. No governance or hardfork needed to recover. A simple batcher restart would cause the batcher to re-batch the unsafe chain, which should lead to recovery. Moreover, we could also temporarily operate the batcher with reduced tx sending concurrency, which should avoid out of order txs.
 
 ### Derivation Deadlock (either specification or op-node bug)
 
 #### Description
+
 It is possible that either i) the Holocene Derivation Specification or ii) the consensus client implementation has overlooked a corner case such that derivation simply halts when that corner case arises.
+
 #### Risk Assessment
-** high severity / medium likelihood
-#### Mitigations 
+
+**high severity** / medium likelihood
+
+#### Mitigations
+
 Multi client testing should help surface any consensus client bugs, possibly including fuzzing of some description.
 We should backport as much insight as possible from the implementation (which is code) to the specs (which is just words). Here's an example of doing just that [holocene: fix frame queue specs of derivation](https://github.com/ethereum-optimism/specs/pull/386).
+
 #### Detection
+
 L2 safe chain halt
-#### Recovery Path(s):
+
+#### Recovery Path(s)
+
 We would need to fix the the implementation via a hardfork. As a hotfix, we would probably also make an emergency release which migrates back to the old DP at the block where derivation is stuck. We might already implement something like this as a contingency, e.g. adding a holocene_deactivation_time that would then move back to old derivation if this time is set. We could then instruct node operators to set this flag to some value, providing a quick recovery path.
 
-##  Configurable EIP-1559 Parameters via SystemConfig
+## Configurable EIP-1559 Parameters via SystemConfig
 
 The Holocene upgrade introduces the ability to update the EIP-1559 ELASTICITY_MULTIPLIER and BASE_FEE_MAX_CHANGE_DENOMINATOR parameters through a SystemConfig call. Previously, these parameters were fixed at 6 and 250 respectively as of the Canyon upgrade. Allowing these parameters to be configurable gives the chain operator more flexibility in adjusting important chain properties such as the gas target, and how fast base fee adjust in response to demand changes.
 
@@ -115,13 +132,13 @@ medium severity / low likelihood
 
 ### Mitigations
 
-The upgrade is designed to function even if the SystemConfig contract does not get updated before the upgrade.  In this case, the system falls back to the Canyon hardcoded parameters, and the system will perform base fee udpates exactly as prior to the upgrade.
+The upgrade is designed to function even if the SystemConfig contract does not get updated before the upgrade. In this case, the system falls back to the Canyon hardcoded parameters, and the system will perform base fee udpates exactly as prior to the upgrade.
 
 We are performing multi-client testing (op-geth and op-reth) and will run a multi-client devnet, so bugs in either will be quickly detected by consensus disagreements among them.
 
-##  L2ToL1MessagePasser Storage Root in Header
+## L2ToL1MessagePasser Storage Root in Header
 
-##  Update to the MIPS contract
+## Update to the MIPS contract
 
 As part of the Holocene change, the Go compiler was updated from 1.21 to 1.22. This impacts the op-program as the go1.22 runtime makes additional syscalls that are not supported by the pre-Holocene MIPS Fault Proof Virtual Machine (FPVM).
 As such, Holocene includes an update to MIPS.sol that supports go1.22 programs. This change to the FPVM is very minimal; an update to the `fcntl` syscall emulation that was partially implemented by the pre-Holocene FPVM.
@@ -162,11 +179,11 @@ The offchain FPVM, unencumbered by governance, can be updated at any time to mat
 
 To reduce the risk of discrepancies, we differentially test the MIPS contract against the offchain FPVM implementation.
 
-##  Generic Items
-See [./fma-generic-hardfork.md](./fma-generic-hardfork.md). 
+## Generic Items
+
+See [./fma-generic-hardfork.md](./fma-generic-hardfork.md).
 
 - [ ] Check this box to confirm that these items have been considered and updated if necessary.
-
 
 ## Audit Requirements
 
@@ -177,4 +194,3 @@ This may require a mini audit due to updates to the MIPS contract.
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
-
