@@ -20,15 +20,19 @@
 |--------|--------------|
 | Author | *Author Name* |
 | Created at | *YYYY-MM-DD* |
-| Needs Approval From | *Security Reviewer Name* |
-| Other Reviewers | *Reviewer Name 1, Reviewer Name 2* |
+| Initial Reviewers | *Reviewer Name 1, Reviewer Name 2* |
+| Need Approval From | *Security Reviewer Name* |
 | Status | *Draft / In Review / Implementing Actions / Final* |
 
 > [!NOTE]
 > 📢 Remember:
 >
-> - The single approver in the “Need Approval From” must be from the Security team.
-> - Maintain the “Status” property accordingly.
+> - The single approver in the “Need Approval From” must be from the Security team. 
+> - Maintain the “Status” property accordingly. An FMA document can have the following statuses:
+>   - **Draft 📝:** Doc is created but not yet ready for review.
+>   - **In Review 🔎:** Security is reviewing, and Engineering is iterating on the design. A checklist of action items will be created during this phase.
+>   - **Implementing Actions 🛫:** Security has signed off on the content of the document, including the resulting action items. Engineering is responsible for implementing the the action items, and updating the checklist.
+>   - **Final 👍:** Security will transition the status of the document to Final once all action items are completed.
 
 > [!TIP]
 > Guidelines for writing a good analysis, and what the reviewer will look for:
@@ -69,9 +73,11 @@ Below are references for this project:
 - **Detection:** *How do we detect if this occurs?*
 - **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
 
-## Audit Requirements
+### Generic items we need to take into account:
+See [./fma-generic-hardfork.md](./fma-generic-hardfork.md). 
 
-*Will this project require an audit according to the guidance in [OP Labs Audit Framework: When to get external security review and how to prepare for it](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864)? Please explain your reasoning.*
+- [ ] Check this box to confirm that these items have been considered and updated if necessary.
+
 
 ## Action Items
 
@@ -80,6 +86,10 @@ Below is what needs to be done before launch to reduce the chances of the above 
 - [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
 - [ ] *Action item 2 (Assignee: tag assignee)*
 - [ ] *Action item 3 (Assignee: tag assignee)*
+
+## Audit Requirements
+
+*Given the failure modes and action items, will this project require an audit? See [OP Labs Audit Framework: When to get external security review and how to prepare for it](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864) for a reference decision making framework. Please explain your reasoning.*
 
 ## Appendix
 
