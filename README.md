@@ -30,7 +30,7 @@ Github [here](https://github.com/ethereum-optimism/design-docs/issues/15).
 To schedule a design review sesion:
 - Ensure that you have a pull request that has been reviewed async
 - [Open an issue](https://github.com/ethereum-optimism/design-docs/issues/new/choose) and click "Schedule a Design Review" then fill in the information
-- Ensure that a design review meeting has been added to the [Public OP Stack Calendar](https://calendar.google.com/calendar/embed?src=c_e7b35eadabec39777b28192d371c45b6ef4177e01740517a234e7c768881fbfe%40group.calendar.google.com&ctz=America%2FLos_Angeles)
+- A design review meeting will be added to the [Public OP Stack Calendar](https://calendar.google.com/calendar/embed?src=c_e7b35eadabec39777b28192d371c45b6ef4177e01740517a234e7c768881fbfe%40group.calendar.google.com&ctz=America%2FLos_Angeles) by an admin. Please reach out on discord if this hasn't happened. 
 
 When choosing which stakeholders to invite to a design review meeting,
 it is good to tag people with high context of the components
