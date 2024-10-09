@@ -93,7 +93,7 @@ to the L1 DA. Similarly, the sequencer may need to respond to any data availabil
 ## Data Availability Challenge
 
 Any third party, including full nodes deriving L2 data, might find they cannot access the BLOB corresponding to
-the hash included in the BLOB transaction. In this case, they can initiate a data availability challenge. The
+the hash included in the L2 BLOB transaction. In this case, they can initiate a data availability challenge on L1. The
 workflow will largely follow the Alt-DA process outlined
 [here](https://github.com/ethstorage/specs/blob/l2-blob/specs/experimental/alt-da.md#data-availability-challenge-contract).
 
