@@ -102,6 +102,23 @@ L2 safe chain halt
 We would need to fix the the implementation via a hardfork. As a hotfix, we would probably also make an emergency release which migrates back to the old DP at the block where derivation is stuck. We might already implement something like this as a contingency, e.g. adding a holocene_deactivation_time that would then move back to old derivation if this time is set. We could then instruct node operators to set this flag to some value, providing a quick recovery path.
 
 ##  Configurable EIP-1559 Parameters via SystemConfig
+
+The Holocene upgrade introduces the ability to update the EIP-1559 ELASTICITY_MULTIPLIER and BASE_FEE_MAX_CHANGE_DENOMINATOR parameters through a SystemConfig call. Previously, these parameters were fixed at 6 and 250 respectively as of the Canyon upgrade. Allowing these parameters to be configurable gives the chain operator more flexibility in adjusting important chain properties such as the gas target, and how fast base fee adjust in response to demand changes.
+
+This change required updating both op-geth and op-node. The op-geth changes are minimal and affect only the engine API to pass in the new parameters via NewPayloadV3, and the base fee calculation to use the provided parameters instead of the hardcoded configuration once Holocene is active. The op-node changes involve handling the new ConfigUpdate event and appropriately passing this information to op-geth via the execution API.
+
+The change also involved updates to the L1 SystemConfig contract in order to allow the chain operator to update the parameters and generate the associated ConfigUpdate event.
+
+### Risk Assessment
+
+medium severity / low likelihood
+
+### Mitigations
+
+The upgrade is designed to function even if the SystemConfig contract does not get updated before the upgrade.  In this case, the system falls back to the Canyon hardcoded parameters, and the system will perform base fee udpates exactly as prior to the upgrade.
+
+We are performing multi-client testing (op-geth and op-reth) and will run a multi-client devnet, so bugs in either will be quickly detected by consensus disagreements among them.
+
 ##  L2ToL1MessagePasser Storage Root in Header
 
 ##  Update to the MIPS contract
