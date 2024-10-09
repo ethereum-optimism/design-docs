@@ -4,9 +4,12 @@
 
 <!-- It is fine to remove this section from the final document,
 but understanding the purpose of the doc when writing is very helpful. -->
-Currently, EIP-4844 BLOB transactions are disabled on the OP Stack because Layer 2 (L2) BLOBs offer no advantage over L2 calldata when both use the same L1 DA. This forces L3s to rely on the same DA as their L2, unless they want to integrate third-party DA providers or manage the security risks associated with DA bridges. However, different DA solutions have their own advantages—L1 DA provides better security, while [Alt-DA](https://github.com/ethereum-optimism/specs/blob/main/specs/experimental/alt-da.md) offers lower costs.
+Currently, EIP-4844 BLOB transactions are disabled on the OP Stack, leading to two issues:
 
-The purpose of this design document is to propose supporting L2 BLOBs based on Alt-DA, allowing us to leverage the advantages of both L1 DA and Alt-DA, creating a hybrid DA solution in the OP Stack.
+ - There is no enshrined L2 BLOB DA solution for L3s, forcing them to integrate third-party DA providers and manage the security risks associated with DA bridges if they don’t want to rely on the same DA as their L2. This is especially problematic if the L2 uses L1 DA, which has higher costs than Alt-DA, adding significant development complexity for L3 teams.
+ - It prevents many applications based on L1 BLOBs from migrating to L2 to take advantage of lower execution costs.
+
+The purpose of this design document is to propose supporting L2 BLOBs based on Alt-DA, allowing L3s to have an enshrined L2 BLOB DA to rely on, while also enabling applications based on L1 BLOBs to migrate to L2 seamlessly.
 
 # Summary
 
@@ -78,8 +81,7 @@ is likely too low level. -->
 ## Enabling BLOB Transactions in L2 EL
 
 The interface and implementation of L2 EL should remain consistent with L1 EL to ensure seamless migration of
-applications. Note that while BLOBs are gossiped within the L1 P2P network, for enshrined BLOB DA support in L2, the
-BLOBs should be sent directly to the L2 sequencer.
+applications. Note that while BLOBs are gossiped within the L1 P2P network, for enshrined BLOB DA support in L2, the BLOBs should be sent directly to the L2 sequencer or relayed through a node that forwards them to the L2 sequencer.
 
 ## Uploading BLOB to Alt-DA
 
@@ -167,12 +169,7 @@ data to the EL.
 
 ## Fault Proof
 
-The derivation pipeline integrates with fault proofs by adding additional hint types to the preimage oracle to query
-input data from the DA provider and the on-chain challenge status.
-
-### `l2-blob <commitment>`
-
-Retrieves BLOB data stored on the DA provider for the given `<commitment>`.
+The derivation pipeline integrates with fault proofs by adding additional hint types to the preimage oracle to query the on-chain challenge status.
 
 ### `l1-l2blob-challenge-status <commitment> <blocknumber>`
 
