@@ -136,7 +136,6 @@ The upgrade is designed to function even if the SystemConfig contract does not g
 
 We are performing multi-client testing (op-geth and op-reth) and will run a multi-client devnet, so bugs in either will be quickly detected by consensus disagreements among them.
 
-## L2ToL1MessagePasser Storage Root in Header
 
 ## Update to the MIPS contract
 
