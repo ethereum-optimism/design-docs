@@ -42,7 +42,7 @@ that rely on BLOBs.
 The goal of this specification is to **support L2 BLOB transactions in the OP Stack**. This would allow L3 solutions,
 which settle on L2, to have an enshrined 4844-compatible DA layer that they can use directly, without needing to
 integrate third-party DA providers or deal with the security risks associated with DA bridges. Additionally, the
-applications mentioned above could migrate to L2 with minimal costs.
+L1 applications mentioned above could migrate to L2 with minimal costs.
 
 Furthermore, this spec proposes using
 [Alt-DA](https://github.com/ethereum-optimism/specs/blob/main/specs/experimental/alt-da.md) to upload L2 BLOBs while
