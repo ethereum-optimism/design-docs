@@ -21,7 +21,7 @@
 
 - **Mitigations:** We have implemented extensive unit and end-to-end testing of the activation flow.  We will be testing the activation as well on our devnets and testnets.
 
-- **Detection:** Detection is straightforward as the chain will stop producing blocks.
+- **Detection:** Detection is straightforward as the chain will stop producing blocks. On OP Mainnet, P1 alarms are triggered and on-call engineers are paged if the unsafe head does not increase for 1 minute or if the safe head does not increase for 15 minutes.
 
 - **Recovery Path(s)**: Would not require a vote or hardfork, but we’d likely have to coordinate a chain config update that pushed back the date of the upgrade, and allowed node operators to rollback any bad blocks.
 
