@@ -21,18 +21,18 @@
 
 - **Mitigations:** 
 
-- [ ] ACTION ITEM: We have implemented extensive unit and end-to-end testing of the activation flow.
-- [ ] ACTION ITEM: We will be testing the activation on our devnets and testnets.
+- [ ] ACTION ITEM (BLOCKING): We have implemented extensive unit and end-to-end testing of the activation flow.
+- [ ] ACTION ITEM (BLOCKING): We will be testing the activation on our devnets and testnets.
 
 - **Detection:** Detection is straightforward as the chain will stop producing blocks. On OP Mainnet, P1 alarms are triggered and on-call engineers are paged if the unsafe head does not increase for 1 minute or if the safe head does not increase for 15 minutes.
 
 - **Recovery Path(s)**: Would not require a vote or hardfork, but we’d likely have to coordinate a chain config update that pushed back the date of the upgrade, and allowed node operators to rollback any bad blocks. Estimated sequencer downtime is 30 min in a worst-case scenario where we have to reset the chain back to a block before the activation and disable the hardfork activation. Additional steps would be required from infra providers to get back to the healthy chain. They would either need to restart their op-node and op-geth with activation override command line flags/env var, or their images to an emergency release with activation disabled.
 
-    - [ ] ACTION ITEM We have prepared datadir backups close before the upgrade, so we can use these in an emergency to rollback.
+    - [ ] ACTION ITEM (BLOCKING): We have prepared datadir backups close before the upgrade, so we can use these in an emergency to rollback.
 
-    - [ ] ACTION ITEM We have prepared an emergency release with activation disabled.
+    - [ ] ACTION ITEM (non-BLOCKING): We have prepared an emergency release with activation disabled.
 
-    - [ ] ACTION ITEM We have updated the runbook for recovering from a hardfork activation chain halt (including rolling back contract changes), if necessary.
+    - [ ] ACTION ITEM (BLOCKING): We have updated the runbook for recovering from a hardfork activation chain halt (including rolling back contract changes), if necessary.
 
 #### Activation Failure without chain halt: L1 transactions
 
@@ -44,7 +44,7 @@
 
 - **Detection:** We can read the state of L1 after the activation time and compare it with expectations
 
-- [ ] ACTION ITEM: The superchain-ops task to upgrade any contract should check if the semantic versions and bytecodes after the upgrade are as expected. 
+- [ ] ACTION ITEM (non-BLOCKING): The superchain-ops task to upgrade any contract should check if the semantic versions and bytecodes after the upgrade are as expected. 
 
 - **Recovery Path(s)**:  
 Since there is no chain halt, we can just live with it and fix it in an upcoming upgrade.
@@ -83,6 +83,6 @@ Since there is no chain halt, we can just live with it and fix it in an upcoming
 - **Description:** Differences in implementation across clients (e.g. `op-geth` versus `op-reth`) cause a chain split due to different effective consensus rules.
 - **Risk Assessment:** medium severity / medium likelihood
 - **Mitigations:** 
-- [ ] ACTION ITEM: We have implemented extensive cross-client / differential testing of the new functionality.
+- [ ] ACTION ITEM (BLOCKING): We have implemented extensive cross-client / differential testing of the new functionality.
 - **Detection:** Replicas of one kind of client will diverge from the sequencer
 - **Recovery Path(s)**: Most likely we would have the op-node/op-geth chain be the canonical one as this is the reference implementation. Other clients would need to be patched to resolve any discrepancies.
