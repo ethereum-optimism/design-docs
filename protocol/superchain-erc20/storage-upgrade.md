@@ -43,7 +43,7 @@ This path requires to pre-compute the storage slots for the mappings.
 The hash onion approach involves performing a single storage update on the new implementation initialization and then letting users populate the full `deployments` mapping with a simple cryptographic proof. This implies adding a public function to the factory.
 
 Detailed flow:
-Upgrade the `OptimismMintableERC20Factory` to the new final implementation.
+- `ProxyAdmin` owner upgrades the `OptimismMintableERC20Factory` to the new final implementation.
 	- Implementation should include an `initialize()` function to set a single storage slot to a selected value.
 	- It is also possible to perform the single storage update with the atomic migration to the `StorageSetter` implementation, but it seems like an overkill.
 - On the same transaction, call `initialize()` to set a single storage slot `hashOnion` to a hash onion structure representing all the tokens.
