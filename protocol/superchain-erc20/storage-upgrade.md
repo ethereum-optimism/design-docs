@@ -91,18 +91,18 @@ Example implementation:
  * and updates the last layer.
  * @param localToken The local token address to be stored
  * @param remoteToken The remote token address to be stored
- * @param previousLayer The previous layer of the hash onion
+ * @param innerLayer The previous layer of the hash onion
  */
 function verifyAndStore(
 	address localToken,
 	address remoteToken,
-	bytes32 previousLayer
+	bytes32 innerLayer
 ) public {
 	// Concatenate localToken and remoteToken using abi.encodePacked
 	bytes memory data = abi.encodePacked(localToken, remoteToken);
 
 	// Recompute the hash of the previous layer + data
-	bytes32 computedHash = keccak256(abi.encodePacked(previousLayer, data));
+	bytes32 computedHash = keccak256(abi.encodePacked(innerLayer, data));
 
 	// Ensure the computed hash matches the current stored layer
 	require(computedHash == hashOnion, "Invalid layer provided.");
@@ -114,11 +114,11 @@ function verifyAndStore(
 	emit AddressesStored(localToken, remoteToken);
 
 	// Update the current layer to the previous one for the next submission
-	hashOnion = previousLayer;
+	hashOnion = innerLayer;
 }
 ```
 
-It is possible to take `d1 = 0` to make it easier to determine when the onion has been fully uncovered.
+It is possible to take `d1 = 0` to make it easier to determine when the onion has been fully uncovered (this would add one hash operation).
 
 ## What needs to be done?
 
