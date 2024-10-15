@@ -133,7 +133,7 @@ medium severity / low likelihood
 
 ### Mitigations
 
-The upgrade is designed to function even if the SystemConfig contract does not get updated before the upgrade. In this case, the system falls back to the Canyon hardcoded parameters, and the system will perform base fee udpates exactly as prior to the upgrade.
+The upgrade is designed to function even if the SystemConfig contract does not get updated. In this case, the system falls back to the Canyon hardcoded parameters, and the system will perform base fee udpates exactly as prior to the upgrade. However, it is critical that the contracts upgrade does not happen _before_ the hardfork activates, because this would cause a chain halt due to op-node not recognizing the new config update type. 
 
 We are performing multi-client testing (op-geth and op-reth) and will run a multi-client devnet, so bugs in either will be quickly detected by consensus disagreements among them.
 
