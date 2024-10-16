@@ -32,7 +32,7 @@ checks that are part of the superchain registry very difficult. We tell chains t
 trying to launch to use governance approved L1 contracts, the same should apply for L2.
 
 Given all of the work for making releases and upgrades nice for the L1 contracts and the client software,
-it is at a waste if we cannot also have good releases of the L2 predeploys.
+it is all a waste if we cannot also have good releases of the L2 predeploys.
 
 Right now, OP Mainnet is running contracts at various versions of the software. It is actually very difficult
 to reproduce the exact OP Mainnet set of contracts being used. It would require cherry picking bytecode from many
@@ -140,7 +140,7 @@ the `xDomainMsgSender`. There is actually no need to set the value in storage du
 the semantics such that if its `address(0)` in storage, then return the default value, otherwise return the
 actual sender value. This should be safe since there is no way to be a sender from `address(0)`.
 
-Given this insight and the fact that there is reentrency check on `relayMessage`, it should be safe to use transient
+Given this insight and the fact that there is reentrancy check on `relayMessage`, it should be safe to use transient
 storage without a call depth context. There is an [open PR](https://github.com/ethereum-optimism/optimism/pull/12356) to migrate to solc `0.8.25`.
 
 ## Resource Usage
