@@ -22,15 +22,6 @@
 | Need Approval From | Ben Clabby, Mark Tyneway |
 | Status | Draft |
 
-> [!TIP]
-> Guidelines for writing a good analysis, and what the reviewer will look for:
->
-> - Show your work: Include steps and tools for each conclusion.
-> - Completeness of risks considered.
-> - Include both implementation and operational failure modes
-> - Provide references to support the reviewer.
-> - The size of the document will likely be proportional to the project's complexity.
-> - The ultimate goal of this document is to identify action items to improve the security of the  project. The FMA review process can be accelerated by proactively identifying action items during the writing process.
 
 ## Introduction
 
@@ -62,13 +53,18 @@ Below are references for this project:
 - **Recovery Path(s):** If the `op-challenger` fails to play Kona + Asterisc fault dispute games, a fix will need to be made to the `op-challenger`. It does not require governance, but would need a new release of the `op-challenger` to be published and rolled out to infrastructure.
 
 
-### [Name of Failure Mode 2]
+### Divergence in the behavior between RISCV.sol and Asterisc
 
-- **Description:** *Details of the failure mode go here. What the causes and effects of this failure?*
-- **Risk Assessment:** *Simple low/medium/high rating of impact (severity) + likelihood.*
-- **Mitigations:** *What mitigations are in place, or what should we add, to reduce the chance of this occurring?*
-- **Detection:** *How do we detect if this occurs?*
-- **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
+- **Description:** Asterisc is a "Fault Proof VM". It is an onchain RISCV instruction emulator with the on-chain component of the kona + asterisc fault dispute game being the `RISCV.sol` contract. `RISCV.sol` runs a single RISCV instruction on chain with merkleized VM memory. Effectively, the behavior between `RISCV.sol` and asterisc cannot diverge.
+
+- **Risk Assessment:** Low likelihood, but high impact.
+
+- **Mitigation:** Heavily test `RISCV.sol`. Audit `RISCV.sol`. Asterisc already runs through action tests frequently in CI validiting that it produces the expected output.
+
+- **Detection:** Since `op-dispute-mon` uses the same asterisc backend that the `op-challenger` does, there may be divergent behaviour between asterisc and `RISCV.sol`. In the worst case, if a silent issue is exploited in `RISCV.sol`, a fault dispute game may resolve incorrectly. But since the kona + asterisc fault dispute game lives outside the hotpath, this game result is not used anywhere by the portal and can be discarded.
+
+- **Recovery Path(s):** If a divergence between `RISCV.sol` and asterisc is found, either or both would need to be updated, and re-released. Since the kona + asterisc Fault Dispute Game would need to use the updated `RISCV.sol`, if it was fixed, an upgrade would need to be performed. If the kona + asterisc fault dispute game sits in the hotpath, the security council would need to fallback to the op-program + cannon fault dispute game, and only switch back once the fix has been released and deployed.
+
 
 ### Generic items we need to take into account:
 
@@ -78,6 +74,7 @@ Below are references for this project:
 ## Audit Requirements
 
 *Given the failure modes and action items, will this project require an audit? See [OP Labs Audit Framework: When to get external security review and how to prepare for it](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864) for a reference decision making framework. Please explain your reasoning.*
+
 
 ## Appendix
 
