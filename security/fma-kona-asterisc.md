@@ -1,5 +1,3 @@
-# [Project Name]: Failure Modes and Recovery Path Analysis
-
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
@@ -14,25 +12,15 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-*Italics are used to indicate things that need to be replaced.*
+# Stage 1.4: Kona and Asterisc FMA (Failure Modes and Recovery Path Analysis)
 
 | | |
 |--------|--------------|
-| Author | *Author Name* |
-| Created at | *YYYY-MM-DD* |
+| Author | Andreas Bigger |
+| Created at | 2024-10-17 |
 | Initial Reviewers | *Reviewer Name 1, Reviewer Name 2* |
-| Need Approval From | *Security Reviewer Name* |
-| Status | *Draft / In Review / Implementing Actions / Final* |
-
-> [!NOTE]
-> 📢 Remember:
->
-> - The single approver in the “Need Approval From” must be from the Security team. 
-> - Maintain the “Status” property accordingly. An FMA document can have the following statuses:
->   - **Draft 📝:** Doc is created but not yet ready for review.
->   - **In Review 🔎:** Security is reviewing, and Engineering is iterating on the design. A checklist of action items will be created during this phase.
->   - **Implementing Actions 🛫:** Security has signed off on the content of the document, including the resulting action items. Engineering is responsible for implementing the the action items, and updating the checklist.
->   - **Final 👍:** Security will transition the status of the document to Final once all action items are completed.
+| Need Approval From | Ben Clabby, Mark Tyneway |
+| Status | Draft |
 
 > [!TIP]
 > Guidelines for writing a good analysis, and what the reviewer will look for:
@@ -48,9 +36,14 @@
 
 This document covers the initial deployment of [the Asterisc fault proof VM](https://github.com/ethereum-optimism/asterisc) with [the Kona fault proof program](https://github.com/anton-rs/kona).
 
+Together, Kona and Asterisc form an alternative proof stack to the [op-program]() and [cannon](). A secondary dispute game will be created that uses kona and asterisc, with the `op-challenger` supporting playing _both_ game types - `op-program` + `cannon` as well as `kona` + `asterisc`.
+
 Below are references for this project:
 
 - ["Stage 1.4" internal project document](https://www.notion.so/oplabs/Stage-1-4-Partway-a6f57ad777b148dda01488f2646cff17)
+- [Kona Documentation](https://anton-rs.github.io/kona/).
+- [Kona Repository](https://github.com/anton-rs/kona).
+- [Asterisc Repository](https://github.com/ethereum-optimism/asterisc)
 
 
 ## Failure Modes and Recovery Paths
