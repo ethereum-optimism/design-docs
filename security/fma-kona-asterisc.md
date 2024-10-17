@@ -31,8 +31,6 @@ Together, Kona and Asterisc form an alternative proof stack to the [op-program](
 
 Since two main components are being shipped in Stage 1.4 there are two main places the system can break: the kona fault proof program, and the asterisc VM. The below Failure Modes and Recovery Paths go over those situations.
 
-Notably, 
-
 Below are references for this project:
 
 - ["Stage 1.4" internal project document](https://www.notion.so/oplabs/Stage-1-4-Partway-a6f57ad777b148dda01488f2646cff17)
