@@ -36,7 +36,7 @@
 
 This document covers the initial deployment of [the Asterisc fault proof VM](https://github.com/ethereum-optimism/asterisc) with [the Kona fault proof program](https://github.com/anton-rs/kona).
 
-Together, Kona and Asterisc form an alternative proof stack to the [op-program]() and [cannon](). A secondary dispute game will be created that uses kona and asterisc, with the `op-challenger` supporting playing _both_ game types - `op-program` + `cannon` as well as `kona` + `asterisc`.
+Together, Kona and Asterisc form an alternative proof stack to the [op-program](https://github.com/ethereum-optimism/optimism/tree/develop/op-program) and [cannon](https://github.com/ethereum-optimism/optimism/tree/develop/cannon). A secondary dispute game will be created that uses kona and asterisc, with the `op-challenger` supporting playing _both_ game types - `op-program` + `cannon` as well as `kona` + `asterisc`.
 
 Below are references for this project:
 
@@ -48,15 +48,19 @@ Below are references for this project:
 
 ## Failure Modes and Recovery Paths
 
-***Use one sub-header per failure mode, so the full set of failure modes is easily scannable from the table of contents.***
 
-### [Name of Failure Mode 1]
+### Breaking Backwards Compatibility for the op-challenger
 
-- **Description:** *Details of the failure mode go here. What the causes and effects of this failure?*
-- **Risk Assessment:** *Simple low/medium/high rating of impact (severity) + likelihood.*
-- **Mitigations:** *What mitigations are in place, or what should we add, to reduce the chance of this occurring?*
-- **Detection:** *How do we detect if this occurs?*
-- **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
+- **Description:** The `op-challenger` has been updated to support the Kona + Asterisc Fault Dispute Game type ([Game Type 3](https://github.com/ethereum-optimism/optimism/blob/develop/op-challenger/game/fault/types/types.go#L30)).
+
+- **Risk Assessment:** Low likelihood as the action tests that are run in CI very frequently run the `op-challenger` with the kona + asterisc fault dispute game. Medium impact since the off-chain `op-challenger` service can be updated with enough buffer time due to the large game time and nature of the chess clock.
+
+- **Mitigations:** The `op-challenger` is architected in such a way as to isolate game types and moreso the inididual game players. To allow the challenger to scale and play many different game types at once, a list of game types to play is passed into the `op-challenger` as a CLI flag. When games are detected on-chain, the `op-challenger` will create a "game player" for this game type. Players are run in individual threads so a breaking kona-asterisc game player in the challenger will not cause a liveliness issue for the `op-challenger` to play other game types.
+
+- **Detection:** The Dispute Monitor ([`op-dispute-mon`](https://github.com/ethereum-optimism/optimism/tree/develop/op-dispute-mon)) service provides an isolated monitoring service that will detect if a game is not being played by the honest `op-challenger`. It will alert in this case.
+
+- **Recovery Path(s):** If the `op-challenger` fails to play Kona + Asterisc fault dispute games, a fix will need to be made to the `op-challenger`. It does not require governance, but would need a new release of the `op-challenger` to be published and rolled out to infrastructure.
+
 
 ### [Name of Failure Mode 2]
 
@@ -67,18 +71,9 @@ Below are references for this project:
 - **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
 
 ### Generic items we need to take into account:
-See [./fma-generic-hardfork.md](./fma-generic-hardfork.md). 
 
-- [ ] Check this box to confirm that these items have been considered and updated if necessary.
+- [X] [./failure-modes-analysis.md](./failure-modes-analysis.md).
 
-
-## Action Items
-
-Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
-
-- [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
-- [ ] *Action item 2 (Assignee: tag assignee)*
-- [ ] *Action item 3 (Assignee: tag assignee)*
 
 ## Audit Requirements
 
@@ -86,9 +81,6 @@ Below is what needs to be done before launch to reduce the chances of the above 
 
 ## Appendix
 
-### Appendix A: This is a Placeholder Title
+### Appendix A: op-challenger
 
-*Appendices must include any additional relevant info, processes, or documentation that is relevant for verifying and reproducing the above info. Examples:*
-
-- *If you used certain tools, specify their versions or commit hashes.*
-- *If you followed some process/procedure, document the steps in that process or link to somewhere that process is defined.*
+[op-challenger](https://github.com/ethereum-optimism/optimism/tree/develop/op-challenger) contains CLI flags to demonstrate specifying game types it should play.
