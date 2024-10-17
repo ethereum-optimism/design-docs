@@ -15,7 +15,7 @@
 
 #### Chain Halt at Activation
 
-- **Description:** Hard forks carry the risk of bugs that cause chain halts at activation time. This could be due to L1 contract changes not applying properly, and/or a configuration or implementation bug in the node software.
+- **Description:** Hard forks carry the risk of bugs that cause chain halts at activation time. This could be due to L1 contract changes not applying properly, and/or a configuration or implementation bug in the node software or protocol specification.
 
 - **Risk Assessment:** Medium severity as no funds are at risk, though it is a full liveness failure that would be messy to recover from and require releasing and distributing an updated configuration and/or release. Likelihood is low, especially if we use the mechanics for dynamically upgrading L2 contracts established in the Ecotone hardfork: namely, inserting appropriate deposit transactions in the activation block.
 
@@ -76,7 +76,7 @@ Since there is no chain halt, we can just live with it and fix it in an upcoming
 
 - **Detection:** An un-executed safe transaction is easily detectable. In the case of a misconfigured game implementation, the op-dispute-mon will alert proofs-squad and security on any attempt to exploit this misconfiguration.
 
-- **Recovery Path(s)**:  Reschedule the upgrade, releasing a new binary (without immediate urgency). 
+- **Recovery Path(s)**: Reschedule the upgrade, releasing a new binary (without immediate urgency).
 
 ### Chain split (across clients)
 
