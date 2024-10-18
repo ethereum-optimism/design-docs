@@ -113,17 +113,14 @@ contract. We may need to introduce multicall support into the `L2ProxyAdmin` as 
 
 #### FeeAdmin role
 
-From time to time it may be necessary to modify the of the FeeVault predeploy contracts, but the
-entity which should be authorized to make these modification must be able to vary from chain to
-chain.
-
-Therefore a new `feeAdmin` role will be added to the `SystemConfig` contract. This role can call a
-new `SystemConfig.setFeeConfig()` function which forwards config updates to `OptimismPortal.setConfig()`
-with the appropriate `ConfigType`.
+The entity which authorized to modify the various `FeeVault` configs must be able to vary from chain
+to chain. Therefore a new `feeAdmin` role will be added to the `SystemConfig` contract. This role
+can call a new `SystemConfig.setFeeConfig()` function which forwards config updates to
+`OptimismPortal.setConfig()` with the appropriate `ConfigType`.
 
 This role will be set in `SystemConfig.initialize()`, meaning that it can only be updated by an upgrade.
 
-In order to be abundantly clear about auth:
+In summary:
 
 1. The `FeeAdmin` can update the `FeeConfig`.
 2. The Upgrade Controller (aka [L1 ProxyAdmin Owner](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/stage-1.md#configuration-of-safes)) Safe cand update the `FeeAdmin`.
@@ -138,9 +135,9 @@ that is considered a bonus when we do get around to it.
 
 #### SystemConfig
 
-The `SystemConfig`'s `initialize()` function will:
+The `SystemConfig`'s `initialize()` function will be updated to:
 
-- Accepts a new `Roles` struct, which will be composed of the existing `owner` address, and the new
+- Accept a new `Roles` struct, composed of the existing `owner` address, and the new
   `feeAdmin` role.
 - Makes multiple calls to the OptimismPortal's `setConfig()` function to set the config values.
 
@@ -151,8 +148,8 @@ The `SystemConfig`'s `initialize()` function will:
 > changed in normal operation. However the current design will require that all
 > `SystemConfig` upgrades do not unintentionally modify the existing values.
 
-The `SystemConfig` will also get the following new external methods which are only callabled by the
-`feeAdmin`.
+The `SystemConfig` will also get the following new external methods which are only callable by the
+`feeAdmin`:
 
 ```solidity
 function setBaseFeeVaultConfig(address _recipient, uint256 _min, Types.WithdrawalNetwork _network) external;
@@ -211,8 +208,9 @@ optionally generate the L2 state from the current commit as it currently does us
 ### Upgrade Process
 
 Note that this design modifies how L2 upgrade auth is managed (moving that management into a single
-storage slot on L1), but does not change how upgrades to predeploy contracts are performed, ie. it
-can still be done either via a `TransactionDeposited()` event, or a [network upgrade automation
+storage slot on L1), but does not change how upgrades to predeploy contracts are performed.
+Predeploy upgrades can still be done either via a `TransactionDeposited()` event, or a [network
+upgrade automation
 transaction](https://github.com/ethereum-optimism/specs/blob/9f7226be064be0c87f90cbc6be6b0a4b4f58656a/specs/protocol/derivation.md#network-upgrade-automation-transactions).
 
 # Alternatives Considered
@@ -248,8 +246,8 @@ in the `setResourceConfig()` function's [sanity checks](https://github.com/ether
 `initialize`, its not that big of a deal and chain operators will see that they need to increase that
 value.
 
-There is a related concern about the `useGas()`
+A related concern is that the `useGas()`
 [function](https://github.com/ethereum-optimism/optimism/blob/f99424ded3917ddc0c4ef14355d61e50a38d4d0d/packages/contracts-bedrock/src/L1/ResourceMetering.sol#L156)
-is implemented, as (unlike
-[`_metered()`](https://github.com/ethereum-optimism/optimism/blob/f99424ded3917ddc0c4ef14355d61e50a38d4d0d/packages/contracts-bedrock/src/L1/ResourceMetering.sol#L128C1-L132C10))
-it does not check that the max resource limit is not exceeded by the additional `prevBoughtGas`, or perhaps it should check that the SystemTxMaxGas is not exceeded (relevant code in [ResourceMetering.sol](https://github.com/ethereum-optimism/optimism/blob/feat/holocene-contracts/packages/contracts-bedrock/src/L1/ResourceMetering.sol#L43-L46), and [config.go](https://github.com/ethereum-optimism/optimism/blob/feat/holocene-contracts/op-chain-ops/genesis/config.go#L109-L113)). This requires investigation.
+which is called in the `upgrade()` and `setConfig()` functions does not check that the max resource limit is not exceeded by
+the additional `prevBoughtGas`. This is in contrast with
+[`_metered()`](https://github.com/ethereum-optimism/optimism/blob/f99424ded3917ddc0c4ef14355d61e50a38d4d0d/packages/contracts-bedrock/src/L1/ResourceMetering.sol#L128C1-L132C10) which does check `prevBoughtGas`. This requires investigation.
