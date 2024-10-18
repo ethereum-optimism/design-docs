@@ -95,18 +95,16 @@ block matches the expected value.
 
 #### SuperchainConfig "Upgrader" Role
 
-This new role is to allow for operational flexibility going into the future. If its not desired to add this role,
-we could make the `guardian` able to faciliate the upgrade transactions. In practice, we may end up setting both
-the `guardian` and the `upgrader` to the same account for the Superchain.
-
-Open to removing this from the spec and just using the `guardian` if preferred, but the possible operational
-flexibility seems useful.
-
 The `upgrader` role can call the `OptimismPortal.upgrade(bytes memory data, uint32 gasLimit)` function
 and it emits a deposit tx from the `DEPOSITOR_ACCOUNT` that calls the `L2ProxyAdmin`. Sourcing the auth
 from the `SuperchainConfig` allows for simple management of this very important role, given that it impacts
-stage 1 status. This is meant to simplify operations, ie remove the concept of the aliased L1 `ProxyAdmin` owner
+stage 1 status. This is meant to simplify operations by removing the aliased L1 `ProxyAdmin` owner
 being set as the L2 `ProxyAdmin`.
+
+Since the the L1 and L2 `ProxyAdmin` contracts are intended to have the same owner,
+an additional improvement (which may be excluded to limit scope creep), would be to remove the
+`Ownable` dependency on the L1 `ProxyAdmin` contract, and instead have it read the
+`SuperchainConfig.upgrader()` role to authorize upgrades.
 
 The `data` and `gasLimit` are allowed to be specified since we don't fully know what sorts of calls we may have to do.
 We may only need to do simple `upgradeTo` calls, but we may also need to do `upgradeToAndCall`. To support the
