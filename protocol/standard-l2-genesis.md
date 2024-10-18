@@ -51,11 +51,12 @@ is likely too low level. -->
 A WIP implementation can be found [here](https://github.com/ethereum-optimism/optimism/pull/12057).
 The specs can be found [here](https://github.com/ethereum-optimism/specs/tree/17ef36cdc3bb9893b206a93464122d56730d30fb/specs/protocol/holocene).
 
-Similar to the L1 MCP project, we move all of the network specific configuration out of the individual contracts
-themselves and instead place all of it in a single place. The contracts will make a `CALL` rather than using
-`sload` to read the values. These values will be sourced from L1 via deposit transactions that come from
-the `SystemConfig.initialize` call. We need to make sure that the max deposit gas limit is at least able to
-fullfill these deposit transactions.
+Similar to the L1 MCP project, we move all of the network specific configuration out of the
+individual contracts themselves and instead place all of it in a single place. Rather than using
+`sload` to read the values, the contracts will make a `CALL` to the L1Block contract. These values
+will be sourced from L1 via deposit transactions that come from the `SystemConfig.initialize` call.
+We need to make sure that the max deposit gas limit is at least able to fullfill these deposit
+transactions.
 
 The general flow is as follows:
 
@@ -87,7 +88,7 @@ a library for each release of the predeploys. The genesis script would take the 
 configured for a specific hardfork at genesis, otherwise it would use the compiled source code. This gives
 us a lot of flexibility and simplicity when it comes to being able to recreate an L2 genesis deterministically.
 
-The block history integrity check becomes as simple as observing a 32 byte state root matches in the genesis 
+The block history integrity check becomes as simple as observing that a 32 byte state root in the genesis
 block matches the expected value.
 
 ### Rationale Behind Certain Changes
