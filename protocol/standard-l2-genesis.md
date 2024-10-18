@@ -111,6 +111,23 @@ We may only need to do simple `upgradeTo` calls, but we may also need to do `upg
 [liquidity migration](https://github.com/ethereum-optimism/design-docs/blob/4b62eb12eceb8e4867ac101134730102c0f5a989/protocol/superchainerc20/liquidity-migration.md), we need to backport storage slots into the `OptimismMintableERC20Factory`
 contract. We may need to introduce multicall support into the `L2ProxyAdmin` as part of this.
 
+#### FeeAdmin role
+
+From time to time it may be necessary to modify the of the FeeVault predeploy contracts, but the
+entity which should be authorized to make these modification must be able to vary from chain to
+chain.
+
+Therefore a new `feeAdmin` role will be added to the `SystemConfig` contract. This role can call a
+new `SystemConfig.setFeeConfig()` function which forwards config updates to `OptimismPortal.setConfig()`
+with the appropriate `ConfigType`.
+
+This role will be set in `SystemConfig.initialize()`, meaning that it can only be updated by an upgrade.
+
+In order to be abundantly clear about auth:
+
+1. The `FeeAdmin` can update the `FeeConfig`.
+2. The Upgrade Controller (aka [L1 ProxyAdmin Owner](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/stage-1.md#configuration-of-safes)) Safe cand update the `FeeAdmin`.
+
 #### L2ProxyAdmin
 
 A new contract exists called the `L2ProxyAdmin`, it simply inherits from the `ProxyAdmin` and overrides the
