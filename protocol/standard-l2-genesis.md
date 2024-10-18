@@ -138,7 +138,27 @@ that is considered a bonus when we do get around to it.
 
 #### SystemConfig
 
-The `SystemConfig` 
+The `SystemConfig`'s `initialize()` function will:
+
+- Accepts a new `Roles` struct, which will be composed of the existing `owner` address, and the new
+  `feeAdmin` role.
+- Makes multiple calls to the OptimismPortal's `setConfig()` function to set the config values.
+
+> [!IMPORTANT]
+> We should consider if there is a risk associated with 'resetting' these values. Similar to the OptimismPortal's
+> `DEFAULT_L2_SENDER` [reinit issue](https://github.com/ethereum-optimism/optimism/pull/8864).
+> I do not believe so as they are only modifiable in the `initializer` and so cannot be
+> changed in normal operation. However the current design will require that all
+> `SystemConfig` upgrades do not unintentionally modify the existing values.
+
+The `SystemConfig` will also get the following new external methods which are only callabled by the
+`feeAdmin`.
+
+```solidity
+function setBaseFeeVaultConfig(address _recipient, uint256 _min, Types.WithdrawalNetwork _network) external;
+function setL1FeeVaultConfig(address _recipient, uint256 _min, Types.WithdrawalNetwork _network) external;
+function setSequencerFeeVaultConfig(address _recipient, uint256 _min, Types.WithdrawalNetwork _network) external;
+```
 
 #### Initializable Predeploys Removed
 
