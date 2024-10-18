@@ -232,14 +232,24 @@ to source this config, it would likely need to be hardcoded in the binary and th
 <!-- An overview of what could go wrong.
 Also any open questions that need more work to resolve. -->
 
+## Sequenced transactions on a fresh chain
+
 There is a concern that the sequencer can include transactions before these values are set on L2.
 If we define the `SystemConfig.startBlock` as the [first block to start derivation in](https://github.com/ethereum-optimism/optimism/blob/d05fb505809717282d5cee7264a09d26002a4ddd/op-node/cmd/genesis/cmd.go#L174C30-L174C40),
 which is set on `SystemConfig.initialize` and also the deposit transactions that set these values are
 sent in the same block, then we should have the guarantee that no user transactions are included before
 the deposit transactions.
 
+## Max Resource Limit on Deposit Transactions
+
 There is a concern around the max deposit gas limit being too small so that the `SystemConfig` cannot
 deposit all of these values, we should have logic that reverts if the deposit gas limit is too small
-in the `ResourceConfig` sanity check function. Since the `ResourceConfig` can be modified during
+in the `setResourceConfig()` function's [sanity checks](https://github.com/ethereum-optimism/optimism/blob/feat/holocene-contracts/packages/contracts-bedrock/src/L1/SystemConfig.sol#L538-L556). Since the `ResourceConfig` can be modified during
 `initialize`, its not that big of a deal and chain operators will see that they need to increase that
 value.
+
+There is a related concern about the `useGas()`
+[function](https://github.com/ethereum-optimism/optimism/blob/f99424ded3917ddc0c4ef14355d61e50a38d4d0d/packages/contracts-bedrock/src/L1/ResourceMetering.sol#L156)
+is implemented, as (unlike
+[`_metered()`](https://github.com/ethereum-optimism/optimism/blob/f99424ded3917ddc0c4ef14355d61e50a38d4d0d/packages/contracts-bedrock/src/L1/ResourceMetering.sol#L128C1-L132C10)
+it does not check that the max resource limit is not exceeded by the additional `prevBoughtGas`, or perhaps it should check that the SystemTxMaxGas is not exceeded (relevant code in [ResourceMetering.sol](https://github.com/ethereum-optimism/optimism/blob/feat/holocene-contracts/packages/contracts-bedrock/src/L1/ResourceMetering.sol#L43-L46), and [config.go](https://github.com/ethereum-optimism/optimism/blob/feat/holocene-contracts/op-chain-ops/genesis/config.go#L109-L113)). This requires investigation.
