@@ -29,7 +29,7 @@ to sign the new transactions.
 
 However, op-node uses different signing scheme than the op-batcher, requiring the introduction of new RPC: 
 
-The signing of block payload in op-node is a custom signing structure where the signing hash is: `[32]byte keccak256Hash([32]byte domain, [32]byte chainId, [32]byte keccak256(payloadBytes))` (see op-node/p2p/signer.go). This signing hash is signed with the private key, to produce a ECDSA signature of 65 bytes. 
+The signing of block payload in op-node is a custom signing structure where the signing hash is: `[32]byte keccak256Hash([32]byte domain, [32]byte chainId, [32]byte keccak256(payloadBytes))` (see op-node/p2p/signer.go and [this spec](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/rollup-node-p2p.md#block-signatures)). This signing hash is signed with the private key, to produce a ECDSA signature of 65 bytes. 
 
 # Proposed Solution
 
@@ -68,18 +68,24 @@ sequenceDiagram
 
 ```
 
-## New RPC: eth_signBlockPayload
+## New RPC: opsigner_signBlockPayload
 
 new eth-domain RPC (or under some other namespace)
 
 ```go
-func eth_signBlockPayload(signingHash [32]byte) (sig *[65]byte, err error) 
-// where signingHash is keccak256Hash([32]byte domain, [32]byte chainId, [32]byte keccak256(payloadBytes))
+type BlockPayloadArgs struct {
+	Domain        [32]byte `json:"domain"`
+	ChainID       *big.Int `json:"chainId"`
+	PayloadHash   []byte   `json:"payloadHash"`
+	SenderAddress *common.Address `json:"senderAddress"`
+}
+
+func opsigner_signBlockPayload(args BlockPayloadArgs) (sig *[65]byte, err error) 
 ```
 
 This new RPC will be added to:
 
-1. optimism/op-service/signer/client.go: new SignBlockPayload function which calls, the eth_signBlockPayload RPC. This method is called by the op-node’s p2p/signer.go
+1. optimism/op-service/signer/client.go: new SignBlockPayload function which calls, the opsigner_signBlockPayload RPC. This method is called by the op-node’s p2p/signer.go
 2. optimism-infra/op-signer/service/service.go: new SignBlockPayload, which is the receiver counterpart of the RPC. 
 
 Most implementation of this RPC will be decoupling the signing logic from op-node, and moving code around different parts of the monorepo/op-signer. 
@@ -88,24 +94,32 @@ Most implementation of this RPC will be decoupling the signing logic from op-nod
 
 Above signing structure is a custom scheme, and does not align with other more official signing schemes like the ones introduced by EIP-712 or ERC-191, so we can’t use something like `eth_sign` or `eth_signTypedData`. 
 
-We could migrate the signing scheme of the p2p gossiped payload to the other methods of signing like the ones mentioned above. However, we need to preserve backwards compatibility of the signing scheme for the existing nodes in the network to continue working after this change. 
+We could migrate the signing scheme of the p2p gossiped payload to the other methods of signing like the ones mentioned above. However, we need to preserve backwards compatibility of the signing scheme for the existing nodes in the network to continue working after this change. In the future, we could consider unifying the signing scheme.
 
 ## Usage of op-signer
 Previously, the only usage of op-signer was for the transaction signing of batcher and proposer. This uses the sender address of the tx and the secret key.
 
-However, for block payload signing, the sender address is not needed - we only need to sign the signingHash with the private key from the KMS. Therefore, we could make `p2p.signer.address` flag optional because it's required for the op-signer to be integrated with services like op-node (see `op-service/signer/cli.go`)
+To use op-node with op-signer, the following flags must be set in op-node:
+```
+--signer.address=0x7e5f4552091a69125d5dfcb7b8c2659029395bdf
+--signer.endpoint=https://signer:12345
+```
 
-After generating the appropriate key in the KMS, you have to add additional field to the config.yaml of op-signer as follows: 
+In op-signer, after generating the appropriate key in the KMS, you have to add additional field to the config.yaml of op-signer as follows: 
 ```yaml
 auth:
   - name: op-node.primary.mainnet.prod.oplabs.cloud
     key: projects/oplabs-prod-mainnet/locations/eur6/keyRings/testop-signer/cryptoKeys/op-node/cryptoKeyVersions/1
+    fromAddress: 0x7e5f4552091a69125d5dfcb7b8c2659029395bdf
+    chainID: 901
 // ... other existing keys
   - name: sequencer-batcher.primary.mainnet.prod.oplabs.cloud
     key: projects/oplabs-prod-mainnet/locations/eur6/keyRings/op-signer/cryptoKeys/batcher/cryptoKeyVersions/1
+    toAddress: 0xc76475c49fc2c24e8b86fa18af3cae8dc3d68aaa
 ```
 for each signing request, op-signer will look at the requesting server's domain, and look at this yaml file for a matching config. Then, it will look for the gcp kms key that matches the `key` name.
 
+In order to validate that the incoming RPC request is a valid signing request from the expected op-node, users must specify `fromAddress` and `chainID`. The incoming `BlockPayloadArgs` must also have the same `senderAddress`(which is set by the flag `signer.address`) and `chainID`. This way, the same op-signer can sign for multiple different p2p signing keys. 
 
 ## Security
 
@@ -115,7 +129,7 @@ With mTLS, we can prove that both the client and the server are verified with th
 
 Thankfully, op-signer already has mTLS support, as integrated in op-batcher and op-proposer. 
 
-Here, users can specify
+Here, users must specify
 
 - tls.ca
 - tls.cert
@@ -128,18 +142,9 @@ There has already been discussions about integrating op-signer with op-node, suc
 - https://github.com/ethereum-optimism/optimism/pull/4357#discussion_r1045342439
 - https://github.com/ethereum-optimism/optimism/pull/4669#discussion_r1067409473
 
-# Alternatives Considered
-- When we send the Block Payload from op-node to op-signer, we could send the full block payload arguments like the following: 
-```go
-type BlockPayloadArgs struct {
-	domain [32]byte `json:"domain"`
-	chainId *big.Int `json:"chainId"`
-	payloadHash [32]byte `json:"payloadHash"`
-}
-```
-This means we are sending more data to the op-signer, but may be more secure since the op-signer controls all of the logic for signing the payload. 
-
 # Risks & Uncertainties
 
 1. Because op-signer will sign any payloads sent to its RPC, we must ensure that only trusted entities can access the RPC of op-signer. Otherwise, an attacker might request op-signer to sign malicious block payloads, and use its signature to propagate invalid block data to peers in the network. To prevent this, we must ensure that we have safe mechanisms in place to only allow the connection between trusted entities. 
+    -  This is addressed by introducing mTLS connection between the op-node and op-signer, as well as requiring the RPC request to have the correct senderAddress and chainID, which further validates every RPC request. 
 2. As we create secure connection between the op-signer and op-node (whether by mTLS or other methods), we must ensure that the time for signing the payload is quick enough. It must be always faster than the block build time, and quick enough for good gossiping across the network.
+3. The availability of the op-signer and KMS integration is very important as it is directly connected with the sequencer's ability to propagate new l2 blocks. In this case, HSM is the single point of failure. In order to mitigate this, we could consider using multi-region HSM as well as multi-provider KMS by integrating with other cloud providers like AWS. However, it's also worth noting that this integration is optional and only crucial when the operator of the sequencer and signer is different. For crucial chains, we should still use the fixed secret key on the sequencer as the main code path.
