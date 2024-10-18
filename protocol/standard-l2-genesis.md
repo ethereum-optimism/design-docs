@@ -188,8 +188,8 @@ The additional deposit gas is the only additional resource usage and its covered
 at the bottom of this document.
 
 This approach expands the ABI of the `L1Block` contract, meaning that automatically generated solidity dispatcher
-will binary search over the possible function selectors, consuming a bit more gas. This is something that we could
-avoid by writing a custom dispatcher in a fallback function or by grinding for names of functions.
+will binary search over the possible function selectors, consuming a bit more gas.
+
 
 # Alternatives Considered
 
