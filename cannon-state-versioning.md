@@ -58,7 +58,7 @@ As such, we need a new wider field in the encoded state file to encapsulate the 
 ## Supporting new cannon embeds 
 
 While every version of cannon can be embedded into the cannon CLI, this can result in a really large binary.
-Instead, the Cannon CLI only needs to maintain the VM implemnetations that it's likely to use.
+Instead, the Cannon CLI only needs to maintain the VM implementations that it's likely to use.
 In practice, at most two `cannon` VMs are needed by the op-challenger, to support the transition between FP upgrades.
 
 To provide optionality of embedded cannon VMs, we can use the [go:embed filesystem](https://pkg.go.dev/embed#hdr-File_Systems) that serves as a lookup table (via a simple file naming conventio) of `cannon` VMs.
