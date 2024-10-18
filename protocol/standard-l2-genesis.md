@@ -251,5 +251,5 @@ value.
 There is a related concern about the `useGas()`
 [function](https://github.com/ethereum-optimism/optimism/blob/f99424ded3917ddc0c4ef14355d61e50a38d4d0d/packages/contracts-bedrock/src/L1/ResourceMetering.sol#L156)
 is implemented, as (unlike
-[`_metered()`](https://github.com/ethereum-optimism/optimism/blob/f99424ded3917ddc0c4ef14355d61e50a38d4d0d/packages/contracts-bedrock/src/L1/ResourceMetering.sol#L128C1-L132C10)
+[`_metered()`](https://github.com/ethereum-optimism/optimism/blob/f99424ded3917ddc0c4ef14355d61e50a38d4d0d/packages/contracts-bedrock/src/L1/ResourceMetering.sol#L128C1-L132C10))
 it does not check that the max resource limit is not exceeded by the additional `prevBoughtGas`, or perhaps it should check that the SystemTxMaxGas is not exceeded (relevant code in [ResourceMetering.sol](https://github.com/ethereum-optimism/optimism/blob/feat/holocene-contracts/packages/contracts-bedrock/src/L1/ResourceMetering.sol#L43-L46), and [config.go](https://github.com/ethereum-optimism/optimism/blob/feat/holocene-contracts/op-chain-ops/genesis/config.go#L109-L113)). This requires investigation.
