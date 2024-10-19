@@ -31,6 +31,9 @@ While using a script that leverages `forge inspect` and `cast interface` to auto
 - No pseudo-constructor support: The OP Stack codebase heavily relies on pseudo-constructors for type-safe constructor argument passing, which are not supported by this method.
 - Unnecessary custom error replication: The generated interfaces include custom errors from the contract file, which is not relevant or necessary for our use case and cannot be optionally omitted.
 - Interface Name: The name of the generated interface class is not customizable and is currently hardcoded to be the same as the contract name. This does not allow for a clear distinction between interfaces and contracts.
+- No support for importing of Libraries, Types, Events, Errors etc, they are just re-generated.
+- Contract types are turned into address types.
+- No support for File-level defined types in generated interfaces.
 
 These limitations make this approach suboptimal for our specific needs in the OP Stack codebase. Developers still have to manually review and update interfaces after they are generated.
 
@@ -51,10 +54,14 @@ is likely too low level. -->
 
 The proposed solution is an interface generation script that will function similarly to `forge inspect` and `cast interface`, but with enhanced capabilities to address our specific needs:
 
-- Support for pseudo-constructors, which are crucial for type-safe constructor argument passing in the OP Stack codebase.
-- Correct representation of enum types, preserving their named variants and ensuring type safety.
-- Exclusion of custom errors from the generated interface files, as they are not required for our use case.
-- Allow for customizable interface names.
+- Checks for loose imports in each contract file reports any found
+- Support for pseudo-constructors
+- Support for importation of Libraries, Types, Events, Errors etc, from other files where applicable rather than just re-generating them.
+- Full support for enums, contract/interface types and not representing them as a user defined type with an underlying uint8 type and address respectively
+- Interface names are prefixed with `I`
+- Support for file level types in the generated interfaces
+
+All these and more are not supported by the current forge inspect and cast interface methods but are supported by the interface generation script.
 
 ## Resource Usage
 
@@ -68,15 +75,4 @@ It should be a relatively fast script.
 <!-- An overview of what could go wrong.
 Also any open questions that need more work to resolve. -->
 
-- How should Types and Events be handled?
-
-  - Option 1: Declare in the contract file where they're used
-    - Pro: Maintains low compile time
-    - Con: Interface files would need to duplicate types and events, potentially leading to code duplication
-    - Question: Is this level of code duplication acceptable given the benefits of shorter compile times?
-  - Option 2: Declare in a single shared file that all contracts and interfaces import from
-    - Pro: Centralized definitions reduce duplication
-    - Con: Changes to this file could result in longer compile times (estimated 3-4+ minutes)
-    - Concern: Extended compile times may negatively impact developer productivity
-
-  Each option presents trade-offs between code organization, duplication, and compile times. Further discussion is needed to determine the best approach for our specific use case.
+None so far.
