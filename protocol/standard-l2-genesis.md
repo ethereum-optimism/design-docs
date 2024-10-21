@@ -113,7 +113,8 @@ contract. We may need to introduce multicall support into the `L2ProxyAdmin` as 
 
 #### FeeAdmin role
 
-The entity which authorized to modify the various `FeeVault` configs must be able to vary from chain
+The entity which is authorized to modify the various `FeeVault` configs must be able to vary from chain
+
 to chain. Therefore a new `feeAdmin` role will be added to the `SystemConfig` contract. This role
 can call a new `SystemConfig.setFeeConfig()` function which forwards config updates to
 `OptimismPortal.setConfig()` with the appropriate `ConfigType`.
@@ -201,7 +202,7 @@ library HolocenePredeploys {
 }
 ```
 
-The `L2Genesis.s.sol` solidity script, will have additional functionality so that it can
+The `L2Genesis.s.sol` solidity script will have additional functionality so that it can
 optionally generate the L2 state from the current commit as it currently does using
 `vm.getDeployedCode()`, or retrieve the code from the specified library.
 
