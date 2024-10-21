@@ -109,7 +109,7 @@ an additional improvement (which may be excluded to limit scope creep), would be
 The `data` and `gasLimit` are allowed to be specified since we don't fully know what sorts of calls we may have to do.
 We may only need to do simple `upgradeTo` calls, but we may also need to do `upgradeToAndCall`. To support the
 [liquidity migration](https://github.com/ethereum-optimism/design-docs/blob/4b62eb12eceb8e4867ac101134730102c0f5a989/protocol/superchainerc20/liquidity-migration.md), we need to backport storage slots into the `OptimismMintableERC20Factory`
-contract. We may need to introduce multicall support into the `L2ProxyAdmin` as part of this.
+contract.
 
 #### FeeAdmin role
 
