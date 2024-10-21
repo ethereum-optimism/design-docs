@@ -121,6 +121,11 @@ can call a new `SystemConfig.setFeeConfig()` function which forwards config upda
 
 This role will be set in `SystemConfig.initialize()`, meaning that it can only be updated by an upgrade.
 
+> [!NOTE]
+> We need to guarantee 100% backwards compatibility in the roles during the upgrade, so for example
+> the same 2/2 multisig that owns the L2 ProxyAdmin on base should be the FeeAdmin in base's
+> SystemConfig.
+
 In summary:
 
 1. The `FeeAdmin` can update the `FeeConfig`.
