@@ -93,19 +93,31 @@ Below are references for this project:
   Low likelihood, medium impact.
   The contract upgrades are tested and very simple.
   Contracts in the hot path are audited and have been in production so are unlikely to have critical bugs.
-  // TODO: impact
+  Medium impact since an upgrade can impact code placed in the hot path.
 
 - **Mitigations:** 
+  Mitigations are done in the `superchain-ops` repository to validate upgrades prior to their execution.
+  These mitigations include:
+  - Simulate the job before execution.
+  - Run in tenderly
+    - Compare post-state diff with expectations (all signers do this)
+    - Run state diff checks, ensuring the upgrade went smoothly with static assertions.
+  - Run in superchain-ops CI until the upgrade to ensure it’s still working until the day of the upgrade.
 
 - **Detection:**
+  An invalid upgrade causing an issue in the hot path would be detected by the `op-dispute-mon`.
+  If a misconfiguration for `kona` + `asterisc` in the cold path is done, the `op-dispute-mon`
+  and `op-challenger` would detect an issue if the `kona` + `asterisc` game is placed in the hot path.
 
 - **Recovery Path(s):**
+  If an invalid upgrade somehow bricks both the `op-program` + `cannon` dispute game and the `kona` + `asterisc`
+  dispute game, the recovery path would be to activate the permissioned fallback.
 
 
 ### Divergent Kona Derivation Pipeline
 
 - **Description:**
-  The Kona derivation pipeline diverged in behavior from the op-program's derivation pipeline.
+  The `kona` derivation pipeline diverged in behavior from the `op-program`'s derivation pipeline.
 
 - **Risk Assessment:**
   Low likelihood, low impact.
@@ -114,7 +126,7 @@ Below are references for this project:
   [The "Kona and Asterisc Hot Path Failure"](#-Kona-and-Asterisc-Hot-Path-Failure) above covers the failure mode for `kona` + `asterisc` when placed in the hot path.
 
 - **Mitigations:**
-  Frequent action tests covering the derivation pipeline.
+  Action tests covering the derivation pipeline are run on every pull request in the [kona] repository.
   VM Runner exectutes the derivation pipeline as part of the kona fault proof program running ontop of asterisc.
   [Extensive test coverage](https://app.codecov.io/gh/anton-rs/kona/tree/main/crates) of kona.
 
@@ -132,8 +144,8 @@ Below are references for this project:
 ### Kona Execution Diverges from op-program
 
 - **Description:**
-  The Kona fault proof program executes blocks in a stateless L2 block executor that uses optimism-revm as a backend.
-  If optimism-revm or the L2 block executor diverge in behavior from the op-program, the kona + asterisc proof system will be invalid.
+  The Kona Fault Proof Program executes blocks in a stateless L2 block executor that uses optimism-revm as a backend.
+  If optimism-revm or the L2 block executor diverge in behavior from the `op-program`, the `kona` + `asterisc` proof system will be invalid.
 
 - **Risk Assessment:**
   Low likelihood, low impact.
@@ -142,17 +154,18 @@ Below are references for this project:
 
 - **Mitigations:**
   State testing against op-revm.
-  Frequent action tests against kona, which covers the L2 block executor.
-  `op-reth` which uses the same op-execution environment as kona.
+  Action tests covering the L2 block executor are run on every pull request in the [kona] repository.
+  `op-reth` which uses the same op-execution environment as `kona`.
 
 - **Detection:**
-  Since kona + asterisc is in the coldpath by default, a divergence would only be seen by action tests or local testing.
-
+  Running `op-reth` so it's synced and following tip would provide a way to watch for chain splits.
+  A chain split occuring means `kona`'s execution (the same as `op-reth`) diverges from the `op-program`.
+  
 - **Recovery Path(s):**
-  If kona + asterisc is in the hotpath, the game would need to be invalidated and op-program + cannon placed in the hotpath while kona + asterisc is fixed.
-  Once the execution fixes are released and deployed, kona + asterisc could be placed back in the hotpath.
-  If the game is in the coldpath, it would need to be fixed and re-deployed.
-
+  If `kona` + `asterisc` is in the coldpath, it would need to be fixed and re-deployed.
+  If `op-program` + `cannon` cannot be placed in the hotpath, and `kona` + `asterisc` fails, the permissioned fallback must be engaged.
+  [The "Kona and Asterisc Hot Path Failure"](#-Kona-and-Asterisc-Hot-Path-Failure) above covers the failure mode for `kona` + `asterisc` when placed in the hot path.
+  
 
 ### Breaking Backwards Compatibility for the op-challenger
 
@@ -160,21 +173,22 @@ Below are references for this project:
   The `op-challenger` has been updated to support the Kona + Asterisc Fault Dispute Game type ([Game Type 3]).
 
 - **Risk Assessment:**
-  Low likelihood as the action tests that are run in CI very frequently run the `op-challenger` with the kona + asterisc fault dispute game.
+  Low likelihood as the action tests that are run in CI very frequently run the `op-challenger` with the `kona` + `asterisc` fault dispute game.
   Medium impact since the off-chain `op-challenger` service can be updated with enough buffer time due to the large game time and nature of the chess clock.
 
 - **Mitigations:**
   The `op-challenger` is architected in such a way as to isolate game types and moreso the inididual game players.
   To allow the challenger to scale and play many different game types at once, a list of game types to play is passed into the `op-challenger` as a CLI flag.
   When games are detected on-chain, the `op-challenger` will create a "game player" for this game type.
-  Players are run in individual threads so a breaking kona-asterisc game player in the challenger will not cause a liveliness issue for the `op-challenger` to play other game types.
+  Players are run in individual threads so a breaking `kona` + `asterisc` game player in the challenger will not cause a liveliness issue for the `op-challenger` to play other game types.
   Another key mitigation is the VM runner. This is an offline simulation that runs asterisc + kona with the op-challenger. It's been running since around August 2024.
 
 - **Detection:**
-  The Dispute Monitor ([op-dispute-mon] service provides an isolated monitoring service that will detect if a game is not being played by the honest `op-challenger`. It will alert in this case.
+  The Dispute Monitor ([op-dispute-mon] service provides an isolated monitoring service that will detect if a game is not being played by the honest `op-challenger`.
+  It will alert in this case.
 
 - **Recovery Path(s):**
-  If the `op-challenger` fails to play Kona + Asterisc fault dispute games, a fix will need to be made to the `op-challenger`.
+  If the `op-challenger` fails to play `kona` + `asterisc` fault dispute games, a fix will need to be made to the `op-challenger`.
   It does not require governance, but would need a new release of the `op-challenger` to be published and rolled out to infrastructure.
 
 [op-dispute-mon]: https://github.com/ethereum-optimism/optimism/tree/develop/op-dispute-mon
@@ -204,7 +218,8 @@ Below are references for this project:
 - **Recovery Path(s):**
   If a divergence between `RISCV.sol` and asterisc is found, either or both would need to be updated, and re-released.
   Since the kona + asterisc Fault Dispute Game would need to use the updated `RISCV.sol`, if it was fixed, an upgrade would need to be performed.
-  If the kona + asterisc fault dispute game sits in the hotpath, the security council would need to fallback to the op-program + cannon fault dispute game, and only switch back once the fix has been released and deployed.
+  If the kona + asterisc fault dispute game sits in the hotpath, the security council would need to fallback to the op-program + cannon fault dispute
+  game, and only switch back once the fix has been released and deployed.
 
 
 ### Generic items we need to take into account:
