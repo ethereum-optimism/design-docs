@@ -223,6 +223,9 @@ Predeploy upgrades can still be done either via a `TransactionDeposited()` event
 upgrade automation
 transaction](https://github.com/ethereum-optimism/specs/blob/9f7226be064be0c87f90cbc6be6b0a4b4f58656a/specs/protocol/derivation.md#network-upgrade-automation-transactions).
 
+Routine hardforks should continue to prefer using network upgrade automation transactions, with
+deposit transaction upgrades being reserved for incident response or other extenuating circumstances.
+
 # Alternatives Considered
 
 <!-- List out a short summary of each possible solution that was considered.
