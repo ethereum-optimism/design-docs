@@ -197,6 +197,8 @@ will binary search over the possible function selectors, consuming a bit more ga
 
 ## Implications for the Predeploy Releases Process
 
+- TODO: get clarity about how to package up L2 contracts releases. How will alternative clients consume the L2 Genesis?
+
 ### L2Genesis Generation
 
 When a new predeploy release is created, the bytcode from each predeploy should be placed into a
