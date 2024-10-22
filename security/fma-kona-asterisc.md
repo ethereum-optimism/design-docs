@@ -18,7 +18,7 @@
 |--------|--------------|
 | Author | Andreas Bigger |
 | Created at | 2024-10-17 |
-| Initial Reviewers | *Reviewer Name 1, Reviewer Name 2* |
+| Initial Reviewers | Matt Solomon |
 | Need Approval From | Ben Clabby, Mark Tyneway |
 | Status | Draft |
 
@@ -29,7 +29,11 @@ This document covers the initial deployment of [the Asterisc fault proof VM](htt
 
 Together, Kona and Asterisc form an alternative proof stack to the [op-program](https://github.com/ethereum-optimism/optimism/tree/develop/op-program) and [cannon](https://github.com/ethereum-optimism/optimism/tree/develop/cannon). A secondary dispute game will be created that uses kona and asterisc, with the `op-challenger` supporting playing _both_ game types - `op-program` + `cannon` as well as `kona` + `asterisc`.
 
-Since two main components are being shipped in Stage 1.4 there are two main places the system can break: the kona fault proof program, and the asterisc VM. The below Failure Modes and Recovery Paths go over those situations.
+Stage 1.4 ships two new net components: Kona Fault Proof Program and the Asterisc VM.
+Both of these introduce points of failure that are covered in the Failure Modes and Recovery Paths below.
+
+Stage 1.4 also requires the integration of the Kona + Asterisc Dispute Game into the `op-challenger` offchain
+fault proof component. The Failure Modes and Recovery Paths below detail this as well.
 
 Below are references for this project:
 
@@ -40,6 +44,32 @@ Below are references for this project:
 
 
 ## Failure Modes and Recovery Paths
+
+### Kona and Asterisc Hot Path Failure
+
+- **Description:** If the `op-program` + `cannon` dispute game is broken, and the `kona` + `asterisc` fault dispute game is in the hot path, the permissioned fallback will need to be engaged if `kona` + `asterisc` fails.
+
+- **Risk Assessment:**
+  Low likelihood, high impact.
+  `op-program` + `cannon` are already running in production and have meaningful improvements on the way that should make cannon further resilient so it is low likelihood.
+  If `kona` + `asterisc` fails while in the hotpath, the impact is high since the permissioned fallback will need to be triggered. This engages the security council, requires comms, and causes the chain to fallback to a weaker security model. 
+
+- **Mitigations:** 
+  Offline testing with the VM Runner for both `kona` + `asterisc` as well as `op-program` + `cannon`.
+  Action tests ensuring both proof systems follow spec.
+
+- **Detection:**
+  Since the game that broke `op-program` + `cannon` would be invalidated since the respected game type would be switched in the dispute game factory, a new game would need to break `kona` + `asterisc`.
+  Once `kona` + `asterisc` is the respected game type, the dispute monitor will watch for all new games and will alert if there is an issue with `kona` + `asterisc`.
+  If, for example, `kona` + `asterisc` has the same issue, and an invalid output / game is played, the dispute monitor and `op-challenger` would alert and detect invalid games.
+  At this point, the permissioned fallback would need to be engaged since both proof systems are in repair.
+
+- **Recovery Path(s):** Likely the only viable recovery path would be the permissioned fallback unless the `op-program` + `cannon` are fixed and able to be placed back into the hotpath.
+
+
+### Contract Upgrades
+
+- **Description:** 
 
 
 ### Divergent Kona Derivation Pipeline
@@ -70,11 +100,19 @@ Below are references for this project:
 
 ### Breaking Backwards Compatibility for the op-challenger
 
-- **Description:** The `op-challenger` has been updated to support the Kona + Asterisc Fault Dispute Game type ([Game Type 3](https://github.com/ethereum-optimism/optimism/blob/develop/op-challenger/game/fault/types/types.go#L30)).
+- **Description:**
+  The `op-challenger` has been updated to support the Kona + Asterisc Fault Dispute Game type ([Game Type 3](https://github.com/ethereum-optimism/optimism/blob/develop/op-challenger/game/fault/types/types.go#L30)).
 
-- **Risk Assessment:** Low likelihood as the action tests that are run in CI very frequently run the `op-challenger` with the kona + asterisc fault dispute game. Medium impact since the off-chain `op-challenger` service can be updated with enough buffer time due to the large game time and nature of the chess clock.
+- **Risk Assessment:**
+  Low likelihood as the action tests that are run in CI very frequently run the `op-challenger` with the kona + asterisc fault dispute game.
+  Medium impact since the off-chain `op-challenger` service can be updated with enough buffer time due to the large game time and nature of the chess clock.
 
-- **Mitigations:** The `op-challenger` is architected in such a way as to isolate game types and moreso the inididual game players. To allow the challenger to scale and play many different game types at once, a list of game types to play is passed into the `op-challenger` as a CLI flag. When games are detected on-chain, the `op-challenger` will create a "game player" for this game type. Players are run in individual threads so a breaking kona-asterisc game player in the challenger will not cause a liveliness issue for the `op-challenger` to play other game types.
+- **Mitigations:**
+  The `op-challenger` is architected in such a way as to isolate game types and moreso the inididual game players.
+  To allow the challenger to scale and play many different game types at once, a list of game types to play is passed into the `op-challenger` as a CLI flag.
+  When games are detected on-chain, the `op-challenger` will create a "game player" for this game type.
+  Players are run in individual threads so a breaking kona-asterisc game player in the challenger will not cause a liveliness issue for the `op-challenger` to play other game types.
+  Another key mitigation is the VM runner. This is an offline simulation that runs asterisc + kona with the op-challenger. It's been running since around August 2024.
 
 - **Detection:** The Dispute Monitor ([`op-dispute-mon`](https://github.com/ethereum-optimism/optimism/tree/develop/op-dispute-mon)) service provides an isolated monitoring service that will detect if a game is not being played by the honest `op-challenger`. It will alert in this case.
 
