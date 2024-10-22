@@ -1,14 +1,19 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Introduction](#introduction)
-- [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [[Name of Failure Mode 1]](#name-of-failure-mode-1)
-  - [[Name of Failure Mode 2]](#name-of-failure-mode-2)
-- [Audit Requirements](#audit-requirements)
-- [Action Items](#action-items)
-- [Appendix](#appendix)
-  - [Appendix A: This is a Placeholder Title](#appendix-a-this-is-a-placeholder-title)
+- [Stage 1.4: Kona and Asterisc FMA (Failure Modes and Recovery Path Analysis)](#stage-14-kona-and-asterisc-fma-failure-modes-and-recovery-path-analysis)
+  - [Introduction](#introduction)
+  - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
+    - [Kona and Asterisc Hot Path Failure](#kona-and-asterisc-hot-path-failure)
+    - [Contract Upgrades](#contract-upgrades)
+    - [Divergent Kona Derivation Pipeline](#divergent-kona-derivation-pipeline)
+    - [Kona Execution Diverges from op-program](#kona-execution-diverges-from-op-program)
+    - [Breaking Backwards Compatibility for the op-challenger](#breaking-backwards-compatibility-for-the-op-challenger)
+    - [Divergence between RISCV.sol and Asterisc](#divergence-between-riscvsol-and-asterisc)
+    - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
+  - [Audit Requirements](#audit-requirements)
+  - [Appendix](#appendix)
+    - [Appendix A: op-challenger](#appendix-a-op-challenger)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
