@@ -104,7 +104,9 @@ being set as the L2 `ProxyAdmin`.
 Since the the L1 and L2 `ProxyAdmin` contracts are intended to have the same owner,
 an additional improvement (which may be excluded to limit scope creep), would be to remove the
 `Ownable` dependency on the L1 `ProxyAdmin` contract, and instead have it read the
-`SuperchainConfig.upgrader()` role to authorize upgrades.
+`SuperchainConfig.upgrader()` role to authorize upgrades. Regardless, in order to
+preserve the existing auth model we MUST ensure that the `upgrader` is the same account as the
+current L1 ProxyAdmin owner.
 
 The `data` and `gasLimit` are allowed to be specified since we don't fully know what sorts of calls we may have to do.
 We may only need to do simple `upgradeTo` calls, but we may also need to do `upgradeToAndCall`. To support the
