@@ -18,7 +18,7 @@
 |--------|--------------|
 | Author | Andreas Bigger |
 | Created at | 2024-10-17 |
-| Initial Reviewers | Matt Solomon |
+| Initial Reviewers | Matt Solomon, Ethnical |
 | Need Approval From | Ben Clabby, Mark Tyneway |
 | Status | Draft |
 
