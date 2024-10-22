@@ -256,8 +256,8 @@ the deposit transactions.
 There is a concern around the max deposit gas limit being too small so that the `SystemConfig` cannot
 deposit all of these values, we should have logic that reverts if the deposit gas limit is too small
 in the `setResourceConfig()` function's [sanity checks](https://github.com/ethereum-optimism/optimism/blob/feat/holocene-contracts/packages/contracts-bedrock/src/L1/SystemConfig.sol#L538-L556). Since the `ResourceConfig` can be modified during
-`initialize`, its not that big of a deal and chain operators will see that they need to increase that
-value.
+`initialize`, it should be sufficient to include testing to identify when the total cost of
+`setConfig()` calls will exceed the resource limit in a single block.
 
 A related concern is that the `useGas()`
 [function](https://github.com/ethereum-optimism/optimism/blob/f99424ded3917ddc0c4ef14355d61e50a38d4d0d/packages/contracts-bedrock/src/L1/ResourceMetering.sol#L156)
