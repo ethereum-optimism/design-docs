@@ -94,29 +94,6 @@ L2 safe chain halt
 
 We would need to get the batcher to resubmit the transaction sent out of order. No governance or hardfork needed to recover. A simple batcher restart would cause the batcher to re-batch the unsafe chain, which should lead to recovery. Moreover, we could also temporarily operate the batcher with reduced tx sending concurrency, which should avoid out of order txs.
 
-### Derivation Deadlock (either specification or op-node bug)
-
-#### Description
-
-It is possible that either i) the Holocene Derivation Specification or ii) the consensus client implementation has overlooked a corner case such that derivation simply halts when that corner case arises.
-
-#### Risk Assessment
-
-**high severity** / medium likelihood
-
-#### Mitigations
-
-Multi client testing should help surface any consensus client bugs, possibly including fuzzing of some description.
-We should backport as much insight as possible from the implementation (which is code) to the specs (which is just words). Here's an example of doing just that [holocene: fix frame queue specs of derivation](https://github.com/ethereum-optimism/specs/pull/386).
-
-#### Detection
-
-L2 safe chain halt
-
-#### Recovery Path(s)
-
-We would need to fix the the implementation via a hardfork. As a hotfix, we would probably also make an emergency release which migrates back to the old DP at the block where derivation is stuck. We might already implement something like this as a contingency, e.g. adding a holocene_deactivation_time that would then move back to old derivation if this time is set. We could then instruct node operators to set this flag to some value, providing a quick recovery path.
-
 ## Configurable EIP-1559 Parameters via SystemConfig
 
 The Holocene upgrade introduces the ability to update the EIP-1559 ELASTICITY_MULTIPLIER and BASE_FEE_MAX_CHANGE_DENOMINATOR parameters through a SystemConfig call. Previously, these parameters were fixed at 6 and 250 respectively as of the Canyon upgrade. Allowing these parameters to be configurable gives the chain operator more flexibility in adjusting important chain properties such as the gas target, and how fast base fee adjust in response to demand changes.
