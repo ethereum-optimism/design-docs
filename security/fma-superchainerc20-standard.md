@@ -1,3 +1,18 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [**SuperchainERC20 standard-only FMA (Failure Modes and Recovery Path Analysis)**](#superchainerc20-standard-only-fma-failure-modes-and-recovery-path-analysis)
+- [Introduction](#introduction)
+- [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
+  - [Unauthorized Access to `__crosschainMint` & `__crosschainBurn` Functions](#unauthorized-access-to-__crosschainmint--__crosschainburn-functions)
+  - [Different Token Addresses Across Chains](#different-token-addresses-across-chains)
+- [Action Items](#action-items)
+- [Audit Requirements](#audit-requirements)
+- [Additional Notes](#additional-notes)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## **SuperchainERC20 standard-only FMA (Failure Modes and Recovery Path Analysis)**
 
 | Author | Ng, Joxes |
@@ -20,9 +35,9 @@ It does not intend to cover related contracts such as `SuperchainTokenBridge` or
 
 ## Failure Modes and Recovery Paths
 
-### Unauthorized Access to `__crosschainMint` & `__crosschainBurn` Functions
+### Unauthorized Access to `crosschainMint` & `crosschainBurn` Functions
 
-- **Description:** The `onlySuperchainTokenBridge` modifier only allows `__crosschainMint` and `__crosschainBurn` to be callable by the `SuperchainTokenBridge`. If the bridge address is badly defined or the modifier bypassed, an entity could mint and burn tokens.
+- **Description:** The `onlySuperchainTokenBridge` modifier only allows `crosschainMint` and `crosschainBurn` to be callable by the `SuperchainTokenBridge`. If the bridge address is badly defined or the modifier bypassed, an entity could mint and burn tokens.
 - **Risk Assessment**: Medium.
     - Potential impact: High. All tokens based on this implementation could be potentially at risk.
     - Likelihood: Very Low. `Predeploys.SUPERCHAIN_TOKEN_BRIDGE` are defined via protocol upgrades. The modifiers are sufficiently simple and battle-tested to give confidence in the implementation.

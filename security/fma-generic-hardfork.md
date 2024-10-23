@@ -4,8 +4,8 @@
 
 - [Generic items we need to take into account for any hardfork:](#generic-items-we-need-to-take-into-account-for-any-hardfork)
   - [Chain Halt at Activation](#chain-halt-at-activation)
-  - [Incomplete Activation](#incomplete-activation)
-  - [Hard fork Failure to Activate](#hard-fork-failure-to-activate)
+  - [Activation Failure without chain halt: L1 transactions](#activation-failure-without-chain-halt-l1-transactions)
+  - [Activation Failure without chain halt: Node software](#activation-failure-without-chain-halt-node-software)
   - [Invalid `DisputeGameFactory.setImplementation` execution](#invalid-disputegamefactorysetimplementation-execution)
 - [Chain split (across clients)](#chain-split-across-clients)
 
@@ -15,49 +15,50 @@
 
 #### Chain Halt at Activation
 
-- **Description:** Most hard forks have risk of bugs that cause chain halts at activation time, and this hard fork is no exception.
+- **Description:** Hard forks carry the risk of bugs that cause chain halts at activation time. This could be due to L1 contract changes not applying properly, and/or a configuration or implementation bug in the node software or protocol specification.
 
-- **Risk Assessment:** Medium severity as no funds are at risk, though it is a full liveness failure that would be messy to recover from and require releasing and distributing an updated configuration and/or release. Likelihood is low, especially as we are using the mechanics for dynamically upgrading L2 contracts established in the Ecotone hardfork: namely, inserting appropriate deposit transactions in the activation block.
+- **Risk Assessment:** Medium severity as no funds are at risk, though it is a full liveness failure that would be messy to recover from and require releasing and distributing an updated configuration and/or release. Likelihood is low, especially if we use the mechanics for dynamically upgrading L2 contracts established in the Ecotone hardfork: namely, inserting appropriate deposit transactions in the activation block.
 
-- **Mitigations:** We have implemented extensive unit and end-to-end testing of the activation flow.  We will be testing the activation as well on our devnets and testnets.
+- **Mitigations:** 
 
-- **Detection:** Detection is straightforward as the chain will stop producing blocks.
+- [ ] ACTION ITEM (BLOCKING): We have implemented extensive unit and end-to-end testing of the activation flow.
+- [ ] ACTION ITEM (BLOCKING): We will be testing the activation on our devnets and testnets.
 
-- **Recovery Path(s)**: Would not require a vote or hardfork, but we’d likely have to coordinate a chain config update that pushed back the date of the upgrade, and allowed node operators to rollback any bad blocks.
+- **Detection:** Detection is straightforward as the chain will stop producing blocks. On OP Mainnet, P1 alarms are triggered and on-call engineers are paged if the unsafe head does not increase for 1 minute or if the safe head does not increase for 15 minutes. Moreover, the chain will be closely monitored during activation.
 
-    - We should also prepare datadir backups close before the upgrade, so we can use these in an emergency to rollback.
+- **Recovery Path(s)**: Would not require a vote or hardfork, but we’d likely have to coordinate a chain config update that pushed back the date of the upgrade, and allowed node operators to rollback any bad blocks. Estimated sequencer downtime is 30 min in a worst-case scenario where we have to reset the chain back to a block before the activation and disable the hardfork activation. Additional steps would be required from infra providers to get back to the healthy chain. They would  need to restart their op-node and op-geth with activation override command line flags/env var.
 
-    - Estimated sequencer downtime is 30 min in a worst-case scenario where we have to reset the chain back to a block before the activation and disable the hardfork activation. Additional steps would be required from infra providers to get back to the healthy chain. They would either need to restart their op-node and op-geth with activation override command line flags/env var, or their images to an emergency release with activation disabled.
+    - [ ] ACTION ITEM (BLOCKING): We have prepared datadir backups close before the upgrade, so we can use these in an emergency to rollback.
 
-#### Incomplete Activation
+    - [ ] ACTION ITEM (BLOCKING): We have updated the runbook for recovering from a hardfork activation chain halt (including rolling back contract changes), if necessary.
 
-- **Description:** The upgrade may take place but some steps may fail leaving the upgrade in a partial state. For example the contracts could get upgraded but changes to the consensus or execution layer were not applied, or the rest of the functionality upgrades but the contract deployments fail.
+#### Activation Failure without chain halt: L1 transactions
 
-- **Risk Assessment:** Medium severity — funds should not be at risk, but chain could halt and recovery unfortunately could be very messy.
+- **Description:** Any contract upgrades which were scheduled may fail.
 
-- **Mitigations:** End to end testing, and making sure the upgrade works properly and at the right time on our devnets and testnet. The end to end testing consists of all the tests in the `op-e2e` folder that were added as part of the implementation PRs.
+- **Risk Assessment:** Low severity.
 
-- **Detection:** Requires we check: (1) updated contracts contain the new expected bytecode, (2) transactions submitted after the hardfork are behaving as expected and (3) invoking the new contracts gives the proper results.
+- **Mitigations:** Same as above.
 
-- **Recovery Path(s)**: Recovery would likely involve a new node release and/or tools allowing for appropriate rollback depending on the precise nature of the failures.
+- **Detection:** We can read the state of L1 after the activation time and compare it with expectations
 
-    - There are two approaches, depending on failure
+- [ ] ACTION ITEM (non-BLOCKING): The superchain-ops task to upgrade any contract should check if the semantic versions and bytecodes after the upgrade are as expected. 
 
-        - if it’s minor, we just live with it and fix it in an upcoming upgrade → no downtime
+- **Recovery Path(s)**:  
+Since there is no chain halt, we can just live with it and fix it in an upcoming upgrade.
 
-        - if it’s critical, we can initiate the same rollback as described above → same downtime as above
+#### Activation Failure without chain halt: Node software
 
-#### Hard fork Failure to Activate
+- **Description:** The upgrade may be misconfigured in the node software (e.g. superchain-registy dependency was not updated) and fail to take place.
 
-- **Description:** The upgrade may be misconfigured and fail to take place.
+- **Risk Assessment:** Low severity if there were no L1 contract changes or if there were L1 contract changes but they also failed to apply, since the chain would continue on as if the upgrade never happened. 
 
-- **Risk Assessment:** Low severity — the chain would continue on as if the upgrade never happened. We could recover easily by rescheduling the upgrade.
+- **Mitigations:** As above
 
-- **Mitigations:** End to end testing, and making sure the upgrade works properly and at the right time on our devnets and testnest. The end to end testing consists of all the tests in the `op-e2e` folder that were added as part of the implementation PRs.
+- **Detection:**  Node software startup logs should indicate whether the hardfork has activated properly.
 
-- **Detection:** We can easily see if the contracts were upgraded as expected by reading the semantic versions. Node software startup logs should indicate whether the hardfork has activated properly.
+- **Recovery Path(s)**: Reschedule the upgrade, releasing a new binary (without immediate urgency). 
 
-- **Recovery Path(s)**: Reschedule upgrade, possibly releasing new binary though without immediate urgency.
 
 #### Invalid `DisputeGameFactory.setImplementation` execution
 
@@ -73,13 +74,13 @@
 
 - **Detection:** An un-executed safe transaction is easily detectable. In the case of a misconfigured game implementation, the op-dispute-mon will alert proofs-squad and security on any attempt to exploit this misconfiguration.
 
-- **Recovery Path(s)**: Reschedule upgrade, possibly releasing new binary though without immediate urgency.
+- **Recovery Path(s)**: Reschedule the upgrade, releasing a new binary (without immediate urgency).
 
 ### Chain split (across clients)
 
 - **Description:** Differences in implementation across clients (e.g. `op-geth` versus `op-reth`) cause a chain split due to different effective consensus rules.
 - **Risk Assessment:** medium severity / medium likelihood
 - **Mitigations:** 
-Multi-client testing
+- [ ] ACTION ITEM (BLOCKING): We have implemented extensive cross-client / differential testing of the new functionality.
 - **Detection:** Replicas of one kind of client will diverge from the sequencer
-- **Recovery Path(s)**: Most likely we would have the op-node/op-geth chain be the canonical one as this is the reference implementation.Other clients would need to be patched to resolve any discrepancies.
+- **Recovery Path(s)**: Most likely we would have the op-node/op-geth chain be the canonical one as this is the reference implementation. Other clients would need to be patched to resolve any discrepancies.
