@@ -22,11 +22,12 @@
 - **Mitigations:** 
 
 - [ ] ACTION ITEM (BLOCKING): We have implemented extensive unit and end-to-end testing of the activation flow.
+- [ ] ACTION ITEM (BLOCKING): We have implemented multi-client testing to reduce the chance of bugs
 - [ ] ACTION ITEM (BLOCKING): We will be testing the activation on our devnets and testnets.
 
 - **Detection:** Detection is straightforward as the chain will stop producing blocks. On OP Mainnet, P1 alarms are triggered and on-call engineers are paged if the unsafe head does not increase for 1 minute or if the safe head does not increase for 15 minutes. Moreover, the chain will be closely monitored during activation.
 
-- **Recovery Path(s)**: Would not require a vote or hardfork, but we’d likely have to coordinate a chain config update that pushed back the date of the upgrade, and allowed node operators to rollback any bad blocks. Estimated sequencer downtime is 30 min in a worst-case scenario where we have to reset the chain back to a block before the activation and disable the hardfork activation. Additional steps would be required from infra providers to get back to the healthy chain. They would  need to restart their op-node and op-geth with activation override command line flags/env var.
+- **Recovery Path(s)**: Would not require a vote or hardfork, but we’d likely have to coordinate a chain config update that pushed back the date of the upgrade, and allowed node operators to rollback any bad blocks. Estimated sequencer downtime is 30 min in a worst-case scenario where we have to reset the chain back to a block before the activation and disable the hardfork activation. Additional steps would be required from infra providers to get back to the healthy chain. They would need to restart their op-node and op-geth with activation override command line flags/env var.
 
     - [ ] ACTION ITEM (BLOCKING): We have prepared datadir backups close before the upgrade, so we can use these in an emergency to rollback.
 
