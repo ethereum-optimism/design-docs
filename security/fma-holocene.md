@@ -78,15 +78,13 @@ This will lead to the consensus client hitting error conditions when it loads th
 low severity / low likelihood
 
 #### Mitigations
+We have identified the following opportunities for the current batcher implementation to violate the Holocene rules:
+- Blocks could be prepended to the batcher's internal queue when a channel times out on chain. The blocks which come after may have already been dequeued. E.g `[0,1,2,3,4,5] + dequeue([0,1]) => [2,3,4,5] + dequeue([2,3]) => [4,5] + timeout+prepend([0,1]) = [0,1,4,5]` which has an invalid order.
+- A channel could be removed from the queue out of order, if the transaction receipts are received out of order. `[A,B,C] + txConfirmed(B) = [A,C]` which has an invalid order.
+- A frame could be enqueued out of order when a tx fails. Again if the receipt arrives out or order `[a1,a2] => nextFrame() => [a2] + nextFrame() => [] + txFailed(a2) => [a2] + txFailed+enqueue(a1) => [a2,a1]` which has an invalid order.
 
-The batcher implementation could:
-
-- leverage nonce management to avoid sending transactions out of order in the first place (see [spec](https://specs.optimism.io/protocol/holocene/derivation.html?highlight=holocene#batcher-hardening))
-- be hardened so detect the chain halt and resubmit the frames which were dropped (see [spec](https://specs.optimism.io/protocol/holocene/derivation.html?highlight=holocene#batcher-hardening)) either:
-  - as a part of normal operation
-  - as a part of its startup behavior (i.e. to be triggered by a restart)
-  - as a part of an emergency mode triggered by an admin API, this could allow for manual intervention
-- continually check for contiguity in its internal state, and panic or reset if this is violated (possibly then triggering some recovery behavior)
+- [ ] ACTION ITEM: we will re-architect the batcher to eliminate the cases above
+- [ ] ACTION ITEM: we will add functionality to the batcher to periodically detect when the safe chain should have progressed but didn't, and to recover from that
 
 #### Detection
 
