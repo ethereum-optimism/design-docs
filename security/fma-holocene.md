@@ -168,4 +168,7 @@ This may require a mini audit due to updates to the MIPS contract.
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
-- [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
+- [x] (BLOCKING): Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
+- [ ] (BLOCKING): Action tests will be added which are run on op-node and Kona https://github.com/ethereum-optimism/optimism/issues/12449
+- [ ] (BLOCKING): The changes will be deployed to a devnet with both geth and reth running
+
