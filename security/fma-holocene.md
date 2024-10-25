@@ -83,8 +83,7 @@ We have identified the following opportunities for the current batcher implement
 - A channel could be removed from the queue out of order, if the transaction receipts are received out of order. `[A,B,C] + txConfirmed(B) = [A,C]` which has an invalid order.
 - A frame could be enqueued out of order when a tx fails. Again if the receipt arrives out or order `[a1,a2] => nextFrame() => [a2] + nextFrame() => [] + txFailed(a2) => [a2] + txFailed+enqueue(a1) => [a2,a1]` which has an invalid order.
 
-- [ ] ACTION ITEM: we will re-architect the batcher to eliminate the cases above
-- [ ] ACTION ITEM: we will add functionality to the batcher to periodically detect when the safe chain should have progressed but didn't, and to recover from that
+Action items described below will remove these possibilities.
 
 #### Detection
 
@@ -108,7 +107,7 @@ medium severity / low likelihood
 
 ### Mitigations
 
-The upgrade is designed to function even if the SystemConfig contract does not get updated. In this case, the system falls back to the Canyon hardcoded parameters, and the system will perform base fee udpates exactly as prior to the upgrade. However, it is critical that the contracts upgrade does not happen _before_ the hardfork activates, because this would cause a chain halt due to op-node not recognizing the new config update type. 
+The upgrade is designed to function even if the SystemConfig contract does not get updated. In this case, the system falls back to the Canyon hardcoded parameters, and the system will perform base fee updates exactly as prior to the upgrade. However, it is critical that the contracts upgrade does not happen _before_ the hardfork activates, because this would cause a chain halt due to op-node not recognizing the new config update type. 
 
 We are performing multi-client testing (op-geth and op-reth) and will run a multi-client devnet, so bugs in either will be quickly detected by consensus disagreements among them.
 
@@ -132,7 +131,6 @@ medium severity / low likelihood
 
 Furthermore, any game that resolves incorrectly is subject to the 3.5-day finality delay. This gives the Security Council ample time to detect and respond to invalid games (including blacklisting games and falling back to to permissioned games).
 
-Action item: Update op-sepolia vm-runner to use the new FPVM. The vm-runner runs the op-program in the MIPS FPVM using inputs sampled from a live chain. Having the vm-runner run the op-program on op-sepolia for a couple days will increase confidence that the network will continue to be fault provable.
 
 #### Detection
 
@@ -171,4 +169,7 @@ Below is what needs to be done before launch to reduce the chances of the above 
 - [x] (BLOCKING): Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
 - [ ] (BLOCKING): Action tests will be added which are run on op-node and Kona https://github.com/ethereum-optimism/optimism/issues/12449
 - [ ] (BLOCKING): The changes will be deployed to a devnet with both geth and reth running
-
+- [ ] (BLOCKING): we will re-architect the batcher to eliminate the cases above
+- [ ] (BLOCKING): we will add functionality to the batcher to periodically detect when the safe chain should have progressed but didn't, and to recover from that
+- [ ] (BLOCKING): the script(s) or tooling for the `SystemConfig` upgrade contract will exit with an error if the activation time has not yet passed.
+- [ ] (non-BLOCKING): We will update the op-sepolia vm-runner to use the new FPVM. The vm-runner runs the op-program in the MIPS FPVM using inputs sampled from a live chain. Having the vm-runner run the op-program on op-sepolia for a couple days will increase confidence that the network will continue to be fault provable.
