@@ -5,7 +5,6 @@
   - [Introduction](#introduction)
   - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
     - [Kona and Asterisc Hot Path Failure](#kona-and-asterisc-hot-path-failure)
-    - [Contract Upgrades](#contract-upgrades)
     - [Divergent Kona Derivation Pipeline](#divergent-kona-derivation-pipeline)
     - [Kona Execution Diverges from op-program](#kona-execution-diverges-from-op-program)
     - [Breaking Backwards Compatibility for the op-challenger](#breaking-backwards-compatibility-for-the-op-challenger)
@@ -25,7 +24,7 @@
 | Created at | 2024-10-17 |
 | Initial Reviewers | Matt Solomon, Ethnical |
 | Need Approval From | Ben Clabby, Mark Tyneway |
-| Status | Draft |
+| Status | In Review |
 
 
 ## Introduction
@@ -67,9 +66,9 @@ Below are references for this project:
   Low likelihood, high impact.
   Low likelihood since `op-program` + `cannon` are already running in production and have meaningful improvements on the way that will increase resilience.
   If `kona` + `asterisc` fails while in the hotpath, the impact is high since the permissioned fallback will need to be triggered.
-  This engages the security council, requires comms, and causes the chain to fallback to a weaker security model. 
+  This engages the security council, requires comms, and causes the chain to fallback to a weaker security model.
 
-- **Mitigations:** 
+- **Mitigations:**
   Offline testing with the VM Runner for both `kona` + `asterisc` as well as `op-program` + `cannon`.
   The VM Runner also fully tests the integration of the `op-challenger` with these dispute games ([covered in a later section](#-Breaking-Backwards-Compatibility-for-the-op-challenger)).
   Action tests ensuring both proof systems follow spec.
@@ -82,41 +81,6 @@ Below are references for this project:
 
 - **Recovery Path(s):**
   Likely the only viable recovery path would be the permissioned fallback unless the `op-program` + `cannon` are fixed and able to be placed back into the hotpath.
-
-
-### Contract Upgrades
-
-- **Description:**
-  The deployment of a new `FaultDisputeGame` instance, `RISCV` VM, and `DelayedWETH` is needed.
-  Two upgrade actions are performed.
-  1. Initialize anchor state for new game type in `AnchorStateRegistry`.
-  2. Set game type of `kona` + `asterisc` to the FDG deployed before the upgrade.
-  The deployment failing is recoverable by simply re-deploying.
-  The upgrade touches components in the hot path so it is a failure mode covered here.
-
-- **Risk Assessment:**
-  Low likelihood, medium impact.
-  The contract upgrades are tested and very simple.
-  Contracts in the hot path are audited and have been in production so are unlikely to have critical bugs.
-  Medium impact since an upgrade can impact code placed in the hot path.
-
-- **Mitigations:** 
-  Mitigations are done in the `superchain-ops` repository to validate upgrades prior to their execution.
-  These mitigations include:
-  - Simulate the job before execution.
-  - Run in tenderly
-    - Compare post-state diff with expectations (all signers do this)
-    - Run state diff checks, ensuring the upgrade went smoothly with static assertions.
-  - Run in superchain-ops CI until the upgrade to ensure it’s still working until the day of the upgrade.
-
-- **Detection:**
-  An invalid upgrade causing an issue in the hot path would be detected by the `op-dispute-mon`.
-  If a misconfiguration for `kona` + `asterisc` in the cold path is done, the `op-dispute-mon`
-  and `op-challenger` would detect an issue if the `kona` + `asterisc` game is placed in the hot path.
-
-- **Recovery Path(s):**
-  If an invalid upgrade somehow bricks both the `op-program` + `cannon` dispute game and the `kona` + `asterisc`
-  dispute game, the recovery path would be to activate the permissioned fallback.
 
 
 ### Divergent Kona Derivation Pipeline
@@ -165,12 +129,12 @@ Below are references for this project:
 - **Detection:**
   Running `op-reth` so it's synced and following tip would provide a way to watch for chain splits.
   A chain split occuring means `kona`'s execution (the same as `op-reth`) diverges from the `op-program`.
-  
+
 - **Recovery Path(s):**
   If `kona` + `asterisc` is in the coldpath, it would need to be fixed and re-deployed.
   If `op-program` + `cannon` cannot be placed in the hotpath, and `kona` + `asterisc` fails, the permissioned fallback must be engaged.
   [The "Kona and Asterisc Hot Path Failure"](#-Kona-and-Asterisc-Hot-Path-Failure) above covers the failure mode for `kona` + `asterisc` when placed in the hot path.
-  
+
 
 ### Breaking Backwards Compatibility for the op-challenger
 
@@ -230,6 +194,7 @@ Below are references for this project:
 ### Generic items we need to take into account:
 
 - [X] [./failure-modes-analysis.md](./failure-modes-analysis.md).
+- [X] [./fma-generic-contracts.md](./fma-generic-contracts.md)
 
 
 ## Audit Requirements
