@@ -31,7 +31,7 @@ _Italics are used to indicate things that need to be replaced._
 > - Maintain the “Status” property accordingly. An FMA document can have the following statuses:
 >   - **Draft 📝:** Doc is created but not yet ready for review.
 >   - **In Review 🔎:** Security is reviewing, and Engineering is iterating on the design. A checklist of action items will be created during this phase.
->   - **Implementing Actions 🛫:** Security has signed off on the content of the document, including the resulting action items. Engineering is responsible for implementing the the action items, and updating the checklist.
+>   - **Implementing Actions 🛫:** Security has signed off on the content of the document, including the resulting action items. Engineering is responsible for implementing the action items, and updating the checklist.
 >   - **Final 👍:** Security will transition the status of the document to Final once all action items are completed.
 
 > [!TIP]
