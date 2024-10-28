@@ -36,10 +36,10 @@ paths for the failure modes outlined below.
   Proxy initializations are verified through simulations prior to execution.
 
 - **Detection:**
-  Call initialize(..args) or by simulating the effort.
+  Call `initialize(..args)` or by simulating the effort.
 
 - **Recovery Path(s):**
-  Perform an upgrade to perform the initialization.
+  Call `initialize`, or upgrade the implementation to perform the initialization.
 
 
 #### New Implementation Overwrites (wrong) Slots
@@ -59,7 +59,7 @@ paths for the failure modes outlined below.
   Alternatively, we could detect it from monitoring or user reports that something seems off/incorrect.
 
 - **Recovery Path(s):**
-  Deploy new implementation with a fixed storage layout and write new values to storage.
+  Deploy new implementation with a corrected storage layout and write correct values to storage.
   Requires an upgrade.
 
 
@@ -74,6 +74,8 @@ paths for the failure modes outlined below.
 
 - **Mitigations:**
   Validate initialized values through extensive unit testing.
+  - See: Instances of `test_initialize_succeeds()` such as the one [here](https://github.com/ethereum-optimism/optimism/blob/e6ef3a900c42c8722e72c2e2314027f85d12ced5/packages/contracts-bedrock/test/L1/L1CrossDomainMessenger.t.sol#L37-L44).
+  - See: Deploy script checks incorporated in [ChainAssertions](https://github.com/ethereum-optimism/optimism/commit/e6ef3a900c42c8722e72c2e2314027f85d12ced5#diff-0f78978618d5f98971fee611fc5476e58643902051d969e0616d5d91a05cff9c) when `_isProxy` = `true`.
   Simulations prior to performing the upgrade, verifying the initialized values.
 
 - **Detection:**
@@ -117,11 +119,13 @@ paths for the failure modes outlined below.
 
 - **Mitigations:**
   Validate through extensive unit testing.
+  - See: [Initializable.t.sol](https://github.com/ethereum-optimism/optimism/blob/e6ef3a900c42c8722e72c2e2314027f85d12ced5/packages/contracts-bedrock/test/vendor/Initializable.t.sol).
   Fuzz testing with random values.
   Invariant testing that authentication properties hold.
 
 - **Detection:**
   Simulate an arbitrary reinitialization.
+  Alternatively, we could detect it from monitoring or user reports that something seems off/incorrect.
 
 - **Recovery Path(s):**
   Perform an upgrade that prevents the reinitialization.
@@ -133,15 +137,14 @@ paths for the failure modes outlined below.
   Functionality expected to hold across an upgrade or update breaks compatibility with prior systems.
 
 - **Risk Assessment:**
-  Low severity since forward-facing systems replace backwards systems.
-  Low likelihood since ABI changes require intentional changes.
+  Low severity since liveliness is not impacted.
+  Low likelihood since ABI changes are validated.
 
 - **Mitigations:**
   Validate ABI diffs.
 
 - **Detection:**
-  Breaking tools.
-  User reports.
+  Tooling breaking or partners/integrators telling us something broke.
 
 - **Recovery Path(s):**
   Update integration paths for backwards-compatibility.
@@ -151,4 +154,4 @@ paths for the failure modes outlined below.
 
 #### Invalid `DisputeGameFactory.setImplementation` execution
 
-- [./fma-generic-hardfork.md](./fma-generic-hardfork.md#Invalid-`DisputGameFactory.setImplementation`-execution)
+This item is detailed in [./fma-generic-hardfork.md](./fma-generic-hardfork.md#invalid-disputegamefactorysetimplementation-execution)
