@@ -13,6 +13,13 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
+### Reference Notes
+
+Mitigations and Recovery paths for referenced generic items below should be implemented
+on a per-FMA basis. That is, since upgrades vary in how the below failure modes apply,
+FMAs that reference this document should outline the specific mitigations and recovery
+paths for the failure modes outlined below.
+
 ### Generic items we need to take into account for any smart contract upgrade:
 
 #### Proxy Initialization Failure
