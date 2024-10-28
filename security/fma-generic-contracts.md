@@ -2,6 +2,7 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
+- [Reference Notes](#reference-notes)
 - [Generic items we need to take into account for any smart contract upgrade:](#generic-items-we-need-to-take-into-account-for-any-smart-contract-upgrade)
   - [Proxy Initialization Failure](#proxy-initialization-failure)
   - [New Implementation Overwrites (wrong) Slots](#new-implementation-overwrites-wrong-slots)
