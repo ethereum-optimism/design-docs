@@ -54,6 +54,7 @@ paths for the failure modes outlined below.
 
 - **Mitigations:**
   Storage layouts are validated to only extend and not rewrite the slots of the previous version.
+  Use storage layout snapshots to compare the previous release storage slots with the current release for the given upgrade.
 
 - **Detection:**
   If this error were missed, it could be detected by looking at the storage values in the proxy or recognizing an inconsistency in variables stored in overwritten slots.
