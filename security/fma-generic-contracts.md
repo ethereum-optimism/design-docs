@@ -119,10 +119,8 @@ paths for the failure modes outlined below.
   Low likelihood since authentication is a critical, tested and validated property of the system.
 
 - **Mitigations:**
-  Validate through extensive unit testing.
+  Validate through extensive testing.
   - See: [Initializable.t.sol](https://github.com/ethereum-optimism/optimism/blob/e6ef3a900c42c8722e72c2e2314027f85d12ced5/packages/contracts-bedrock/test/vendor/Initializable.t.sol).
-  Fuzz testing with random values.
-  Invariant testing that authentication properties hold.
 
 - **Detection:**
   Simulate an arbitrary reinitialization.
