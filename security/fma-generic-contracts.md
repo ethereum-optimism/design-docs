@@ -139,7 +139,7 @@ paths for the failure modes outlined below.
 
 - **Risk Assessment:**
   Low severity since liveliness is not impacted.
-  Low likelihood since ABI changes are validated.
+  Low likelihood since ABI changes are validated as part of our snapshot process during PR reviews.
 
 - **Mitigations:**
   Validate ABI diffs.
