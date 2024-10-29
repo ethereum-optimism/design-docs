@@ -138,7 +138,7 @@ paths for the failure modes outlined below.
   Functionality expected to hold across an upgrade or update breaks compatibility with prior systems.
 
 - **Risk Assessment:**
-  Low severity since liveliness is not impacted.
+  Low severity since only liveness is impacted.
   Low likelihood since ABI changes are validated as part of our snapshot process during PR reviews.
 
 - **Mitigations:**
