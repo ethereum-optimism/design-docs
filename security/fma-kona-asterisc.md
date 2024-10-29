@@ -193,6 +193,7 @@ Below are references for this project:
 
 ### Generic items we need to take into account:
 
+- [X] [`DisputeGameFactory.setImplementation`](./fma-generic-hardfork.md#invalid-disputegamefactorysetimplementation-execution) (in [./fma-generic-hardfork.md](./fma-generic-hardfork.md))
 - [X] [./failure-modes-analysis.md](./failure-modes-analysis.md).
 - [X] [./fma-generic-contracts.md](./fma-generic-contracts.md)
 
