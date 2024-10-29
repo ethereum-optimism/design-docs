@@ -37,3 +37,5 @@ would now become
         revert MIPS2_EmptyRightThreadStackError();
     }
 ```
+
+Additionally, all errors should live inside of the files they are used. This would mean the removal of `*Errors.sol` files, removing the need for files like `L1BlockErrors.sol`.
