@@ -10,7 +10,6 @@
   - [Can’t Upgrade Implementation](#cant-upgrade-implementation)
   - [Able to Reinitialize Implementation](#able-to-reinitialize-implementation)
   - [Backwards-incompatible ABIs](#backwards-incompatible-abis)
-  - [Invalid `DisputeGameFactory.setImplementation` execution](#invalid-disputegamefactorysetimplementation-execution)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -150,8 +149,3 @@ paths for the failure modes outlined below.
   Update integration paths for backwards-compatibility.
   Some integrations (e.g. immutable contracts) may not be fixable.
   Perform an upgrade to fix breaking change.
-
-
-#### Invalid `DisputeGameFactory.setImplementation` execution
-
-This item is detailed in [./fma-generic-hardfork.md](./fma-generic-hardfork.md#invalid-disputegamefactorysetimplementation-execution)
