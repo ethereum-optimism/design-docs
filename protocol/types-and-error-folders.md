@@ -14,7 +14,7 @@ The proposed solution is to move these error and types files to dedicated folder
 
 ## Alternatives Considered
 
-No alternatives considered.
+An alternative is to make errors follow [#143](https://github.com/ethereum-optimism/design-docs/pull/143) which proposes an error naming convention of `ContractName_ErrorName(..)`. This would mean that errors would be unique for each contracts (hence defined within them) and so we would not need dedicated folders for them. However this does not address types and so we might still need dedicated folders for them.
 
 ## Risks, Uncertainties and Considerations
 
