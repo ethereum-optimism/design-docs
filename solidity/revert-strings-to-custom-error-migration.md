@@ -4,7 +4,7 @@ The purpose of this document is to standardize all error messages/handling for t
 
 # Summary
 
-Going forward, all error messages should use the prefix of the `contract` name and the suffix of `*Error`. Additionally, all errors should be returned via `revert` rather than `require`. This is both for visual clarity and due to the efficiency concerns around `require` in the case of errors with arguments.
+Going forward, all error messages should use the prefix of the `contract_` name and the suffix of `*Error`. Additionally, all errors should be returned via `revert` rather than `require`. This is both for visual clarity and due to the efficiency concerns around `require` in the case of errors with arguments.
 
 # Problem Statement + Context
 
@@ -22,7 +22,7 @@ As of Solidity 0.8.24, `require` supports using custom errors, however, due to t
 
 # Proposed Solution - Revert and Custom Errors
 
-All errors returned from Optimism Smart Contracts should use `revert` with custom errors for both efficiency and safety. In the case of scripts and tests which currently use `require` frequently, they should be instead replaced with `assertEq` or similar `assert*` where appropriate, including a string as a revert message. This will allow for semgrep rules to more easily enforce the no `require` constraint. Custom errors should also include the contract name as a prefix, and `Error` as a suffix for clarity and consistency.
+All errors returned from Optimism Smart Contracts should use `revert` with custom errors for both efficiency and safety. In the case of scripts and tests which currently use `require` frequently, they should be instead replaced with `assertEq` or similar `assert*` where appropriate, including a string as a revert message. This will allow for semgrep rules to more easily enforce the no `require` constraint. Custom errors should also include the contract name as a prefix, followed by an underscore, and `Error` as a suffix for clarity and consistency.
 
 For example, under this new policy, the following statement inside of MIPS2.sol
 
@@ -34,6 +34,6 @@ would now become
 
 ```solidity
     if (_state.rightThreadStack == EMPTY_THREAD_ROOT) {
-        revert MIPS2EmptyRightThreadStackError();
+        revert MIPS2_EmptyRightThreadStackError();
     }
 ```
