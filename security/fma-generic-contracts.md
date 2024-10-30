@@ -81,7 +81,7 @@ paths for the failure modes outlined below.
 
 - **Detection:**
   A simulation can show an unintended initialized proxy value.
-  Monitoring or user reports.
+  Monitoring or user reports, including Immunefi reports and other means of getting user feedback.
 
 - **Recovery Path(s):**
   Repair the upgrade path (if needed).
