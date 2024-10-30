@@ -121,6 +121,7 @@ paths for the failure modes outlined below.
 - **Mitigations:**
   Validate through extensive testing.
   - See: [Initializable.t.sol](https://github.com/ethereum-optimism/optimism/blob/e6ef3a900c42c8722e72c2e2314027f85d12ced5/packages/contracts-bedrock/test/vendor/Initializable.t.sol).
+  - See: [InitializableOZv5.t.sol](https://github.com/ethereum-optimism/optimism/blob/4b1c12ad4312fe6fe28d8297a26cccf053356704/packages/contracts-bedrock/test/vendor/InitializableOZv5.t.sol)
 
 - **Detection:**
   Simulate an arbitrary reinitialization.
