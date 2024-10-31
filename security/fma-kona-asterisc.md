@@ -197,6 +197,30 @@ Below are references for this project:
 - [X] [./failure-modes-analysis.md](./failure-modes-analysis.md).
 - [X] [./fma-generic-contracts.md](./fma-generic-contracts.md)
 
+#### FMA Generic Contract Mitigations and Recovery Path(s)
+
+Below outlines the mitigations and recovery paths for contracts specific to this FMA.
+
+##### Can't upgrade implementations
+
+[Link](./fma-generic-contracts.md#cant-upgrade-implementation) to failure mode in [fma-generic-contracts](./fma-generic-contracts.md)
+
+Mitigations specific for Stage 1.4: Kona + Asterisc
+- The Kona + Asterisc fault dispute game implementation can be overwritten through a new call to `DisputeGameFactory.setImplementation`.
+
+Recovery Path(s):
+- Perform an upgrade that sets the implementation of the Kona + Asterisc fault dispute game implementation to a new contract.
+
+##### Able to Reinitialize Implementation
+
+[Link](./fma-generic-contracts.md#able-to-reinitialize-implementation) to failure mode in [fma-generic-contracts](./fma-generic-contracts.md)
+
+Mitigations specific for Stage 1.4: Kona + Asterisc
+- The Kona + Asterisc fault dispute game implementation can be overwritten through a new call to `DisputeGameFactory.setImplementation`.
+
+Recovery Path(s):
+- Perform an upgrade that sets the implementation of the Kona + Asterisc fault dispute game implementation to a new contract.
+
 
 ## Audit Requirements
 
