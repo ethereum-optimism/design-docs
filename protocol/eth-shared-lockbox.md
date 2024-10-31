@@ -53,7 +53,7 @@ The core changes proposed are as follows:
 
 ### Managing `DependencySetManager`
 
-This contract serves as the single point for managing the dependency set of a cluster and is expected to be managed by an admin in the same manner as other L1 OP contracts (proxiable). This contract assumes the role of `dependencyManager` for every `SystemConfigInterop` contract involved. Being In the simple dependency the case, the `DependencySetManager` only stores a mapping (or array) of chains added, e.g. given a `chainId`.
+This contract serves as the single point for managing the dependency set of a cluster and is expected to be managed by an admin in the same manner as other L1 OP contracts (proxiable). This contract assumes the role of `dependencyManager` for every `SystemConfigInterop` contract involved. In the case of a simple dependency, the `DependencySetManager` only stores a mapping (or array) of chains added, e.g. given a `chainId`.
 
 Adding a new chain can be done as follows:
 
@@ -65,7 +65,7 @@ Adding a new chain can be done as follows:
     2. Updates the dependency graph (mapping or array).
     3. Emits an event for step (1).
 
-A code example for step (2) would look like as this:
+A code example for step (2) would look like this:
 
 ```solidity
 // Mapping from chainId to SystemConfigInterop address
