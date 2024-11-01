@@ -146,7 +146,7 @@ Below are references for this project:
   Medium impact since the off-chain `op-challenger` service can be updated with enough buffer time due to the large game time and nature of the chess clock.
 
 - **Mitigations:**
-  The `op-challenger` is architected in such a way as to isolate game types and moreso the inididual game players.
+  The `op-challenger` is architected in such a way as to isolate game types and more so the individual game players.
   To allow the challenger to scale and play many different game types at once, a list of game types to play is passed into the `op-challenger` as a CLI flag.
   When games are detected on-chain, the `op-challenger` will create a "game player" for this game type.
   Players are run in individual threads so a breaking `kona` + `asterisc` game player in the challenger will not cause a liveliness issue for the `op-challenger` to play other game types.
