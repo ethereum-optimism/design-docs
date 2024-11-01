@@ -92,7 +92,7 @@ Below are references for this project:
   Low likelihood, low impact.
   Low likelihood as the derivation pipeline is extensively unit tested, run in the VM Runner, and is action tested.
   Low impact since by default `kona` + `asterisc` are placed in the cold path.
-  [The "Kona and Asterisc Hot Path Failure"](#-Kona-and-Asterisc-Hot-Path-Failure) above covers the failure mode for `kona` + `asterisc` when placed in the hot path.
+  [The "Kona and Asterisc Hot Path Failure"](#Kona-and-Asterisc-Hot-Path-Failure) above covers the failure mode for `kona` + `asterisc` when placed in the hot path.
 
 - **Mitigations:**
   Action tests covering the derivation pipeline are run on every pull request in the [kona] repository.
