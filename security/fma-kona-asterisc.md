@@ -70,7 +70,7 @@ Below are references for this project:
 
 - **Mitigations:**
   Offline testing with the VM Runner for both `kona` + `asterisc` as well as `op-program` + `cannon`.
-  The VM Runner also fully tests the integration of the `op-challenger` with these dispute games ([covered in a later section](#-Breaking-Backwards-Compatibility-for-the-op-challenger)).
+  The VM Runner also fully tests the integration of the `op-challenger` with these dispute games ([covered in a later section](#Breaking-Backwards-Compatibility-for-the-op-challenger)).
   Action tests ensuring both proof systems follow spec.
 
 - **Detection:**
