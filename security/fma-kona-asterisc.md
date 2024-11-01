@@ -107,7 +107,7 @@ Below are references for this project:
 - **Recovery Path(s):**
   Fix the derivation pipeline divergence, release and deploy the updated kona + asterisc when in the coldpath.
   If `kona` + `asterisc` is placed in the hotpath, either the `op-program` + `cannon` would need to be falled back on otherwise fallback to the permissed dispute game.
-  [The "Kona and Asterisc Hot Path Failure"](#-Kona-and-Asterisc-Hot-Path-Failure) above covers the failure mode for `kona` + `asterisc` when placed in the hot path.
+  [The "Kona and Asterisc Hot Path Failure"](#Kona-and-Asterisc-Hot-Path-Failure) above covers the failure mode for `kona` + `asterisc` when placed in the hot path.
 
 
 ### Kona Execution Diverges from op-program
