@@ -149,7 +149,7 @@ Below are references for this project:
   The `op-challenger` is architected in such a way as to isolate game types and more so the individual game players.
   To allow the challenger to scale and play many different game types at once, a list of game types to play is passed into the `op-challenger` as a CLI flag.
   When games are detected on-chain, the `op-challenger` will create a "game player" for this game type.
-  Players are run in individual threads so a breaking `kona` + `asterisc` game player in the challenger will not cause a liveliness issue for the `op-challenger` to play other game types.
+  Players are run in individual threads so a breaking `kona` + `asterisc` game player in the challenger will not cause a liveness issue for the `op-challenger` to play other game types.
   Another key mitigation is the VM runner. This is an offline simulation that runs asterisc + kona with the op-challenger. It's been running since around August 2024.
 
 - **Detection:**
