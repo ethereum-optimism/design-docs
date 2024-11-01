@@ -173,3 +173,15 @@ Below is what needs to be done before launch to reduce the chances of the above 
 - [ ] (BLOCKING): we will add functionality to the batcher to periodically detect when the safe chain should have progressed but didn't, and to recover from that
 - [ ] (BLOCKING): the script(s) or tooling for the `SystemConfig` upgrade contract will exit with an error if the activation time has not yet passed.
 - [ ] (non-BLOCKING): We will update the op-sepolia vm-runner to use the new FPVM. The vm-runner runs the op-program in the MIPS FPVM using inputs sampled from a live chain. Having the vm-runner run the op-program on op-sepolia for a couple days will increase confidence that the network will continue to be fault provable.
+
+Additional action items are copied here from the [generic hardfork FMA](./fma-generic-hardfork.md) doc:
+
+- [ ] (BLOCKING): We have implemented extensive unit and end-to-end testing of the activation flow.
+- [ ] (BLOCKING): We have implemented multi-client testing to reduce the chance of bugs
+- [ ] (BLOCKING): We have implemented extensive cross-client / differential testing of the new functionality.
+- [ ] (BLOCKING): We will be testing the activation on our devnets and testnets.
+- [ ] (BLOCKING): We have prepared datadir backups close before the upgrade, so we can use these in an emergency to rollback.
+- [ ] (BLOCKING): We have updated the runbook for recovering from a hardfork activation chain halt (including rolling back contract changes), if necessary. See https://oplabs.notion.site/RB-000-How-To-Rewind-a-Network-c21f628205354dbdbed9c691b2455a7c?pvs=74.
+- [ ] (non-BLOCKING): The superchain-ops task to upgrade any contract should check if the semantic versions and bytecodes after the upgrade are as expected. 
+- [ ] (non-BLOCKING): We have implemented fuzz testing in a kurtosis multi-client devnet to reduce the chance of bugs
+
