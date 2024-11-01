@@ -96,7 +96,7 @@ Below are references for this project:
 
 - **Mitigations:**
   Action tests covering the derivation pipeline are run on every pull request in the [kona] repository.
-  VM Runner exectutes the derivation pipeline as part of the kona fault proof program running ontop of asterisc.
+  VM Runner executes the derivation pipeline as part of the kona fault proof program running on top of asterisc.
   [Extensive test coverage](https://app.codecov.io/gh/anton-rs/kona/tree/main/crates) of kona.
 
 - **Detection:**
