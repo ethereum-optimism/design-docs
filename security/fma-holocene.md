@@ -160,7 +160,7 @@ See [./fma-generic-hardfork.md](./fma-generic-hardfork.md).
 
 ## Audit Requirements
 
-This may require a mini audit due to updates to the MIPS contract.
+The changes to the MIPs contract were subject to an audit, the report is available [here](https://gist.github.com/3docSec/068537844f2ddb204324079138f14551). An audit has not been deemed necessary for the relatively simple changes to the SystemConfig contract, which has been reviewed by OPLabs and Base internal teams.
 
 ## Action Items
 
