@@ -4,9 +4,7 @@ The current fault proof system requires a redeployment of the `DisputeGame.sol`,
 
 # Summary
 
-<!-- Most (if not all) documents should have a summary.
-While the length will likely be proportional to the length of the full document,
-the summary should be as succinct as possible. -->
+The `DisputeGameFactory.sol` should be upgraded to contain the arguments needed for every new `DisputeGame.sol`, and all of the constructor argument/logic should be moved into proxy which is actually pointed toward the `DisputeGame.sol` implementation, so that a single implementation of `DisputeGame.sol` can be used across each rollup.
 
 # Problem Statement + Context
 
@@ -20,9 +18,8 @@ In order to elegantly resolve this, the two sets of immutable args should be fla
 
 # Alternatives Considered
 
-It would be possible to remove out the chain specific immutable arguments to
+It would be possible to remove out the chain specific immutable arguments to simply become "extraData" passed into the proxy constructor, however this complicates the system further because the ultimate goal is to consildate all of our contracts so that each rollup can point to a single set of implementation contracts, so keeping some configuration parameters on the implementation of `FaultDisputeGame.sol` would not be flexible enough down the line.
 
 # Risks & Uncertainties
 
-<!-- An overview of what could go wrong.
-Also any open questions that need more work to resolve. -->
+The main risk for this upgrade is now that the factory must be properly configured, otherwise the factory will produce every single `FaultDisputeGame.sol` incorrectly.
