@@ -113,6 +113,8 @@ Below are references for this project:
   The VM runner would pick up an issue.
   The action tests or local testing may pick up an issue.
   Use of the derivation elsewhere, for example in alternative consensus clients like `op-rs`, would pick up an issue.
+    - _Note_: `op-rs` is not yet serving as a source of detection. In the coming months, it will provide more coverage
+      over `kona`'s derivation pipeline.
 
 - **Recovery Path(s):**
   Fix the derivation pipeline divergence, release and deploy the updated kona + asterisc when in the coldpath.
@@ -214,16 +216,52 @@ Below are references for this project:
 
 ### Generic items we need to take into account:
 
-- [X] [`DisputeGameFactory.setImplementation`](./fma-generic-hardfork.md#invalid-disputegamefactorysetimplementation-execution) (in [./fma-generic-hardfork.md](./fma-generic-hardfork.md))
 - [X] [./failure-modes-analysis.md](./failure-modes-analysis.md).
+- [X] [`DisputeGameFactory.setImplementation`](./fma-generic-hardfork.md#invalid-disputegamefactorysetimplementation-execution) (in [./fma-generic-hardfork.md](./fma-generic-hardfork.md))
+  - **Mitigations:**
+    - This upgrade does not place the new implementation into the hot path of the bridge. The new `FaultDisputeGame` will
+      not influence any other contract in the protocol.
 - [X] [./fma-generic-contracts.md](./fma-generic-contracts.md)
-
+  - [**Proxy Initialization Failure**](./fma-generic-contracts.md#proxy-initialization-failure)
+    - **Mitigations**
+      - The re-initialization of the `AnchorStateRegistry` for this upgrade does not change any existing storage slots
+        within the `AnchorStateRegistry` proxy. It will only initialize a new slot for the `ASTERISC_KONA` game type's
+        prestate hash.
+      - Tests on the `superchain-ops` upgrade scripts for the upgrade's expected post-state.
+    - **Detection**
+      - Failure of the `superchain-ops` upgrade script's post-state checks, with state-diff exclusion tests for
+        undeclared storage.
+  - [**Proxy Initialized to Wrong Values**](./fma-generic-contracts.md#proxy-initialized-to-wrong-values)
+    - **Mitigations**
+      - Tests on the `superchain-ops` upgrade scripts for the upgrade's expected post-state.
+    - **Detection**
+      - Failure of the `superchain-ops` upgrade script's post-state checks, with state-diff exclusion tests for
+        undeclared storage.
+  - _All other `fma-generic-contracts` failure modes do not apply to this upgrade_
 
 ## Audit Requirements
 
 The `RISCV.sol` contract will need an audit for mainnet, though no audit is required for testnet.
 The audit document will be handled separately from this FMA.
 
+## Action Items
+
+Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
+
+- [ ] Resolve all comments on this document and incorporate them into the document itself. (Assignee: @refcell @clabby)
+- [x] Implement unit testing on `kona`'s derivation pipeline. (Assignee: @refcell @clabby)
+- [x] Implement unit testing on `kona`'s stateless L2 block executor. (Assignee: @refcell @clabby)
+- [x] Implement unit testing on `kona`'s Preimage Oracle interface. (Assignee: @refcell @clabby)
+- [x] Implement unit testing on `kona`'s client program. (Assignee: @refcell @clabby)
+- [x] Implement unit testing on `kona`'s host program. (Assignee: @refcell @clabby)
+- [x] Implement shared action tests between the `op-program` and `kona`, using `op-geth` and `op-node` as reference protocol implementations. (Assignee: @refcell @clabby)
+- [x] Implement unit testing for `asterisc`. (Assignee: @refcell @clabby)
+- [x] Implement unit testing for `RISCV.sol`. (Assignee: @refcell @clabby)
+- [x] Implement differential testing between `RISCV.sol` and native `asterisc`. (Assignee: @refcell @clabby)
+- [x] Implement live data testing for `kona` and `op-program`, running on their respective fault proof VMs, using the `op-challenger`'s program runner interfaces. (Assignee: @refcell @clabby)
+- [x] Implement unit testing for `op-challenger`'s `asterisc` integration. (Assignee: @refcell @clabby)
+- [x] Implement integration testing for `op-challenger`'s `asterisc` integration. (Assignee: @refcell @clabby)
+- [ ] Implement post-state checks on the `superchain-ops` upgrade script.
 
 ## Appendix
 
