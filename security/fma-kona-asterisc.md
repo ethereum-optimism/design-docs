@@ -66,7 +66,7 @@ Below are references for this project:
   Low likelihood, high impact.
   Low likelihood since `op-program` + `cannon` are already running in production and have meaningful improvements on the way that will increase resilience.
   If `kona` + `asterisc` fails while in the hotpath, the impact is high since the permissioned fallback will need to be triggered.
-  This engages the security council, requires comms, and causes the chain to fallback to a weaker security model.
+  This engages the deputy guardian, requires comms, and causes the chain to fallback to a weaker security model.
 
 - **Mitigations:**
   Offline testing with the VM Runner for both `kona` + `asterisc` as well as `op-program` + `cannon`.
