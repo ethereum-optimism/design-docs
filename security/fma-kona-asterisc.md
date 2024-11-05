@@ -18,7 +18,7 @@
 
 # Stage 1.4: Kona and Asterisc FMA (Failure Modes and Recovery Path Analysis)
 
-| | |
+| Field | Description |
 |--------|--------------|
 | Author | Andreas Bigger |
 | Created at | 2024-10-17 |
@@ -72,6 +72,11 @@ Below are references for this project:
   Offline testing with the VM Runner for both `kona` + `asterisc` as well as `op-program` + `cannon`.
   The VM Runner also fully tests the integration of the `op-challenger` with these dispute games ([covered in a later section](#Breaking-Backwards-Compatibility-for-the-op-challenger)).
   Action tests ensuring both proof systems follow spec.
+  * [VM Runner Instance (Private OP Labs Infra)](https://optimistic.grafana.net/d/bdtk5xud0cg00e/vm-runner?from=now-24h&to=now&timezone=browser&var-namespace=$__all)
+  * [Shared Action Tests](https://github.com/ethereum-optimism/optimism/tree/develop/op-e2e/actions/proofs)
+    * [Kona's CI Job for Action Tests](https://github.com/anton-rs/kona/actions/workflows/action_tests.yaml)
+  * [Extensive Unit Testing in `kona` (>90% coverage)](https://app.codecov.io/gh/anton-rs/kona)
+  * [Unit testing in `asterisc`](https://github.com/ethereum-optimism/asterisc/tree/master/tests)
 
 - **Detection:**
   The game that broke `op-program` + `cannon` would be invalidated since the respected game type would be switched in the dispute game factory.
@@ -98,6 +103,11 @@ Below are references for this project:
   Action tests covering the derivation pipeline are run on every pull request in the [kona] repository.
   VM Runner executes the derivation pipeline as part of the kona fault proof program running on top of asterisc.
   [Extensive test coverage](https://app.codecov.io/gh/anton-rs/kona/tree/main/crates) of kona.
+
+  * [VM Runner Instance (Private OP Labs Infra)](https://optimistic.grafana.net/d/bdtk5xud0cg00e/vm-runner?from=now-24h&to=now&timezone=browser&var-namespace=$__all)
+  * [Shared Action Tests](https://github.com/ethereum-optimism/optimism/tree/develop/op-e2e/actions/proofs)
+    * [Kona's CI Job for Action Tests](https://github.com/anton-rs/kona/actions/workflows/action_tests.yaml)
+  * [Extensive Unit Testing in `kona` (>90% coverage)](https://app.codecov.io/gh/anton-rs/kona)
 
 - **Detection:**
   The VM runner would pick up an issue.
@@ -126,6 +136,11 @@ Below are references for this project:
   Action tests covering the L2 block executor are run on every pull request in the [kona] repository.
   `op-reth` which uses the same op-execution environment as `kona`.
 
+  * [VM Runner Instance (Private OP Labs Infra)](https://optimistic.grafana.net/d/bdtk5xud0cg00e/vm-runner?from=now-24h&to=now&timezone=browser&var-namespace=$__all)
+  * [Shared Action Tests](https://github.com/ethereum-optimism/optimism/tree/develop/op-e2e/actions/proofs)
+    * [Kona's CI Job for Action Tests](https://github.com/anton-rs/kona/actions/workflows/action_tests.yaml)
+  * [Extensive Unit Testing in `kona` (>90% coverage)](https://app.codecov.io/gh/anton-rs/kona)
+
 - **Detection:**
   Running `op-reth` so it's synced and following tip would provide a way to watch for chain splits.
   A chain split occuring means `kona`'s execution (the same as `op-reth`) diverges from the `op-program`.
@@ -151,6 +166,9 @@ Below are references for this project:
   When games are detected on-chain, the `op-challenger` will create a "game player" for this game type.
   Players are run in individual threads so a breaking `kona` + `asterisc` game player in the challenger will not cause a liveness issue for the `op-challenger` to play other game types.
   Another key mitigation is the VM runner. This is an offline simulation that runs asterisc + kona with the op-challenger. It's been running since around August 2024.
+  * [VM Runner Instance (Private OP Labs Infra)](https://optimistic.grafana.net/d/bdtk5xud0cg00e/vm-runner?from=now-24h&to=now&timezone=browser&var-namespace=$__all)
+  * [Shared Action Tests (Using `op-challenger` code to execute programs)](https://github.com/ethereum-optimism/optimism/tree/develop/op-e2e/actions/proofs)
+    * [Kona's CI Job for Action Tests](https://github.com/anton-rs/kona/actions/workflows/action_tests.yaml)
 
 - **Detection:**
   The Dispute Monitor ([op-dispute-mon] service provides an isolated monitoring service that will detect if a game is not being played by the honest `op-challenger`.
@@ -178,6 +196,9 @@ Below are references for this project:
 - **Mitigation:**
   Heavily test `RISCV.sol`. Audit `RISCV.sol`.
   Asterisc already runs through action tests frequently in CI validiting that it produces the expected output.
+
+  * [Differential tests between the native and solidity implementations of Asterisc](https://github.com/ethereum-optimism/asterisc/blob/df0d2cc9f769fef8eec41273931d8e8fd09e65dd/rvgo/test/vm_test.go#L177)
+  * [Unit testing in `asterisc`](https://github.com/ethereum-optimism/asterisc/tree/master/tests)
 
 - **Detection:**
   Since `op-dispute-mon` uses the same asterisc backend that the `op-challenger` does, there may be divergent behaviour between asterisc and `RISCV.sol`.
