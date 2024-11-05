@@ -10,7 +10,7 @@ The summary of the changes to OPCM is as follows:
 
 - Remove the [proxy](https://github.com/ethereum-optimism/optimism/blob/4c015e3a36f8910e2cf8b447d62ab4c44b944cca/packages/contracts-bedrock/scripts/deploy/DeployImplementations.s.sol#L545) from OPCM.
 - Remove [initialize](https://github.com/ethereum-optimism/optimism/blob/28283a927e3124fa0b2cf8d47d1a734e95478215/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L210) functionality from OPCM and introduce standard constructor initialization.
-- Add versioning to OPCM to expose which L1 contracts are deployed for the specific OPCM.
+- Add versioning to OPCM to expose which L1 contracts are deployed for the specific OPCM deployment e.g. OPCM address `0x1234...` deploys `op-contracts/v1.6.0`.
 - Update `DeploySuperchain.s.sol`, `DeployImplementations.s.sol` and `DeployOPChain.s.sol` to work with the new paradigm of one OPCM per L1 smart contract release.
 - **Optional**: Add authentication to OPCM in anticipation for upgrade features.
 
