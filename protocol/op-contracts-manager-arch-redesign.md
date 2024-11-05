@@ -1,6 +1,6 @@
 # Purpose
 
-The original OPContractsManager (OPCM) design, outlined [here](./op-contracts-manager-arch.md), defined a proxied contract that deployed the L1 contracts for standard OP Stack chains in a single transaction.
+The original OPContractsManager (OPCM) design, outlined [here](./op-contracts-manager-arch.md), defined a singleton proxied contract that deployed the L1 contracts for standard OP Stack chains in a single transaction.
 
 Implementing upgrade functionality for OP Stack chains via OPCM is now a key goal. As we approach this feature, we've identified several interim adjustments to OPCM that will be necessary to eventually support upgradability. Therefore, the purpose of this design document is to aid building OPCM upgradability features by making changes to OPCM's architecture.
 
@@ -8,6 +8,7 @@ Implementing upgrade functionality for OP Stack chains via OPCM is now a key goa
 
 The summary of the changes to OPCM is as follows:
 
+- Move away from singleton OPCM approach in favor of one OPCM deployment per L1 smart contract release.
 - Remove the [proxy](https://github.com/ethereum-optimism/optimism/blob/4c015e3a36f8910e2cf8b447d62ab4c44b944cca/packages/contracts-bedrock/scripts/deploy/DeployImplementations.s.sol#L545) from OPCM.
 - Remove [initialize](https://github.com/ethereum-optimism/optimism/blob/28283a927e3124fa0b2cf8d47d1a734e95478215/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L210) functionality from OPCM and introduce standard constructor initialization.
 - Add versioning to OPCM to expose which L1 contracts are deployed for the specific OPCM deployment e.g. OPCM address `0x1234...` deploys `op-contracts/v1.6.0`.
@@ -18,7 +19,7 @@ The summary of the changes to OPCM is as follows:
 # Problem Statement + Context
 
 We’ve identified the need to implement an upgradability feature for OP Stack chains. This will involve two core components: [op-deployer](../ecosystem/op-deployer.md) and [OPCM](./op-contracts-manager-arch.md). As of November 5, 2024, both op-deployer and OPCM support only the deployment of new chains at fixed versions.
-Each new chain version requires additional conditional logic in both op-deployer and the OPCM singleton. This creates logic that is difficult to maintain and reason about. This approach will become increasingly unwieldy as we integrate OP Stack upgrades into op-deployer and OPCM.
+Each new chain version requires additional conditional logic in both op-deployer and the OPCM singleton. This creates logic that is difficult to maintain and reason about. This approach will become increasingly unwieldy as we integrate OP Stack upgrade functionality into op-deployer and OPCM.
 
 ## Examples of Unwanted Conditional Logic 
 - Deciding how to initialize the `SystemConfig` contract correctly via OPCM - [code](https://github.com/ethereum-optimism/optimism/blob/28283a927e3124fa0b2cf8d47d1a734e95478215/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L457-L462). This branching logic exists because OPCM needed to be able to deploy chains at older tags (e.g. op-contracts/v1.6.0) as well as later chains. The primary challenge here is that the `develop` branch in the monorepo naturally evolves, requiring deployment (OPCM and op-deployer) code to evolve with it, all while continuing to support older deployments.
