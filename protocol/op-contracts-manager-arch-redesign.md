@@ -39,7 +39,7 @@ Authentication was not originally implemented in OPCM because it solely supporte
 Having one OPCM per *L1 smart contract release version*** means that we can remove the proxy pattern that currently exists with OPCM. The high level architecture changes can be seen below:
 
 ### Previous OPCM Deploys
-Before OPCM was proxied so that it was upgradable.
+Before OPCM was proxied so that it was upgradable. e.g. [`0x18CeC91779995AD14c880e4095456B9147160790`](https://etherscan.io/address/0x18CeC91779995AD14c880e4095456B9147160790)
 ```mermaid
 flowchart LR
     A[Any Account] -->|call| C[Proxy]
