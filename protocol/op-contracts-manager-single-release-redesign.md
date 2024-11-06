@@ -2,7 +2,7 @@
 
 The original OPContractsManager (OPCM) design, outlined [here](./op-contracts-manager-arch.md), defined a singleton proxied contract that deployed the L1 contracts for standard OP Stack chains in a single transaction.
 
-Implementing upgrade functionality for OP Stack chains via OPCM is now a key goal. As we approach this feature, we've identified several interim adjustments to OPCM that will be necessary to eventually support upgradability. Therefore, the purpose of this design document is to aid building OPCM upgradability features by making changes to OPCM's architecture.
+Implementing upgrade functionality for OP Stack chains via OPCM is now a key goal. As we approach this feature, we've identified several interim adjustments to OPCM that will that will not only enable future upgradability but also simplify its overall design. Therefore, the purpose of this design document is to streamline OPCM’s architecture, making it easier to build and integrate upgradability features.
 
 # Summary
 
@@ -11,14 +11,13 @@ OPCM will transition from its current singleton architecture to a multi-deployme
 - Remove the [proxy](https://github.com/ethereum-optimism/optimism/blob/4c015e3a36f8910e2cf8b447d62ab4c44b944cca/packages/contracts-bedrock/scripts/deploy/DeployImplementations.s.sol#L545) from OPCM.
 - Remove [initialize](https://github.com/ethereum-optimism/optimism/blob/28283a927e3124fa0b2cf8d47d1a734e95478215/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L210) functionality from OPCM and introduce standard constructor initialization.
 - Add versioning to OPCM to expose which L1 contracts are deployed for the specific OPCM deployment e.g. OPCM address `0x1234...` deploys `op-contracts/v1.6.0`.
-- Update `DeploySuperchain.s.sol`, `DeployImplementations.s.sol` and `DeployOPChain.s.sol` to work with the new paradigm of one OPCM per L1 smart contract release.
+- Update `op-deployer`, `DeploySuperchain.s.sol`, `DeployImplementations.s.sol` and `DeployOPChain.s.sol` to work with the new multi-deployment paradigm of one OPCM per L1 smart contract release.
 - **Optional**: Add authentication to OPCM in anticipation for upgrade features.
 
 
 # Problem Statement + Context
 
-We’ve identified the need to implement an upgradability feature for OP Stack chains. This will involve two core components: [op-deployer](../ecosystem/op-deployer.md) and [OPCM](./op-contracts-manager-arch.md). As of November 6, 2024, both op-deployer and OPCM support only the deployment of new chains at fixed versions.
-Each new chain version requires additional conditional logic in both op-deployer and the OPCM singleton. This creates logic that is difficult to maintain and reason about. This approach will become increasingly unwieldy as we integrate OP Stack upgrade functionality into op-deployer and OPCM.
+[OPCM](./op-contracts-manager-arch.md)'s architecture will quickly become untenable as more L1 smart contract releases are supported for deployment. Each new release version requires additional conditional logic in both [op-deployer](../ecosystem/op-deployer.md) and the OPCM singleton. This creates logic that is difficult to maintain and reason about. This approach will become increasingly unwieldy as we integrate OP Stack upgrade functionality into op-deployer and OPCM. Examples of how these complexities are introduced can be seen below:
 
 ## Example of Unwanted Conditional Logic in OPCM
 - Deciding how to initialize the `SystemConfig` contract correctly via OPCM - [code](https://github.com/ethereum-optimism/optimism/blob/28283a927e3124fa0b2cf8d47d1a734e95478215/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L457-L462). This branching logic exists because OPCM needed to be able to deploy chains at older tags (e.g. `op-contracts/v1.6.0`) as well as later chains. The primary challenge here is that the `develop` branch in the monorepo naturally evolves, requiring deployment (OPCM and op-deployer) code to evolve with it, all while continuing to support older deployments.
@@ -38,7 +37,7 @@ Continue with the approach of adding additional conditional logic for every new 
 
 ## OPCM Architecture Changes
 
-Having one OPCM per *L1 smart contract release version*** means that we can remove the proxy pattern that currently exists with OPCM. The high level architecture changes can be seen below:
+Having one OPCM per *L1 smart contract release version*[^1] means that we can remove the proxy pattern that currently exists with OPCM. The high level architecture changes can be seen below:
 
 ### Previous OPCM Deploys
 Before OPCM was proxied so that it was upgradable. e.g. [`0x18CeC91779995AD14c880e4095456B9147160790`](https://etherscan.io/address/0x18CeC91779995AD14c880e4095456B9147160790)
@@ -80,4 +79,4 @@ It is our intention to keep the OPCM [deploy](https://github.com/ethereum-optimi
 With more OPCM versions, we’ll need to write additional production Solidity code. While our engineering practices help minimize bugs, it is still worth considering whether increasing the surface area of onchain interactions is desirable.
 
 
-** *To view all official L1 smart releases, run `git tag -l | grep op-contracts` on the `develop` branch inside the [monorepo](https://github.com/ethereum-optimism/optimism).*
+[^1]: *To view all official L1 smart releases, run `git tag -l | grep op-contracts` on the `develop` branch inside the [monorepo](https://github.com/ethereum-optimism/optimism).*
