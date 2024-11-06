@@ -21,19 +21,18 @@ We’ve identified the need to implement an upgradability feature for OP Stack c
 Each new chain version requires additional conditional logic in both op-deployer and the OPCM singleton. This creates logic that is difficult to maintain and reason about. This approach will become increasingly unwieldy as we integrate OP Stack upgrade functionality into op-deployer and OPCM.
 
 ## Example of Unwanted Conditional Logic in OPCM
-- Deciding how to initialize the `SystemConfig` contract correctly via OPCM - [code](https://github.com/ethereum-optimism/optimism/blob/28283a927e3124fa0b2cf8d47d1a734e95478215/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L457-L462). This branching logic exists because OPCM needed to be able to deploy chains at older tags (e.g. op-contracts/v1.6.0) as well as later chains. The primary challenge here is that the `develop` branch in the monorepo naturally evolves, requiring deployment (OPCM and op-deployer) code to evolve with it, all while continuing to support older deployments.
+- Deciding how to initialize the `SystemConfig` contract correctly via OPCM - [code](https://github.com/ethereum-optimism/optimism/blob/28283a927e3124fa0b2cf8d47d1a734e95478215/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L457-L462). This branching logic exists because OPCM needed to be able to deploy chains at older tags (e.g. `op-contracts/v1.6.0`) as well as later chains. The primary challenge here is that the `develop` branch in the monorepo naturally evolves, requiring deployment (OPCM and op-deployer) code to evolve with it, all while continuing to support older deployments.
 
 ## Example of Unwanted Complexity in op-deployer
 - Each `op-deployer` releases currently bundles standard version TOML files from the superchain-registry. These files contain the addresses corresponding to each L1 smart contract release. Developers must [manually sync](https://github.com/ethereum-optimism/optimism/blob/bc9b6cd588588c9c4167c926a1782c658e5df921/op-chain-ops/Makefile#L50-L52) the TOML files before cutting a new release. Since these release addresses are tightly coupled to op-deployer, they need to be injected into OPCM. Without this injection, OPCM is unaware of the implementation addresses of any L1 smart contract releases. A system in which OPCM is 'release aware' simplifies the logic within op-deployer. In this setup, op-deployer would maintain a list of OPCM addresses and manage interactions with each address on a case-by-case basis.
 
-## Optional: Authentication
+## Authentication (Optional)
 
-Authentication was not originally implemented in OPCM because it solely supported deployments, with the rationale being that there was no immediate need to restrict access to the deploy function. However, with the introduction of upgrade functionality, it’s essential to establish a robust authentication mechanism within OPCM. We now need to determine appropriate access controls and define roles for authorized users who will be permitted to perform upgrades.
+Authentication was not originally implemented in OPCM because it solely supported deployments, with the rationale being that there was no immediate need to restrict access to the deploy function. However, with the introduction of upgrade functionality, it’s essential to establish a robust authentication mechanism within OPCM. We now need to determine appropriate access controls and define roles for authorized users who will be permitted to perform upgrades. We can choose to implement this now to prepare for future use in OPCM upgrade features, or we may decide to postpone it until a later stage.
 
 # Alternatives Considered
 
-1. Continue with the approach of adding additional conditional logic for every new chain version that is released. As noted, this leads to a system that is complex and hard to maintain.
-2. `// TODO - Add another alernative approach that was discussed here but wasn't chosen.`
+Continue with the approach of adding additional conditional logic for every new chain version that is released. As noted, this leads to a system that is complex and hard to maintain.
 
 # Proposed Solution
 
@@ -78,6 +77,7 @@ It is our intention to keep the OPCM [deploy](https://github.com/ethereum-optimi
 
 # Risks & Uncertainties
 
-`// TODO`
+With more OPCM versions, we’ll need to write additional production Solidity code. While our engineering practices help minimize bugs, it is still worth considering whether increasing the surface area of onchain interactions is desirable.
+
 
 ** *To view all official L1 smart releases, run `git tag -l | grep op-contracts` on the `develop` branch inside the [monorepo](https://github.com/ethereum-optimism/optimism).*
