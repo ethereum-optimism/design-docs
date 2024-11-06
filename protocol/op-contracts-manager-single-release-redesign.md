@@ -35,7 +35,7 @@ Continue with the approach of adding additional conditional logic for every new 
 Having one OPCM per *L1 smart contract release version*[^1] means that we can remove the proxy pattern that currently exists with OPCM. The high level architecture changes can be seen below:
 
 ### Previous OPCM Deploys
-Before OPCM was proxied so that it was upgradable. e.g. [`0x18CeC91779995AD14c880e4095456B9147160790`](https://etherscan.io/address/0x18CeC91779995AD14c880e4095456B9147160790)
+Before, OPCM was proxied so that it was upgradable. e.g. [`0x18CeC91779995AD14c880e4095456B9147160790`](https://etherscan.io/address/0x18CeC91779995AD14c880e4095456B9147160790)
 ```mermaid
 flowchart LR
     A[Any Account] -->|call| C[Proxy]
@@ -43,7 +43,7 @@ flowchart LR
 ```
 
 ### New OPCM Deploys
-Now OPCM is not proxied and therefore not upgradable. This is by design though as we want to release a new OPCM for each new L1 smart contract release.
+Now, OPCM is not proxied and therefore not upgradable. This is by design though as we want to release a new OPCM for each new L1 smart contract release.
 ```mermaid
 flowchart LR
     A[Any Account] -->|call| B[OPCM - op-contracts/v1.3.0]
