@@ -30,12 +30,12 @@ OP Chains will be governed within a common Chain Cluster governance entity (the 
 
 - **Ensuring chains are consistent at the implementation side**, achieved either through trusted deployment methods (e.g., OP Contracts Manager) or by approval after security checks are performed.
 - **Approving protocol upgrades** for all chains involved.
-- **Adding new chains** to join into the interoperable set, managing the `dependencyManager` role. The final decision is up to governance.
-- **Remove existing chains** from the interoperable set. However, such a removal should not be executed without a contingency plan due to the significant implications this could entail.
+- **Adding new chains** to the interoperable set, and managing the `dependencyManager` role. The final decision is up to governance and chains cannot be removed afterwards.
+- **Replacing chain servicers** for existing chains if they fail to satisfy technical requirements.
 
 ### Shared Bridging and SuperchainWETH usage
 
-In any OP Chain that joins the cluster, the use of `SuperchainWETH` is activated. As a result, the equivalence between ETH deposits and withdrawal history and the actual ETH supply will vary from the outset. In a world with freedom of movement, all real ETH liquidity is theoretically shared across the entire cluster eventually, regardless of how deposits are handled.
+In any OP Chain that joins the cluster, it is assumed that `SuperchainWETH` has been deployed in advance before being added to the interoperable graph. As a result, the equivalence between ETH deposits and withdrawal history and the actual ETH supply will vary from the outset. In a world with freedom of movement, all real ETH liquidity is theoretically shared across the entire cluster eventually, regardless of how deposits are handled.
 
 # Solution
 
