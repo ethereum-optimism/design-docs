@@ -10,9 +10,8 @@ OPCM will transition from its current singleton architecture to a multi-deployme
 
 - Remove the [proxy](https://github.com/ethereum-optimism/optimism/blob/4c015e3a36f8910e2cf8b447d62ab4c44b944cca/packages/contracts-bedrock/scripts/deploy/DeployImplementations.s.sol#L545) from OPCM.
 - Remove [initialize](https://github.com/ethereum-optimism/optimism/blob/28283a927e3124fa0b2cf8d47d1a734e95478215/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L210) functionality from OPCM and introduce standard constructor initialization.
-- Add versioning to OPCM to expose which L1 contracts are deployed for the specific OPCM deployment e.g. OPCM address `0x1234...` deploys `op-contracts/v1.6.0`.
+- Add versioning to OPCM to expose which L1 contracts are deployed for the specific OPCM deployment e.g. `string constant l1ContractsVersion = "op-contracts/v1.6.0";` or something more nuanced that shows the relationship between the version string and the [standard release implementation addresses](https://github.com/ethereum-optimism/superchain-registry/blob/main/validation/standard/standard-versions-mainnet.toml#L9).
 - Update `op-deployer`, `DeploySuperchain.s.sol`, `DeployImplementations.s.sol` and `DeployOPChain.s.sol` to work with the new multi-deployment paradigm of one OPCM per L1 smart contract release.
-- **Optional**: Add authentication to OPCM in anticipation for upgrade features.
 
 
 # Problem Statement + Context
@@ -24,10 +23,6 @@ OPCM will transition from its current singleton architecture to a multi-deployme
 
 ## Example of Unwanted Complexity in op-deployer
 - Each `op-deployer` releases currently bundles standard version TOML files from the superchain-registry. These files contain the addresses corresponding to each L1 smart contract release. Developers must [manually sync](https://github.com/ethereum-optimism/optimism/blob/bc9b6cd588588c9c4167c926a1782c658e5df921/op-chain-ops/Makefile#L50-L52) the TOML files before cutting a new release. Since these release addresses are tightly coupled to op-deployer, they need to be injected into OPCM. Without this injection, OPCM is unaware of the implementation addresses of any L1 smart contract releases. A system in which OPCM is 'release aware' simplifies the logic within op-deployer. In this setup, op-deployer would maintain a list of OPCM addresses and manage interactions with each address on a case-by-case basis.
-
-## Authentication (Optional)
-
-Authentication was not originally implemented in OPCM because it solely supported deployments, with the rationale being that there was no immediate need to restrict access to the deploy function. However, with the introduction of upgrade functionality, it’s essential to establish a robust authentication mechanism within OPCM. We now need to determine appropriate access controls and define roles for authorized users who will be permitted to perform upgrades. We can choose to implement this now to prepare for future use in OPCM upgrade features, or we may decide to postpone it until a later stage.
 
 # Alternatives Considered
 
@@ -63,16 +58,6 @@ Now that each OPCM deploy is going to be tethered directly to an L1 smart contra
 2. The **address of the previous OPCM** contract. 
 
 This creates a linked list whereby a user can find all prior OPCMs starting from the current OPCM contract. This will prove useful for implementing upgrade functionality because with this information an OPCM can easily expose the version of L1 smart contracts that it supports upgrading **from** and **to**.
-
-## Authentication (Optional)
-
-As we know that upgrades are coming to OPCM we can preemtively add authentication to OPCM as part of this architecture redesign. 
-
-It is our intention to keep the OPCM [deploy](https://github.com/ethereum-optimism/optimism/blob/28283a927e3124fa0b2cf8d47d1a734e95478215/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L226) function permissionless. 
-
-- `//TODO Determine WHO should perform these upgrades`
-- `//TODO Determine HOW these access controls should be implemented in OPCM`
-
 
 # Risks & Uncertainties
 
