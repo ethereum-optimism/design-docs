@@ -64,20 +64,22 @@ An alternative design could be to emit an `EntrypointContext` struct with explic
 Notice that, in the intuition example, the `SwapperEntrypoint` is used as both pre and post-hook for the message relay. The `EntrypointContext` is used here in the post-action, but it would be needed beforehand in other cases (like batching).
 
 ### Binding
+The `EntrypointContext` is not inherently bound to its connected initiating message. This means that, in theory, anyone could execute a message alongside any other valid `EntrypointContext`. Therefore, each `Entrypoint` and initiating message contract handles its authentication logic.
 
-`EntrypointContext` is not binding to its connected initiating message. This means that, in theory, anyone could execute the message alongside any other valid `EntrypointContext`. 
-Each `Entrypoint` and initiating message contract will be responsible for handling authentication logic.
+`Entrypoints` can adopt the model used by the `L2ToL2CrossDomainMessenger`, which involves decoding additional parameters. This approach would require the `EntrypointContext` event to encode the necessary information.
 
-`Entrypoints` can follow the model of the `L2ToL2CrossDomainMessenger` and decode additional parameters.
-Of course, this would require the `EntrypointContext` event to encode this information.
-Some parameters that can be used for binding are
-- `L2ToL2CrossDomainMessenger` current `nonce`. The `Entrypoint` can then check that the `EntrypointContext` has the same `nonce` than the `SentMessage`.
-- Identifier's `origin` from `EntrypointContext` event matches `sender` from `SentMessage`. This could show that the context was created on the same contract than the connected message.
-- Identifier's `chainId` from `EntrypointContext` event matches `source` from `SentMessage`. Should match with the `SentMessage`.
+We strongly recommend that an `Entrypoint` only accepts `EntrypointContext` events from authorized sources. This implies that the `Entrypoint` should perform the following checks:
+- **Origin Verification**: Check the identifier's `origin` from the `EntrypointContext` event. This can be matched against the decoded `sender` from the `SentMessage` event or compared against a list of authorized addresses.
+- **Chain ID Verification**: Ensure that the `chainId` from the `EntrypointContext` event identifier matches a list of allowed chain IDs.
 
-However, a more efficient way of binding both event is to include an identifier of the `EntrypointContext` event
-(such as message payload, or any other hash) into the first 32 bytes of the `message` in the `SentMessage` event.
-Then, check the equivalence on the `Entrypoint` contract.
+However, relying solely on these checks can lead to collisions. To improve security, we suggest incorporating additional binding data when possible. 
+If the `EntrypointContext` is generated from the same contract that calls `sendMessage`, it is possible to encode the `msgHash` returned from `sendMessage` into the context event.
+If not, it still possible to verify additional data such as:
+- **Chain ID Matching**: Confirm that the `chainId` from the `EntrypointContext` matches the `source` chain ID from the `SentMessage` event.
+- **Nonce Verification**: Encode the current nonce from the `L2ToL2CrossDomainMessenger` into the `EntrypointContext` event and then check in the `Entrypoint` that it matches the decoded `nonce` from the `SentMessage` event.
+
+Ultimately, the specific authentication measures will depend on each `Entrypoint` design. It is essential to implement appropriate checks to ensure that messages are securely bound to their corresponding contexts and originate from authorized sources.
+
 
 ## Full example: Expire messages
 
