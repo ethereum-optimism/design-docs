@@ -51,7 +51,7 @@ This document is intended to be shared in a public space for reviews and visibil
 - (Execution Layer & Smart Contracts) Configurable EIP-1559 Parameters via SystemConfig
 - (Smart Contracts) Update to the MIPS contract
 
-Each change has it's own section below with a list of Failure Modes.
+Each change has its own section below with a list of Failure Modes.
 
 Below are references for this project:
 
