@@ -47,8 +47,6 @@ The core changes proposed are as follows:
 
 - Introduce the `DependencySetManager` contract: This contract manages and tracks the dependency graph.
 - Introduce the `SharedLockbox` contract: It acts as an escrow for ETH, receiving deposits and allows withdrawals from approved `OptimismPortal2` contracts. The `DependencySetManager` contract serves as the source of truth of the lockbox.
-- Modify the `SystemConfigInterop`: Add `addDependencies` and `removeDependencies` functions to accept an array of `_chainId` values.
-- Modify the `L1BlockInterop`: To maintain consistency with `SystemConfigInterop`.
 - Modify the `OptimismPortal2`/`OptimismPortalInterop`: To forward ETH into the `SharedLockbox` when `depositTransaction` is called, with the same process applying when `finalizeWithdrawal` is called.
 
 ### Managing `DependencySetManager`
@@ -80,14 +78,14 @@ function addChain(uint256 chainId) external onlyOwner {
 		require(systemConfigInterops[chainId] != address(0), "DependencySetManager: Chain not registered");
 		require(!isRegistered[chainId], "DependencySetManager: Chain already in dependency set");
 
-		// For the chain being added, call addDependencies with existing chainIds
+		// For the chain being added, call addDependency with existing chainIds
 		if (dependencySet.length > 0) {
 				for (uint256 i = 0; i < dependencySet.length; i++) {
             ISystemConfigInterop(systemConfigInterops[chainId]).addDependency(dependencySet[i]);
             }
 		}
 
-		// For each existing chain, call addDependencies with the new chainId
+		// For each existing chain, call addDependency with the new chainId
 		for (uint256 i = 0; i < dependencySet.length; i++) {
 				ISystemConfigInterop(systemConfigInterops[dependencySet[i]]).addDependency(chainId);
     }
@@ -101,22 +99,6 @@ function addChain(uint256 chainId) external onlyOwner {
 ```
 
 Note that, under the specified flow, the dependency set consistently maintains the form of a [complete graph](https://en.wikipedia.org/wiki/Complete_graph) at all times.
-
-### `addDependencies` and `removeDependencies` in `SystemConfigInterop` and `L1BlockInterop`
-
-The purpose of these functions is to extend the current `SystemConfigInterop` implementation by allowing multiple `chainId` values to be added in a single call by passing them as an array. There are a few ways to pass these values through `setConfig`: one is making a single call and triggering the `TransactionDeposited` event, or by looping through the current `addDependency`/`removeDependency` functions.
-
-With this optimization, the `DependencySetManager` can simplify the number of calls, as follows:
-
-```solidity
-function addChain(uint256 chainId) external onlyOwner {
-  // ...
-	if (dependencySet.length > 0) {
-				// If we can input an array chainId values thorugh addDependencies function
-				ISystemConfigInterop(newChainSystemConfig).addDependencies(dependencySet);
-	}		
-	// ...
-```
 
 ### `SharedLockbox` implementation
 
@@ -158,5 +140,5 @@ The implementation would require iterating through the dependency set, determine
 # Risks & Uncertainties
 
 - **Scalable security**: With interop, withdrawals are a critical flow to protect, especially for ETH, since it tentatively becomes the most bridged asset across the Superchain. This means proof systems, dedicated monitoring services, the Security Council, and the Guardian need to be proven to tolerate the growing number of chains.
-- **Necessity of gas optimizations**: the `DependencySetManager`’s `addChain` function call every `SystemConfigInterop`, which will increase in number over time. This would lead to significant gas expenditure as the number of chains continues to grow.
+- **Necessity of gas optimizations**: the `DependencySetManager`’s `addChain` function call every `SystemConfigInterop`, which will increase in number over time. This could lead to significant gas expenditure as the number of chains continues to grow. One possible solution could be to extend the current `addDependency`/`removeDependency` to accept an array of `chainId` values in a single deposit call. The same reasoning could apply to `L1Block`.
 - **Chain list consistency around OP contracts**: OP Chains can have different statuses over time. This is reflected by the potential presence of several lists, such as those in the `OPCM` and the `DependencySetManager`. It would make sense to coordinate on implementing the most ideal chain registry for all expected use cases, including those described in this doc.
