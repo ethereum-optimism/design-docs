@@ -10,7 +10,7 @@ OPCM will transition from its current singleton architecture to a multi-deployme
 
 - Remove the [proxy](https://github.com/ethereum-optimism/optimism/blob/4c015e3a36f8910e2cf8b447d62ab4c44b944cca/packages/contracts-bedrock/scripts/deploy/DeployImplementations.s.sol#L545) from OPCM.
 - Remove [initialize](https://github.com/ethereum-optimism/optimism/blob/28283a927e3124fa0b2cf8d47d1a734e95478215/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L210) functionality from OPCM and introduce standard constructor initialization.
-- Add versioning to OPCM to expose which L1 contracts are deployed for the specific OPCM deployment e.g. `string constant l1ContractsVersion = "op-contracts/v1.6.0";` or something more nuanced that shows the relationship between the version string and the [standard release implementation addresses](https://github.com/ethereum-optimism/superchain-registry/blob/main/validation/standard/standard-versions-mainnet.toml#L9).
+- Add versioning to OPCM to expose which L1 contracts are deployed for the specific OPCM deployment e.g. `string constant l1ContractsVersion = "op-contracts/v1.6.0";` or something more nuanced that shows the relationship between the version string and the [standard release implementation addresses](https://github.com/ethereum-optimism/superchain-registry/blob/main/validation/standard/standard-versions-mainnet.toml#L9). This versioning is in addition to the [existing semvers](https://github.com/ethereum-optimism/optimism/blob/feat/isthmus-contracts/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L133-L134) that exist on OPCM contracts today.
 - Update `op-deployer`, `DeploySuperchain.s.sol`, `DeployImplementations.s.sol` and `DeployOPChain.s.sol` to work with the new multi-deployment paradigm of one OPCM per L1 smart contract release.
 
 
@@ -50,6 +50,8 @@ flowchart LR
     C[Any Account] -->|call| D[OPCM - op-contracts/v1.6.0]
 ```
 
+In the event that we deploy a buggy OPCM and need to provide a patch fix, we can simply deploy a new OPCM contract. The new contract will explicitly include the address of the contract it replaces, e.g. `address replaces = <old-contract-address>`. By doing this we can easily tell which OPCM contract is the latest version to use by process of elimination. 
+
 ## Versioning
 
 Now that each OPCM deploy is going to be tethered directly to an L1 smart contract release version, for improved UX, we should provide public getters to expose two pieces of information: 
@@ -61,7 +63,14 @@ This creates a linked list whereby a user can find all prior OPCMs starting from
 
 # Risks & Uncertainties
 
-With more OPCM versions, we’ll need to write additional production Solidity code. While our engineering practices help minimize bugs, it is still worth considering whether increasing the surface area of onchain interactions is desirable.
+## Further Commitment To Moving Logic On-Chain
+Regardless of whether we continue with the singleton OPCM approach or adopt a different strategy, more Solidity production code will be necessary. While our engineering practices help minimize bugs, it is still worth considering whether increasing the surface area of on-chain interactions is desirable.
+
+## Documentation
+Having multiple implementations of OPCM that exist in parallel will mean that tacking and documenting them is even more important. Keeping documentation up to date will be paramount in ensuring our customers have the best experience using these tools. 
+
+## Superchain-Registry
+If an OPCM release is approved by governance, any deployments made from this address can be considered trustworthy. One side effect of this is that certain superchain-registry checks may no longer be necessary. The full scope of superchain-registry changes is currently unknown.
 
 
 [^1]: *To view all official L1 smart releases, run `git tag -l | grep op-contracts` on the `develop` branch inside the [monorepo](https://github.com/ethereum-optimism/optimism).*
