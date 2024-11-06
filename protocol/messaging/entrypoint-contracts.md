@@ -1,6 +1,9 @@
 ## Summary
 
-This design document introduces `Entrypoint` contracts as a new primitive that allows anyone to add custom logic on top of the `L2ToL2CrossDomainMessenger`. It generalizes the `L2ToL2CrossDomainMessenger` design and unlocks other interop primitives such as message batching and expiring. To do so, it adds a parameter in the `L2ToL2CrossDomainMessenger` that binds the relaying to a particular address, where custom logic can live.
+This design document introduces `Entrypoint` contracts as a new primitive that allows anyone to add custom logic on top of the `L2ToL2CrossDomainMessenger`.
+It generalizes the `L2ToL2CrossDomainMessenger` design and unlocks other interop primitives such as message batching and expiring.
+To do so, the `L2ToL2CrossDomainMessenger` will allow to authorize a single address to relay a message.
+The authorized address can then add custom logic before executing the call.
 
 ## Problem Statement + Context
 
