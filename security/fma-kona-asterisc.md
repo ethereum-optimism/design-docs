@@ -11,6 +11,7 @@
     - [Divergence between RISCV.sol and Asterisc](#divergence-between-riscvsol-and-asterisc)
     - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
   - [Audit Requirements](#audit-requirements)
+  - [Action Items](#action-items)
   - [Appendix](#appendix)
     - [Appendix A: op-challenger](#appendix-a-op-challenger)
 
