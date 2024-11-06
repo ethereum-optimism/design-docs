@@ -133,7 +133,7 @@ This role will be set in `SystemConfig.initialize()`, meaning that it can only b
 In summary:
 
 1. The `FeeAdmin` can update the `FeeConfig`.
-2. The Upgrade Controller (aka [L1 ProxyAdmin Owner](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/stage-1.md#configuration-of-safes)) Safe cand update the `FeeAdmin`.
+2. The Upgrade Controller (aka [L1 ProxyAdmin Owner](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/stage-1.md#configuration-of-safes)) Safe can update the `FeeAdmin`.
 
 #### L2ProxyAdmin
 
