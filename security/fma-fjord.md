@@ -34,7 +34,7 @@ This document is intended to be shared in a public space for reviews and visibil
 - enables a precompile for the secp256r1 elliptic curve ([RIP-7212](https://github.com/ethereum/RIPs/blob/master/RIPS/rip-7212.md))
 - a more accurate L1 data cost function that estimates the batch-compressed transaction size using a [FastLZ](https://code.google.com/archive/p/fastlz/) based linear regression.
 - Introduces Brotli as new channel compression algo
-- Increase max-sequencer-drift to 30 minutes
+- Increase the max-sequencer-drift to 30 minutes
 - 10x the max rlp bytes per channel and max channel bank size
     - Impl: https://github.com/ethereum-optimism/optimism/pull/10357
 
@@ -81,7 +81,7 @@ Fjord introduces changes to the `GasPriceOracle` precompile contract on the L2. 
 
 - **Mitigations:** Unit and end-to-end testing, extensive evaluation of the cost function showing far better robustness in minimizing estimation error compared to what has been used pre-Fjord.
 
-- **Detection:** Dashboards would quickly reveal if we are charging too little and alerts should fire if we are no longer recovering revenue from L1 data posting. L1 fee parameters are tuned to maintain a 5% margin above expected cost. If we are charging too much then we’ll observe revenue recovery well above this margin, and could even here reports from users/dApp operators. Chains such as Base have alerts set to fire If we are charging too little and revenue recovery goes below 0.
+- **Detection:** Dashboards would quickly reveal if we are charging too little and alerts should fire if we are no longer recovering revenue from L1 data posting. L1 fee parameters are tuned to maintain a 5% margin above expected cost. If we are charging too much then we’ll observe revenue recovery well above this margin, and could even hear reports from users/dApp operators. Chains such as Base have alerts set to fire If we are charging too little and revenue recovery goes below 0.
 
 - **Recovery Path(s)**: Fjord preserves the ability to adjust fee recovery margin via fee scalar and blob fee scalars should we be under or over charging
 
@@ -89,7 +89,7 @@ Fjord introduces changes to the `GasPriceOracle` precompile contract on the L2. 
 
 - **Description:** The 7212 precompile may not get activated properly at the point of the hardfork, or it may be activated properly but there may be bugs in the implementation.
 
-- **Risk Assessment:** Low.  If 7212 fails to deploy, since there are no existing uses of it, there will be no immediate impact. The impact is in prohibiting future potential uses of this predeploy. If the issue is a bug in the implementation, then users could end up trying to use it anyway and get incorrect results.  The implementation however is the reference implementation that has been been vetted by the broader community, so this outcome is unlikely.
+- **Risk Assessment:** Low.  If 7212 fails to deploy, since there are no existing uses of it, there will be no immediate impact. The impact is in prohibiting future potential uses of this predeploy. If the issue is a bug in the implementation, then users could end up trying to use it anyway and get incorrect results.  The implementation however is the reference implementation that has been vetted by the broader community, so this outcome is unlikely.
 
 - **Mitigations:** Precompiles activate new code paths and do not require dynamic deployment of new contract code, which implies the risk is lower than a predeploy update.  Mitigations mostly involve e2e testing, and vetting activation in our dev & testnets.  The 7212 implementation itself that we are using has been extensively tested and vetted not only by us but also the broader community.
 
