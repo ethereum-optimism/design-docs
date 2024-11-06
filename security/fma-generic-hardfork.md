@@ -51,7 +51,7 @@ Since there is no chain halt, we can just live with it and fix it in an upcoming
 
 #### Activation Failure without chain halt: Node software
 
-- **Description:** The upgrade may be misconfigured in the node software (e.g. superchain-registy dependency was not updated) and fail to take place.
+- **Description:** The upgrade may be misconfigured in the node software (e.g. superchain-registry dependency was not updated) and fail to take place.
 
 - **Risk Assessment:** Low severity if there were no L1 contract changes or if there were L1 contract changes but they also failed to apply, since the chain would continue on as if the upgrade never happened. 
 
