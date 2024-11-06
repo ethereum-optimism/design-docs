@@ -67,8 +67,8 @@ Each `Entrypoint` and initiating message contract will be responsible for handli
 
 `Entrypoints` can follow the model of the `L2ToL2CrossDomainMessenger` and decode additional parameters. Of course, this would require the `EntrypointContext` event to encode this information. Some parameters that can be used for binding are
 - `L2ToL2CrossDomainMessenger` current `nonce`. The `Entrypoint` can then check that the `EntrypointContext` has the same `nonce` than the `SentMessage`.
-- `address(this)` in the `EntrypointContext` event matches `sender` from `SentMessage`. This could show that the context was created on the same contract than the connected message.
-- `source` chainId. Should match with the `SentMessage`.
+- Identifier's `origin` from `EntrypointContext` event matches `sender` from `SentMessage`. This could show that the context was created on the same contract than the connected message.
+- Identifier's `chainId` from `EntrypointContext` event matches `source` from `SentMessage`. Should match with the `SentMessage`.
 
 ## Full example: Expire messages
 
