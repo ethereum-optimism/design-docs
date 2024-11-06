@@ -100,8 +100,6 @@ function addChain(uint256 chainId) external onlyOwner {
     
 ```
 
-For `removeChain`, the process would follows the same logic.
-
 Note that, under the specified flow, the dependency set consistently maintains the form of a [complete graph](https://en.wikipedia.org/wiki/Complete_graph) at all times.
 
 ### `addDependencies` and `removeDependencies` in `SystemConfigInterop` and `L1BlockInterop`
@@ -160,5 +158,5 @@ The implementation would require iterating through the dependency set, determine
 # Risks & Uncertainties
 
 - **Scalable security**: With interop, withdrawals are a critical flow to protect, especially for ETH, since it tentatively becomes the most bridged asset across the Superchain. This means proof systems, dedicated monitoring services, the Security Council, and the Guardian need to be proven to tolerate the growing number of chains.
-- **Necessity of gas optimizations**: the `DependencySetManager`’s `addChain` and `removeChain` functions call every `SystemConfigInterop`, which will increase in number over time. This would lead to significant gas expenditure as the number of chains continues to grow.
+- **Necessity of gas optimizations**: the `DependencySetManager`’s `addChain` function call every `SystemConfigInterop`, which will increase in number over time. This would lead to significant gas expenditure as the number of chains continues to grow.
 - **Chain list consistency around OP contracts**: OP Chains can have different statuses over time. This is reflected by the potential presence of several lists, such as those in the `OPCM` and the `DependencySetManager`. It would make sense to coordinate on implementing the most ideal chain registry for all expected use cases, including those described in this doc.
