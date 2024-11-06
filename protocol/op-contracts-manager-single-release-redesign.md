@@ -2,7 +2,7 @@
 
 The original OPContractsManager (OPCM) design, outlined [here](./op-contracts-manager-arch.md), defined a singleton proxied contract that deployed the L1 contracts for standard OP Stack chains in a single transaction.
 
-Implementing upgrade functionality for OP Stack chains via OPCM is now a key goal. As we approach this feature, we've identified several interim adjustments to OPCM that will that will not only enable future upgradability but also simplify its overall design. Therefore, the purpose of this design document is to streamline OPCM’s architecture, making it easier to build and integrate upgradability features.
+Implementing upgrade functionality for OP Stack chains via OPCM is now a key goal. As we approach this feature, we've identified several interim adjustments to OPCM that will not only enable future upgradability but also simplify its overall design. Therefore, the purpose of this design document is to streamline OPCM’s architecture, making it easier to build and integrate upgradability features.
 
 # Summary
 
