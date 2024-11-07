@@ -62,16 +62,25 @@ flowchart LR
     C[Any Account] -->|call| D[OPCM - op-contracts/v1.6.0]
 ```
 
-In the event that we deploy a buggy OPCM and need to provide a patch fix, we can simply deploy a new OPCM contract. The new contract will explicitly include the address of the contract it replaces, e.g. `address replaces = <old-contract-address>`. By doing this we can easily tell which OPCM contract is the latest version to use by process of elimination. 
+### Managing Patches for OPCM Deployments
+
+In the event that we deploy a buggy OPCM and need to provide a patch fix, we can simply deploy a new OPCM contract. The canonical list of OPCM contracts will be maintained off-chain, most likely in the [superchain-registry](https://github.com/ethereum-optimism/superchain-registry).
+A hypothetical example of a scenario where a patch fix for an older OPCM is needed could be one where the upgrade functionality works for all chains except one, for whatever reason. In this case, we will need to fix the upgrade function.
+
+```
+opcm (op-contracts/v1.6.0) // Stable version.
+opcm (op-contracts/v1.7.0) // Buggy and needs to be patched. This version is superseded by opcm (op-contracts/v1.7.1).
+    opcm (op-contracts/v1.7.1) // Patched version.
+opcm (op-contracts/v1.8.0) // Next stable release.
+```
 
 ## Versioning
 
 Now that each OPCM deploy is going to be tethered directly to an L1 smart contract release version, for improved UX, we should provide public getters to expose two pieces of information: 
 
-1. The **current L1 smart contracts** that are deployed via this version of OPCM e.g. `op-contracts/v1.6.0`. This means we will no longer need to pass the standard versions toml [file](https://github.com/ethereum-optimism/optimism/blob/4c015e3a36f8910e2cf8b447d62ab4c44b944cca/packages/contracts-bedrock/scripts/deploy/DeployImplementations.s.sol#L61) around like [this](https://github.com/ethereum-optimism/optimism/blob/4c015e3a36f8910e2cf8b447d62ab4c44b944cca/packages/contracts-bedrock/scripts/deploy/DeployImplementations.s.sol#L1060). The implementation addresses can be added to the OPCM contract as as immutable values. 
-2. The **address of the previous OPCM** contract. 
+1. The **current L1 smart contracts release version** that are deployed via this version of OPCM e.g. `op-contracts/v1.6.0`. This means we will no longer need to pass the standard versions toml [file](https://github.com/ethereum-optimism/optimism/blob/4c015e3a36f8910e2cf8b447d62ab4c44b944cca/packages/contracts-bedrock/scripts/deploy/DeployImplementations.s.sol#L61) around like [this](https://github.com/ethereum-optimism/optimism/blob/4c015e3a36f8910e2cf8b447d62ab4c44b944cca/packages/contracts-bedrock/scripts/deploy/DeployImplementations.s.sol#L1060). The implementation addresses can be added to the OPCM contract as as immutable values. 
 
-This creates a linked list whereby a user can find all prior OPCMs starting from the current OPCM contract. This will prove useful for implementing upgrade functionality because with this information an OPCM can easily expose the version of L1 smart contracts that it supports upgrading **from** and **to**.
+We do not include references to previous OPCM versions or L1 smart contract releases, as this would introduce complexity if [patches](#managing-patches-for-opcm-deployments) need to be applied to older versions.
 
 # Risks & Uncertainties
 
