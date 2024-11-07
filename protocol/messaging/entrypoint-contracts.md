@@ -19,7 +19,7 @@ Anyone can deploy `Entrypoint` contracts with any logic. Users can indicate, exp
 
 The key modification is the `msg.sender` binding feature on the `relayMessage` call. If `msg.sender` has logic, the design is equivalent to binding `relayMessage` to include a pre-hook with that logic.
 
-Notice that a pre/post-hook design is already possible with the current design.
+Notice that post-hook design is already possible with the current design using logic on `target`.
 
 ### Summary of required changes
 
