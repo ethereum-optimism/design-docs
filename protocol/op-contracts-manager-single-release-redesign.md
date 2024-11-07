@@ -28,6 +28,18 @@ OPCM will transition from its current singleton architecture to a multi-deployme
 
 Continue with the approach of adding additional conditional logic for every new chain version that is released. As noted, this leads to a system that is complex and hard to maintain.
 
+## Alternative Versioning
+
+With every official L1 smart contract release[^1], OPCM will need to be deployed. This is necessary because we **must** provide users with a way to deploy the new release and, in the future, upgrade from the prior release. The relationship where OPCM has a new version for each deployment means that the traditional semantic version used by Optimism contracts will be the same as the L1 smart contract release version. To prevent introducing cognitive overhead for developers, we will maintain separate versioning, even if they technically represent the same information. An example of how this might appear is provided below.
+
+```solidity
+/// @custom:semver 3.1.0
+string public constant version = "3.1.0"; // <-- normal semver consistent with all out smart contracts
+
+// @notice L1 smart contracts release deployed by this version of OPCM.
+string constant l1ContractsVersion = "op-contracts/v3.1.0"; // <-- opcm specific
+```
+
 # Proposed Solution
 
 ## OPCM Architecture Changes
