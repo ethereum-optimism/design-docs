@@ -34,7 +34,7 @@ With every official L1 smart contract release[^1], OPCM will need to be deployed
 
 ```solidity
 /// @custom:semver 3.1.0
-string public constant version = "3.1.0"; // <-- normal semver consistent with all out smart contracts
+string public constant version = "3.1.0"; // <-- normal semver consistent with all Optimism smart contracts
 
 // @notice L1 smart contracts release deployed by this version of OPCM.
 string constant l1ContractsVersion = "op-contracts/v3.1.0"; // <-- opcm specific
