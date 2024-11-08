@@ -2,8 +2,7 @@
 
 This design document introduces `Entrypoint` contracts as a new primitive that allows anyone to add custom logic on top of the `L2ToL2CrossDomainMessenger`.
 It generalizes the `L2ToL2CrossDomainMessenger` design and unlocks other interop primitives such as message batching and expiring.
-To do so, the `L2ToL2CrossDomainMessenger` will allow to authorize a single address to relay a message.
-The authorized address can then add custom logic before executing the call.
+To do so, the `L2ToL2CrossDomainMessenger` will allow to authorize a single address to relay a message. The authorized address can then add custom logic before executing the call.
 
 ## Problem Statement + Context
 
@@ -21,15 +20,7 @@ The key modification is the `msg.sender` binding feature on the `relayMessage` c
 
 Notice that post-hook design is already possible with the current design using logic on `target`.
 
-### Summary of required changes
-
-The following changes are required:
-
-- `sendMessage` includes `address entrypoint`.
-- `SentMessage` event includes `address entrypoint`.
-- `relayMessage` checks if `msg.sender == entrypoint` and reverts if not.
-- `_decodeSentMessagePayload` will decode the `entrypoint`.
-- `hashL2toL2CrossDomainMessage` will include `entrypoint`.
+The single authorized address design can also work to permission relaying for an EOA. There is no check that the calling address is a contract or not.
 
 ### Intuition Example
 
@@ -53,45 +44,60 @@ This will allow Alice to perform complex but safe cross-chain actions with a sim
 
 Following the intuition example above, we could notice a problem in 4b: the `SwapperEntrypoint` doesn’t know what pool to use, how much of the total tokens given to it to swap, or who to give the tokens to after the swap. Information is missing. `SwapperEntrypoint` could ask for these values in the `swapTokens` function, but anyone could call it with Alice’s event and provide bad values.
 
-To solve this, `Entrypoint` contracts can define a decoding method and expect a second event. Then, `Entrypoint` can recover the required parameters from a second validated message, and then perform its logic as expected.
+To solve this, `Entrypoint` contracts can define a decoding method and expect a second set of data. We will call this additional data `entrypointContext`. The context is binded into the message, meaning that its not possible to frontrun the `SentMessage` event with a different context.
 
-In origin, Alice would emit the `EntrypointContext` as a separate event, and send her message with her designed `Entrypoint` contract. This way, the `Entrypoint` contract can validate the `EntrypointContext` event from origin, decode it, and perform the required actions.
+`Entrypoint` can use the context however they want. It’s important to notice the `relayMessage()` is non reentrant, so the callback cannot call it back. Some possible ways to use the context are the following:
 
-Therefore, the processing message function in the `Entrypoint` context will validate and consume two messages: the regular `SentMessage` event and the `EntrypointContext` event.
+**Optimistic**
 
-An alternative design could be to emit an `EntrypointContext` struct with explicit parameters.
+Context is assumed to be true, but revert on callback if not. 
 
-Notice that, in the intuition example, the `SwapperEntrypoint` is used as both pre and post-hook for the message relay. The `EntrypointContext` is used here in the post-action, but it would be needed beforehand in other cases (like batching).
+1. In origin, Alice will encode the `entrypointContext` as a single `bytes` parameter into the `sendMessage` call. 
+2. On destination, the `Entrypoint` will ask for the context as a user input, in addition to the message and id. `Entrypoint` will assume this input context is true (optimistic).
+    1. `Entrypoint` will include an `onRelayMessage` callback.
+3. The `Entrypoint` will check that the context is valid.
+4. If so, it will call `relayMessage`, which will 
+    1. validate usual properties of the message (domain binding, non-replayability).
+    2. check `entrypoint == msg.sender`.
+    3. do a callback to the `Entrypoint` for `onRelayMessage`, passing the encoded `entrypointContext`. `onRelayMessage` will check that the context that was inputed matches the `entrypointContext`, and revert if not.
+    4. finally, call `target` with the `message`.
 
-### Binding
-The `EntrypointContext` is not inherently bound to its connected initiating message. This means that, in theory, anyone could execute a message alongside any other valid `EntrypointContext`. Therefore, each `Entrypoint` and initiating message contract handles its authentication logic.
+**Store and use later**
 
-`Entrypoints` can adopt the model used by the `L2ToL2CrossDomainMessenger`, which involves decoding additional parameters. This approach would require the `EntrypointContext` event to encode the necessary information.
+Some applications might not require the context at the time of the message (expire messages for instance). In that case, the `Entrypoint` can ignore the context parameter and just store it on the callback for later use.
 
-We strongly recommend that an `Entrypoint` only accepts `EntrypointContext` events from authorized sources. This implies that the `Entrypoint` should perform the following checks:
-- **Origin Verification**: Check the identifier's `origin` from the `EntrypointContext` event. This can be matched against the decoded `sender` from the `SentMessage` event or compared against a list of authorized addresses.
-- **Chain ID Verification**: Ensure that the `chainId` from the `EntrypointContext` event identifier matches a list of allowed chain IDs.
+1. In origin, Alice will encode the `entrypointContext` as a single `bytes` parameter into the `sendMessage` call.
+2. On destination, the `Entrypoint` will ask for the message and id.
+    1. `Entrypoint` will include an `onRelayMessage` callback.
+3. `Entrypoint` will call `relayMessage`, which will
+    1. validate usual properties of the message (domain binding, non-replayability).
+    2. check `entrypoint == msg.sender`.
+    3. do a callback to the `Entrypoint` for `onRelayMessage`, passing the encoded `entrypointContext`. `onRelayMessage` the `Entrypoint` will store the context for later use.
+    4. finally, call `target` with the `message`.
 
-However, relying solely on these checks can lead to collisions. To improve security, we suggest incorporating additional binding data when possible. 
-If the `EntrypointContext` is generated from the same contract that calls `sendMessage`, it is possible to encode the `msgHash` returned from `sendMessage` into the context event.
-If not, it still possible to verify additional data such as:
-- **Chain ID Matching**: Confirm that the `chainId` from the `EntrypointContext` matches the `source` chain ID from the `SentMessage` event.
-- **Nonce Verification**: Encode the current nonce from the `L2ToL2CrossDomainMessenger` into the `EntrypointContext` event and then check in the `Entrypoint` that it matches the decoded `nonce` from the `SentMessage` event.
+### Summary of required changes
 
-Ultimately, the specific authentication measures will depend on each `Entrypoint` design. It is essential to implement appropriate checks to ensure that messages are securely bound to their corresponding contexts and originate from authorized sources.
+The following changes are required:
 
+- Overload `sendMessage` to
+    - include `address entrypoint` and `bytes entrypointContext`.
+    - modify `SentMessage` event to include `address entrypoint` and `bytes entrypointContext`.
+- Overload `relayMessage` to
+    - check if `msg.sender == entrypoint` and reverts if not.
+    - checks if `entrypointContext.length > 0` , and if so, it performs a callback to the `entrypoint` address with `entrypointContext` data.
+- `_decodeSentMessagePayload` will decode the `entrypoint` and `entrypointContext`.
+- `hashL2toL2CrossDomainMessage` will include `entrypoint` and `entrypointContext`.
 
 ## Full example: Expire messages
 
-Here’s an example of how `Entrypoint` contracts with `EntrypointContext` events can enable powerful features like the expiration of messages:
+Here’s an example of how `Entrypoint` contracts with `entrypointContext` can enable powerful features like the expiration of messages:
 
 Suppose an `ExpirableTokenBridge` contract exists, that uses an `Entrypoint` with the added functionality of expiring a failed message in destination. `ExpirableTokenBridge` has minting and burning rights over `SuperchainERC20`.
 
-- Alice will transfer `AliceSuperToken` from Chain A to Chain B through the `ExpirableTokenBridge`.
-- If `AliceSuperToken` has not yet been deployed, relaying the message will fail.
-- The user will then use the `Entrypoint` functionality to expire the message, making it non-processable by adding it to a mapping. Any call to the `Entrypoint` to relay the expired message will revert. As the `Entrypoint` is the only contract that can process this message in the `L2ToL2CrossDomainMessenger`, the expired message is effectively non-processable in Chain B.
-	- (Optional) The expiring function can also check `EntrypointContext` parameters, such as time window.
-- Lastly, after the relaying failure, the user will call the `Entrypoint` again, on chain B, to expire a message. This will emit a message that the contract in Chain A can consume to handle the expired message.
+- Alice will transfer `AliceSuperToken` from Chain A to Chain B through the `ExpirableTokenBridge`, alongside some optional expiring parameters (that will get encoded in the `entrypointContext`).
+- If `AliceSuperToken` has not yet been deployed, relaying the message from the `Entrypoint` will fail. The `Entrypoint` can optionally store the `entrypointContext`.
+- The user will then use the `Entrypoint` functionality to expire the message in chain B, making it non-processable by adding it to a mapping.  This will emit a message that the contract in Chain A can consume to handle the expired message. This call might optionally check the stored context as well for time windows or allowed senders.
+Any call to the `Entrypoint` to relay the expired message will revert. As the `Entrypoint` is the only contract that can process this message in the `L2ToL2CrossDomainMessenger`, the expired message is effectively non-processable in Chain B.
 
 The sequence diagrams will be divided in three:
 
@@ -105,9 +111,9 @@ sequenceDiagram
 title Message creation (Chain A)
 
 Alice->>ExpirableTokenBridge_A: sendERC20(to)
-ExpirableTokenBridge_A->>L2ToL2CrossDomainMessenger: sendMessage(..., entrypointAddr)
-L2ToL2CrossDomainMessenger-->L2ToL2CrossDomainMessenger: emit SentMessage(...params, entrypointAddr, message)
-ExpirableTokenBridge_A-->ExpirableTokenBridge_A: emit EntrypointContext(expirerAddr, token, deadline, receiverOfExpiredMessage, receiverOfExpiredTokens)
+ExpirableTokenBridge_A->>L2ToL2CrossDomainMessenger: sendMessage(..., entrypointAddr, entrypointContext)
+L2ToL2CrossDomainMessenger-->L2ToL2CrossDomainMessenger: emit SentMessage(...params, entrypointAddr, message, entrypointContext)
+
 ```
 
 ```mermaid
@@ -116,8 +122,8 @@ sequenceDiagram
 title Message failed and expired (Chain B)
 
 Anyone->>Entrypoint: processMessage(Identifier messageId, Message message, Identifier contextId, Message context)
-Entrypoint->>CrossL2Inbox: Validate message and EntrypointContext event
-Entrypoint->>L2ToL2CrossDomainMessenger: relayMessage()
+Entrypoint->>L2ToL2CrossDomainMessenger: relayMessage(id, message)
+L2ToL2CrossDomainMessenger ->> Entrypoint: onRelayMessage(entrypointContext)
 L2ToL2CrossDomainMessenger->>ExpirableTokenBridge_B: relayERC2O(to, amount)
 ExpirableTokenBridge_B->>SuperchainERC20_B: FAILS
 Anyone->>Entrypoint: expireMessage(messageHash)
@@ -125,6 +131,7 @@ Entrypoint-->Entrypoint: checks if the deadline of the message is due
 Entrypoint-->L2ToL2CrossDomainMessenger: checks if the message has been successfully relayed before
 Entrypoint-->Entrypoint: adds it to expiredMessages mapping to avoid future processing
 Entrypoint-->Entrypoint: emit ExpiredMessage(destination, messageHash, receiverOfExpiredMessage)
+
 ```
 
 ```mermaid
@@ -132,10 +139,11 @@ sequenceDiagram
 
 title Expired message handling and funds recovery (Chain A)
 
-Anyone-->ExpirableTokenBridge_A: handleExpired(Identifier id, ExpiredMessage expiredMessage)
+Anyone->>ExpirableTokenBridge_A: handleExpired(Identifier id, ExpiredMessage expiredMessage)
 ExpirableTokenBridge_A->>CrossL2Inbox: validateMessage
 ExpirableTokenBridge_A-->ExpirableTokenBridge_A: adds to expired messages mapping
-ExpirableTokenBridge_A-->SuperchainERC20_A: crosschainMint(receiverOfExpiredTokens)
+ExpirableTokenBridge_A->>SuperchainERC20_A: crosschainMint(receiverOfExpiredTokens)
+
 ```
 
 ## Notes and Open Questions
