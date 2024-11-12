@@ -167,11 +167,11 @@ The changes to the MIPs contract were subject to an audit, the report is availab
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [x] (BLOCKING): Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
-- [ ] (BLOCKING): Action tests will be added which are run on op-node and Kona https://github.com/ethereum-optimism/optimism/issues/12449
-- [ ] (BLOCKING): The changes will be deployed to a devnet with both geth and reth running
-- [ ] (BLOCKING): we will re-architect the batcher to eliminate the cases above
-- [ ] (BLOCKING): we will add functionality to the batcher to periodically detect when the safe chain should have progressed but didn't, and to recover from that
-- [ ] (BLOCKING): the script(s) or tooling for the `SystemConfig` upgrade contract will exit with an error if the activation time has not yet passed.
+- [x] (BLOCKING): Action tests will be added which are run on op-node and Kona https://github.com/ethereum-optimism/optimism/issues/12449
+- [x] (BLOCKING): The changes will be deployed to a devnet with both geth and reth running
+- [x] (BLOCKING): we will re-architect the batcher to eliminate the cases above
+- [x] (BLOCKING): we will add functionality to the batcher to periodically detect when the safe chain should have progressed but didn't, and to recover from that
+- [x] (BLOCKING): the script(s) or tooling for the `SystemConfig` upgrade contract will exit with an error if the activation time has not yet passed.
 - [ ] (non-BLOCKING): We will update the op-sepolia vm-runner to use the new FPVM. The vm-runner runs the op-program in the MIPS FPVM using inputs sampled from a live chain. Having the vm-runner run the op-program on op-sepolia for a couple days will increase confidence that the network will continue to be fault provable.
 
 Additional action items are copied here from the [generic hardfork FMA](./fma-generic-hardfork.md) doc:
