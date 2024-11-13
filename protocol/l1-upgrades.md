@@ -192,7 +192,7 @@ Proxies are the `L1StandardBridge` (`L1ChugsplashProxy`) and `L1CrossDomainMesse
 
 As part of the release process, the associated implementation contracts and a new OPCM, will be deployed.
 
-The Upgrade Controller MUST be a Safe in order to atomically:
+The Upgrade Controller MUST be a Safe in order to perform the following actions atomically:
 
 1. transfer ownership of the `SuperchainProxyAdmin` to the new OPCM.
 2. call `OPCM.upgrade()` which will return ownership to the Safe immediately upon completing the
@@ -226,7 +226,11 @@ function upgrade() public {
 }
 ```
 
-**Note:**A new getter should be added to the `SystemConfig` to perform this in a single call.
+**Notes:**
+
+- A new getter should be added to the `SystemConfig` to retrieve the `Addresses` in a single call.
+- The `AddressManager` for each chain must be used to upgrade the `L1CrossDomainMessenger`, therefore it should be added to the `Addresses` struct.
+-
 
 ## L1ChugsplashProxy Considerations
 
@@ -298,7 +302,10 @@ We will likely need to handle that limitation at some point in the future, but c
 
 # Alternatives Considered
 
-TODO
+1. Keeping the existing L1 Proxy Admin was rejected as being overly redundant and inefficient.
+2.
+3. Keeping initializers, and the StorageSetter was rejected as more over-prone, though possible simpler for testing purposes.
+4.
 
 # Risks & Uncertainties
 
