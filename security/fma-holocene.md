@@ -167,19 +167,37 @@ The changes to the MIPs contract were subject to an audit, the report is availab
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [x] (BLOCKING): Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
-- [x] (BLOCKING): Action tests will be added which are run on op-node and Kona https://github.com/ethereum-optimism/optimism/issues/12449
+- [x] (BLOCKING): Action tests will be added which are run on op-node and Kona 
+    * [Holocene-D: Action Tests](https://github.com/ethereum-optimism/optimism/issues/12449)
+    * [op-e2e/actions: Add Holocene FP action tests #12520](https://github.com/ethereum-optimism/optimism/pull/12520)
+    * [op-e2e/actions: Cover Holocene activation and pipeline reset #12891](https://github.com/ethereum-optimism/optimism/pull/12891)
+    * [chore(ci): Bump monorepo commit](https://github.com/anton-rs/kona/pull/805)
+
 - [x] (BLOCKING): The changes will be deployed to a devnet with both geth and reth running
+    * [Add Holocene activation timestamps for Sepoila devnets and testnets](https://github.com/ethereum-optimism/superchain-registry/pull/677)
+    * [chore: Update Holocene timestamp for Sepolia](https://github.com/paradigmxyz/reth/pull/12479)
+    * Reth does not have a chain spec built in for devnet, so a custom one will be used
+    * TODO link to op-node/op-geth/reth activation releases and k8s PR for rollout
+
 - [x] (BLOCKING): we will re-architect the batcher to eliminate the cases above
+    * [Holocene-D: Batcher Hardening](https://github.com/ethereum-optimism/optimism/issues/12120)
+    * [batcher: keep blocks, channels and frames in strict order & simplify reorg handling #12390](https://github.com/ethereum-optimism/optimism/pull/12390)
+    * [op-batcher: add channel.straddlesActivation method (for Holocene) and wire it up #12743](https://github.com/ethereum-optimism/optimism/pull/12743)
 - [x] (BLOCKING): we will add functionality to the batcher to periodically detect when the safe chain should have progressed but didn't, and to recover from that
-- [x] (BLOCKING): the script(s) or tooling for the `SystemConfig` upgrade contract will exit with an error if the activation time has not yet passed.
+    * [batcher: batchSubmitter.checkExpectedProgress #12430](https://github.com/ethereum-optimism/optimism/pull/12430)
+- [ ] (BLOCKING): the script(s) or tooling for the `SystemConfig` upgrade contract will exit with an error if the activation time has not yet passed.
+    * The scripts are here https://github.com/ethereum-optimism/optimism/pull/12878 but there is no check on the activation time
 - [ ] (non-BLOCKING): We will update the op-sepolia vm-runner to use the new FPVM. The vm-runner runs the op-program in the MIPS FPVM using inputs sampled from a live chain. Having the vm-runner run the op-program on op-sepolia for a couple days will increase confidence that the network will continue to be fault provable.
 
 Additional action items are copied here from the [generic hardfork FMA](./fma-generic-hardfork.md) doc:
 
-- [ ] (BLOCKING): We have implemented extensive unit and end-to-end testing of the activation flow.
-- [ ] (BLOCKING): We have implemented multi-client testing to reduce the chance of bugs
-- [ ] (BLOCKING): We have implemented extensive cross-client / differential testing of the new functionality.
-- [ ] (BLOCKING): We will be testing the activation on our devnets and testnets.
+- [x] (BLOCKING): We have implemented extensive unit and end-to-end testing of the activation flow.
+    * [op-e2e/actions: Cover Holocene activation and pipeline reset #12891](https://github.com/ethereum-optimism/optimism/pull/12891)
+    * [op-node/rollup/derive: Implement pipeline stage multiplexing](https://github.com/ethereum-optimism/optimism/pull/12506/files#diff-6785b6642247a593b186581ea0e44c4ceaaac682cc45177adf059160e083efe9)
+- [x] (BLOCKING): We have implemented extensive cross-client / differential testing of the new functionality.
+    * action tests run on op-node, op-program and kona (see links above)
+- [x] (BLOCKING): We will be testing the activation on our devnets and testnets.
+    * see above
 - [ ] (BLOCKING): We have prepared datadir backups close before the upgrade, so we can use these in an emergency to rollback.
 - [ ] (BLOCKING): We have updated the runbook for recovering from a hardfork activation chain halt (including rolling back contract changes), if necessary. See https://oplabs.notion.site/RB-000-How-To-Rewind-a-Network-c21f628205354dbdbed9c691b2455a7c?pvs=74.
 - [ ] (non-BLOCKING): The superchain-ops task to upgrade any contract should check if the semantic versions and bytecodes after the upgrade are as expected. 
