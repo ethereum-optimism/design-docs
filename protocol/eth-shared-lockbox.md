@@ -47,7 +47,7 @@ The core proposed changes are as follows:
 - **Introduce the `SharedLockbox` contract**: This contract acts as an escrow for ETH, receiving deposits and allowing withdrawals from approved `OptimismPortal` contracts. The `SuperchainConfig` contract serves as the source of truth of the lockbox.
 - **Modify the `OptimismPortal`**: To forward ETH into the `SharedLockbox` when `depositTransaction` is called, with the inverse process applying when `finalizeWithdrawal` is called.
 
-### Managing op-governed dependency set through `SuperchainConfig` 
+### Managing op-governed dependency set through `SuperchainConfig`
 
 The `SuperchainConfig` contract will serve as the single point for managing the dependency set of a cluster and will be managed by the admin as occurs in other L1 OP contracts. This contract assumes the role of `dependencyManager` for every `SystemConfig` contract involved. Since the dependency graph follows a simple dependency, it only stores a mapping (or array) of chains added, e.g. given a `chainId`.
 
@@ -74,32 +74,32 @@ A code example would look like this:
 
 ```solidity
 function addChain(uint256 _chainId, address _systemConfig) external {
-    require(msg.sender == updater(), "Unauthorized");
+  require(msg.sender == updater(), "Unauthorized");
+  // Add to the dependency set and check it is not already added (`add()` returns false if it already exists)
+  require(_dependencySet.add(_chainId), "Chain already added");
 
-    // Add to the dependency set and check it is not already added (`add()` returns false if it already exists)
-    require(_dependencySet.add(_chainId), "Chain already added");
+  // Store the system config
+  systemConfigs[_chainId] = _systemConfig;
 
-		// Store the system config
-    systemConfigs[_chainId] = _systemConfig;
+  // Loop through the dependency set and update the dependency for each chain
+  for (uint256 i; i < _dependencySet.length() - 1; i++) {
 
-    // Loop through the dependency set and update the dependency for each chain
-    for (uint256 i; i < _dependencySet.length() - 1; i++) {
-		    uint256 currentId = _dependencySet.at(i);
-        
-        // Skip recently added chain
-        if (_chainId == currentId) continue;
-        
-        systemConfigs[currentId].addDependency(_chainId);
-        
-        systemConfigs[_chainId].addDependency(currentId);
-    }
+    uint256 currentId = _dependencySet.at(i);
 
-		address portal = _systemConfig.optimismPortal();
+    // Skip recently added chain
+    if (_chainId == currentId) continue;
 
-		// Authorize the portal on the shared lockbox
-		SHARED_LOCKBOX.authorizePortal(portal);
+    systemConfigs[currentId].addDependency(_chainId);
 
-    emit ChainAdded(_chainId, _systemConfig, portal);
+    systemConfigs[_chainId].addDependency(currentId);
+  }
+
+  address portal = _systemConfig.optimismPortal();
+
+  // Authorize the portal on the shared lockbox
+  SHARED_LOCKBOX.authorizePortal(portal);
+
+  emit ChainAdded(_chainId, _systemConfig, portal);
 }
 ```
 
@@ -121,6 +121,45 @@ A one-time L1 liquidity migration is required for each approved chain. By using 
 Importantly, the entire upgrade process—including migrating the ETH to the `SharedLockbox` and updating the `OptimismPortal` to the latest version—can be executed in a single batched transaction. This approach ensures migration without the necessity of maintaining a persistent migration function in the final contract.
 
 Note that migration processes may not be uniform and may vary according to the status of the chain seeking to join the OP-governed interoperable set. As stated in the previous section, chains are expected to ensure they reach the approved, OP Stack version. In practice, different migration paths could be implemented, for example, to allow chains to use the `SharedLockbox` from inception or migrate from a previous one, for example.
+
+```mermaid
+sequenceDiagram
+    participant L1PAO as L1 ProxyAdmin Owner
+    participant ProxyAdmin as ProxyAdmin
+    participant SystemConfigProxy as SystemConfig
+    participant StorageSetter
+    participant SuperchainConfig
+    participant OptimismPortalProxy as OptimismPortal
+    participant LiquidityMigrator
+    participant SharedLockbox
+
+    Note over L1PAO: Start batch
+
+    %% Step 1: Upgrade SystemConfig to StorageSetter to zero out initialized slot
+    L1PAO->>ProxyAdmin: upgradeAndCall()
+    ProxyAdmin->>SystemConfigProxy: Upgrade to StorageSetter
+    SystemConfigProxy->>StorageSetter: Call to set initialized slot to zero
+
+    %% Step 2: Upgrade SystemConfig and initialize with SuperchainConfig
+    L1PAO->>ProxyAdmin: upgradeAndCall()
+    ProxyAdmin->>SystemConfigProxy: Upgrade to new SystemConfig implementation
+    ProxyAdmin->>SystemConfigProxy: Call initialize(...SuperchainConfig address)
+
+    %% Step 3: Add chain to SuperchainConfig
+    L1PAO->>SuperchainConfig: addChain(chainId, SystemConfig address)
+
+    %% Step 4: Upgrade OptimismPortal to intermediate implementation that transfers ETH
+    L1PAO->>ProxyAdmin: upgradeAndCall()
+    ProxyAdmin->>OptimismPortalProxy: Upgrade to LiquidityMigrator
+    OptimismPortalProxy->>LiquidityMigrator: Call migrateETH()
+    OptimismPortalProxy->>SharedLockbox: Transfer entire ETH balance
+
+    %% Step 5: Upgrade OptimismPortal to final implementation
+    L1PAO->>ProxyAdmin: upgrade()
+    ProxyAdmin->>OptimismPortalProxy: Upgrade to new OptimismPortal implementation
+
+    Note over L1PAO: End batch
+```
 
 ## Impact
 
