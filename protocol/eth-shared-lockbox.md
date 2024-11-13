@@ -6,7 +6,7 @@ This document discusses possible solutions to address the constraints on ETH wit
 
 # Summary
 
-With interoperable ETH, withdrawals may fail if the referenced `OptimismPortal` lacks sufficient ETH—especially for large amounts or on OP Chains with low liquidity—since ETH liquidity isn't shared at the L1 level. To prevent users from being stuck, several solutions have been explored. Currently, the Superchain design favors the `SharedLockbox` and the `DependencySetManager` as the most effective solution.
+With interoperable ETH, withdrawals may fail if the referenced `OptimismPortal` lacks sufficient ETH—especially for large amounts or on OP Chains with low liquidity—since ETH liquidity isn't shared at the L1 level. To prevent users from being stuck, several solutions have been explored. Currently, the Superchain design favors the `SharedLockbox` and extends the `SuperchainConfig` as a *dependency set manager*, which is considered the most effective solution.
 
 # Problem Statement + Context
 
@@ -35,67 +35,72 @@ OP Chains will be governed within a common Chain Cluster governance entity (the 
 
 ### Shared Bridging and SuperchainWETH usage
 
-In any OP Chain that joins the cluster, it is assumed that `SuperchainWETH` has been deployed in advance before being added to the interoperable graph. As a result, the equivalence between ETH deposits and withdrawal history and the actual ETH supply will vary from the outset. In a world with freedom of movement, all real ETH liquidity is theoretically shared across the entire cluster eventually, regardless of how deposits are handled.
+In any OP Chain that joins the cluster, it is assumed that `SuperchainWETH` has been deployed in advance prior to being added to the interoperable graph. As a result, the equivalence between ETH deposits and withdrawal history and the actual ETH supply will vary from the outset. In a world with freedom of movement, all real ETH liquidity is theoretically shared across the entire cluster eventually, regardless of how deposits are handled.
 
 # Solution
 
-The existing problem and considerations motivate us to propose an L1 shared liquidity design through the introduction of a new `SharedLockbox` on L1, which serves as a singleton contract for ETH, given a defined set of interoperable chains. To ensure consistency, the `DependencySetManager` is also introduced to manage the dependency set that the lockbox uses as a source of truth. New ETH deposits will be directed to the lockbox, with the same process applying to ETH withdrawals.
+The existing problem and considerations motivate us to propose an L1 shared liquidity design through the introduction of a new `SharedLockbox` on L1, which serves as a singleton contract for ETH, given a defined set of interoperable chains. To ensure consistency, the `SuperchainConfig` is extended to act as the *dependency set manager*, controlling the op-governed dependency set that the lockbox uses as a source of truth. New ETH deposits will be directed to the lockbox, with the same process applied to ETH withdrawals.
 
-## Spec changes
+### Spec changes
+The core proposed changes are as follows:
+- **Modify the `SuperchainConfig` contract**: Extend this contract to manage the dependency set of each chain, taking ownership of the `dependencyManager` role for each `SystemConfig`.
+- **Introduce the `SharedLockbox` contract**: This contract acts as an escrow for ETH, receiving deposits and allowing withdrawals from approved `OptimismPortal` contracts. The `SuperchainConfig` contract serves as the source of truth of the lockbox.
+- **Modify the `OptimismPortal`**: To forward ETH into the `SharedLockbox` when `depositTransaction` is called, with the inverse process applying when `finalizeWithdrawal` is called.
 
-The core changes proposed are as follows:
+### Managing op-governed dependency set through `SuperchainConfig` 
 
-- Introduce the `DependencySetManager` contract: This contract manages and tracks the dependency graph.
-- Introduce the `SharedLockbox` contract: It acts as an escrow for ETH, receiving deposits and allows withdrawals from approved `OptimismPortal` contracts. The `DependencySetManager` contract serves as the source of truth of the lockbox.
-- Modify the `OptimismPortal`: To forward ETH into the `SharedLockbox` when `depositTransaction` is called, with the same process applying when `finalizeWithdrawal` is called.
-
-### Managing `DependencySetManager`
-
-This contract serves as the single point for managing the dependency set of a cluster and is expected to be managed by an admin in the same manner as other L1 OP contracts (proxiable). This contract assumes the role of `dependencyManager` for every `SystemConfig` contract involved. In the case of a simple dependency, the `DependencySetManager` only stores a mapping (or array) of chains added, e.g. given a `chainId`.
-
-Adding a new chain can be done as follows:
-
-1. `registerChain` is called, which adds the chain to the registry (`chainId` value, `SystemConfig` address, `OptimismPortal` address) but does not add it to the dependency set. The [Superchain Registry](https://github.com/ethereum-optimism/superchain-registry) or the [OP Contracts Manager](https://specs.optimism.io/experimental/op-contracts-manager.html?highlight=chain#chain-id-source-of-truth) can be used as the source of truth to add chains that have been verified as compatible with this integration.
-2. An OP-governed address, who has the role to call `addChain` with the new `chainId`.
-    1. `addChain` then calls each `SystemConfig` in the existing `dependencySet` list.
-        1. For the chain being added, it triggers `addDependency` with `chainId1`, `chainId2`, … `chainIdn`.
-        2. For all existing chains, it triggers `addDependency` with `chainId` as the newly added chain.
-    2. Updates the dependency graph (mapping or array).
-    3. Emits an event for step (1).
-
-A code example for step (2) would look like this:
+The `SuperchainConfig` contract will serve as the single point for managing the dependency set of a cluster and will be managed by the admin as occurs in other L1 OP contracts. This contract assumes the role of `dependencyManager` for every `SystemConfig` contract involved. Since the dependency graph follows a simple dependency, it only stores a mapping (or array) of chains added, e.g. given a `chainId`.
 
 ```solidity
 // Mapping from chainId to SystemConfig address
-mapping(uint256 => address) public systemConfigs;
-// Mapping to check if a chainId is in the dependency set
-mapping(uint256 => bool) public alreadyAdded;
+mapping(uint256 _chainId => ISystemConfig) public systemConfigs;
+
 // Current dependency set list
-uint256[] public dependencySet;
+EnumerableSet.UintSet private _dependencySet;
+```
 
-// Function to add a chain to the dependency set
-function addChain(uint256 chainId) external onlyOwner {
-		require(systemConfigs[chainId] != address(0), "DependencySetManager: Chain not registered");
-		require(!isRegistered[chainId], "DependencySetManager: Chain already in dependency set");
+Adding a new chain can be done by introducing a new function called `addChain`. The process would look as follows:
 
-		// For the chain being added, call addDependency with existing chainIds
-		if (dependencySet.length > 0) {
-				for (uint256 i = 0; i < dependencySet.length; i++) {
-            ISystemConfig(systemConfigs[chainId]).addDependency(dependencySet[i]);
-            }
-		}
+1. The `updater` calls the function with `chainId` and `SystemConfig`.
+2. An external call is made to each `SystemConfig` from already added chains with the new `chainId`.
+3. The new `SystemConfig` is called to add all previously existing `chainId` from `SuperchainConfig` to itself.
+4. Each call concludes by emitting a `DepositedTransaction` event.
+5. The `OptimismPortal` address is stored in the `Sharedlockbox` mapping.
+6. Each chain asynchronously includes each new deposit and updates `dependencySet` in `L1Block`.
 
-		// For each existing chain, call addDependency with the new chainId
-		for (uint256 i = 0; i < dependencySet.length; i++) {
-				ISystemConfig(systemConfigs[dependencySet[i]]).addDependency(chainId);
+The [Superchain Registry](https://github.com/ethereum-optimism/superchain-registry) or the [OP Contracts Manager](https://specs.optimism.io/experimental/op-contracts-manager.html?highlight=chain#chain-id-source-of-truth) can be used as the source of truth to add chains that have been verified beforehand as compatible.
+
+A code example would look like this:
+
+```solidity
+function addChain(uint256 _chainId, address _systemConfig) external {
+    require(msg.sender == updater(), "Unauthorized");
+
+    // Add to the dependency set and check it is not already added (`add()` returns false if it already exists)
+    require(_dependencySet.add(_chainId), "Chain already added");
+
+		// Store the system config
+    systemConfigs[_chainId] = _systemConfig;
+
+    // Loop through the dependency set and update the dependency for each chain
+    for (uint256 i; i < _dependencySet.length() - 1; i++) {
+		    uint256 currentId = _dependencySet.at(i);
+        
+        // Skip recently added chain
+        if (_chainId == currentId) continue;
+        
+        systemConfigs[currentId].addDependency(_chainId);
+        
+        systemConfigs[_chainId].addDependency(currentId);
     }
-    // Update the dependency set
-    dependencySet.push(chainId);
-    isRegistered[chainId] = true;
 
-    emit ChainAdded(chainId);
+		address portal = _systemConfig.optimismPortal();
+
+		// Authorize the portal on the shared lockbox
+		SHARED_LOCKBOX.authorizePortal(portal);
+
+    emit ChainAdded(_chainId, _systemConfig, portal);
 }
-    
 ```
 
 Note that, under the specified flow, the dependency set consistently maintains the form of a [complete graph](https://en.wikipedia.org/wiki/Complete_graph) at all times.
@@ -107,19 +112,19 @@ A minimal set of functions should include:
 - `lockETH`: Accepts ETH from the `depositTransaction` originating from a valid `OptimismPortal`.
 - `unlockETH`: Releases ETH from the `finalizeWithdrawalTransaction` originating from a valid `OptimismPortal`.
 
-Access control for `lockETH` and `unlockETH` is validated against the list reated by `registerChain`.
+Access control for `lockETH` and `unlockETH` is validated against the mapping of authorized `OptimismPortal` addresses.
 
 ### `OptimismPortal` upgrade process
 
-A one-time L1 liquidity migration is required for each approved chain. By using an intermediate contract during the upgrade, all ETH held by the `OptimismPortal` can be transferred to the `SharedLockbox` within the `initialize` function. After this migration, the `OptimismPortal` is upgraded to the new version with the desired functionality.
+A one-time L1 liquidity migration is required for each approved chain. By using an intermediate contract denominated `LiquidityMigrator` during the upgrade, all ETH held by the `OptimismPortal` can be transferred to the `SharedLockbox`. This intermediate contract functions similarly to `StorageSetter` and is used for the sole purpose of transferring the ETH balance. After this migration, the `OptimismPortal` is upgraded to the new version with the desired functionality.
 
-Importantly, the entire upgrade process—including migrating the ETH to the `SharedLockbox` and updating the `OptimismPortal` to the latest version—can be executed in a single transaction. This approach ensures a migration without the necessity of maintaining a persistent migration function in the final contract.
+Importantly, the entire upgrade process—including migrating the ETH to the `SharedLockbox` and updating the `OptimismPortal` to the latest version—can be executed in a single batched transaction. This approach ensures migration without the necessity of maintaining a persistent migration function in the final contract.
 
-Only chains registered in the `DependencySetManager` should be approved to join the `SharedLockbox`. Once approved, the `SharedLockbox` address is added in the `constructor` and `initialize` functions for each `OptimismPortal`.
+Note that migration processes may not be uniform and may vary according to the status of the chain seeking to join the OP-governed interoperable set. As stated in the previous section, chains are expected to ensure they reach the approved, OP Stack version. In practice, different migration paths could be implemented, for example, to allow chains to use the `SharedLockbox` from inception or migrate from a previous one, for example.
 
 ## Impact
 
-The following components require an audit of the new and modified contracts: `OptimismPortal`, `SharedLockbox`, and `DependencySetManager`. This also includes the scripts necessary to perform the migration.
+The following components require an audit of the new and modified contracts: `OptimismPortal`, `SharedLockbox`, and `SuperchainConfig`. This also includes the scripts necessary to perform the migration.
 
 # Alternatives Considered
 
@@ -135,10 +140,14 @@ The problem with L2 reverts is that it breaks the ETH withdrawal guarantee invar
 
 [Another solution](https://github.com/ethereum-optimism/specs/issues/362#issuecomment-2332481041) involves allowing ETH withdrawals to be finalized by taking ETH from one or more `OptimismPortal` contracts. In a cluster, this is done by authorizing withdrawals across the set of chains. For example, if  we have a dependency set composed by Chain A, B and C, a withdrawal initiated from A could be finalized by using funds from B and C if needed.
 
-The implementation would require iterating through the dependency set, determined on L1 to find the next `OptimismPortal` with available funds. This approach incurs more modifications to the `OptimismPortal`, increasing complexity.
+The implementation would require iterating through the dependency set, determined on L1 to find the next `OptimismPortal` with available funds. This also means `OptimismPortal` would need to have authorization and validation logic to allow to extraction ETH given an arbitrary request dictated by the loop.
+**Implementation and security considerations**
+Since both approaches rely on multiple `OptimismPortal` contracts and access controls, the Shared Lockbox design stays as the minimal way to implement a shared liquidity approach. Instead, allowing a looping withdrawal into each `OptimismPortal` increases the code complexity and surface of bugs during the iterative checking.
+
 
 # Risks & Uncertainties
 
 - **Scalable security**: With interop, withdrawals are a critical flow to protect, especially for ETH, since it tentatively becomes the most bridged asset across the Superchain. This means proof systems, dedicated monitoring services, the Security Council, and the Guardian need to be proven to tolerate the growing number of chains.
-- **Necessity of gas optimizations**: the `DependencySetManager`’s `addChain` function call every `SystemConfig`, which will increase in number over time. This could lead to significant gas expenditure as the number of chains continues to grow. One possible solution could be to extend the current `addDependency`/`removeDependency` to accept an array of `chainId` values in a single deposit call. The same reasoning could apply to `L1Block`.
-- **Chain list consistency around OP contracts**: OP Chains can have different statuses over time. This is reflected by the potential presence of several lists, such as those in the `OPCM` and the `DependencySetManager`. It would make sense to coordinate on implementing the most ideal chain registry for all expected use cases, including those described in this doc.
+- **Necessity of gas optimizations**: the `addChain` function calls every `SystemConfig`, which will increase in number over time. This could lead to significant gas expenditure as the number of chains continues to grow. One possible solution could be to extend the current `addDependency`/`removeDependency` to accept an array of `chainId` values in a single deposit call. The same reasoning could apply to `L1Block`.
+- **Chain list consistency around OP contracts**: OP Chains can have different statuses over time, being potentially reflected under the presence of several lists, such as those in the `OPCM`, the `SuperchainConfig` and other registries. It would make sense to coordinate on implementing the most ideal chain registry for all expected use cases, including those described in this doc.
+- **`chainId` authenticity**: As mentioned above, dependency set management relies on the `chainId` value. This necessitates ensuring that each `chainId` is unique within the chain list and correctly references a `SystemConfig`. This also raises the question of whether `chainId` should be stored directly within the `SystemConfig` for added verification.
