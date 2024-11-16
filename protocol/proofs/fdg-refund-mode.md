@@ -13,7 +13,7 @@ can be manually disbursed to the correct recipients.
 
 Although `DelayedWETH` is an effective tool at preventing a buggy or malicious `FaultDisputeGame`
 from distributing bonds to a potential attacker, the actual process of returning those bonds back
-to the correct players is underspecified. Underspecified proceses can introduce significant stress
+to the correct players is underspecified. Underspecified processes can introduce significant stress
 to already stressful situations where executive decisions around fallbacks must be made quickly and
 confidently. We therefore want to introduce alternative low-stress options for bond recovery.
 
