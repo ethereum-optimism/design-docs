@@ -43,8 +43,18 @@ The `RelayETH` function combines the last two transactions as follows:
 ### Contract changes
 
 ```solidity
+/// @notice Emitted when ETH is sent from one chain to another.
+/// @param from          Address of the sender.
+/// @param to            Address of the recipient.
+/// @param amount        Amount of ETH sent.
+/// @param destination   Chain ID of the destination chain.
 event SendETH(address indexed from, address indexed to, uint256 amount, uint256 destination);
 
+/// @notice Emitted whenever ETH is successfully relayed on this chain.
+/// @param from          Address of the msg.sender of sendETH on the source chain.
+/// @param to            Address of the recipient.
+/// @param amount        Amount of ETH relayed.
+/// @param source        Chain ID of the source chain.
 event RelayETH(address indexed from, address indexed to, uint256 amount, uint256 source);
 
 /// @notice Sends ETH to some target address on another chain.
