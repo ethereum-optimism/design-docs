@@ -61,6 +61,8 @@ event RelayETH(address indexed from, address indexed to, uint256 amount, uint256
 /// @param _to       Address to send ETH to.
 /// @param _chainId  Chain ID of the destination chain.
 function sendETH(address _to, uint256 _chainId) public payable {
+    if (_to == address(0)) revert ZeroAddress();
+
     if (IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken()) {
         revert NotCustomGasToken();
     }
@@ -84,23 +86,21 @@ function sendETH(address _to, uint256 _chainId) public payable {
 /// @param _to         Address to relay ETH to.
 /// @param _amount     Amount of ETH to relay.
 function relayETH(address _from, address _to, uint256 _amount) external {
-    // Receive message from other chain.
-    IL2ToL2CrossDomainMessenger messenger = IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-    if (msg.sender != address(messenger)) revert CallerNotL2ToL2CrossDomainMessenger();
-    if (messenger.crossDomainMessageSender() != address(this)) revert InvalidCrossDomainSender();
+    if (msg.sender != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert Unauthorized();
+
+    (address crossDomainMessageSender, uint256 source) =
+        IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).crossDomainMessageContext();
+
+    if (crossDomainMessageSender != address(this)) revert InvalidCrossDomainSender();
+
     if (IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken()) {
         revert NotCustomGasToken();
     }
 
-    // Mint from ETHLiquidity contract.
     IETHLiquidity(Predeploys.ETH_LIQUIDITY).mint(_amount);
-
-    // Get source chain ID.
-    uint256 source = messenger.crossDomainMessageSource();
 
     new SafeSend{ value: _amount }(payable(_to));
 
-    // Emit event.
     emit RelayETH(_from, _to, _amount, source);
 }
 ```
