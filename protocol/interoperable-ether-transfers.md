@@ -60,7 +60,7 @@ event RelayETH(address indexed from, address indexed to, uint256 amount, uint256
 /// @notice Sends ETH to some target address on another chain.
 /// @param _to       Address to send ETH to.
 /// @param _chainId  Chain ID of the destination chain.
-function sendETH(address _to, uint256 _chainId) public payable {
+function sendETH(address _to, uint256 _chainId) public payable returns (bytes32 msgHash_) {
     if (_to == address(0)) revert ZeroAddress();
 
     if (IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken()) {
@@ -71,7 +71,7 @@ function sendETH(address _to, uint256 _chainId) public payable {
     IETHLiquidity(Predeploys.ETH_LIQUIDITY).burn{ value: msg.value }();
 
     // Send message to other chain.
-    IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessage({
+    msgHash_ = IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessage({
         _destination: _chainId,
         _target: address(this),
         _message: abi.encodeCall(this.relayETH, (msg.sender, _to, msg.value))
