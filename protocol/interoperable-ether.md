@@ -30,14 +30,14 @@ This means that the new `WETH` predeploy allows for cross chain transfers.
 The main problem with this solution is the fact that it will break liquidity for wrapped `ether` into
 2 different contracts. Many applications already exist today that integrate with the existing predeploy.
 This will be annoying, but it should be very simple to migrate from the old `WETH` to the new `WETH`.
-Its a simple unwrap and wrap, and technically we could build support directly into the new `WETH` contract
+It's a simple unwrap and wrap, and technically we could build support directly into the new `WETH` contract
 to make the migration extra simple.
 
 An important problem to solve is ensuring that there are no liquidity constraints. If a wrap/unwrap mechanism
 is used rather than a mint/burn mechanism, it will result in liquidity constraints. Therefore we prefer a 
 mint/burn mechanism. We need a solution to the liquidity constraint that specifically happens when a user is
 trying to send ether to a remote domain. They have to wrap the ether into weth and then it gets sent between
-chains as weth and then we need to unwrap the weth. Its possible that there isn’t enough weth to unwrap on the other side.
+chains as weth and then we need to unwrap the weth. It's possible that there isn’t enough weth to unwrap on the other side.
 
 We introduce 2 new predeploys
 

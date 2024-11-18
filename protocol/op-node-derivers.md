@@ -144,7 +144,7 @@ To integrate interop in the op-node as-is, we would have to:
 - Modify the various forkchoice-updates of EngineController to be consistent with the cross-unsafe head.
 - Modify the engine-queue/controller to allow reorgs through a different path than the current block-attributes path.
 - Modify the find-sync-start loop to add a block tag of cross-unsafe.
-- Modify the driver to accomodate for a special-purpose process that maintains a view of the cross-L2 safety,
+- Modify the driver to accommodate for a special-purpose process that maintains a view of the cross-L2 safety,
   while explicitly synchronizing the engine-control access in the main state-loop.
 
 This is high-effort (medium in size, but hard to test), and accumulates a lot more tech-debt,
