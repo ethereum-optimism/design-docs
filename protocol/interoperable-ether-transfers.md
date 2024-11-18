@@ -58,7 +58,7 @@ event SendETH(address indexed from, address indexed to, uint256 amount, uint256 
 event RelayETH(address indexed from, address indexed to, uint256 amount, uint256 source);
 
 /// @notice Sends ETH to some target address on another chain.
-/// @param _to      Address to send tokens to.
+/// @param _to       Address to send ETH to.
 /// @param _chainId  Chain ID of the destination chain.
 function sendETH(address _to, uint256 _chainId) public payable {
     if (IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken()) {
@@ -80,9 +80,9 @@ function sendETH(address _to, uint256 _chainId) public payable {
 }
 
 /// @notice Relays ETH received from another chain.
-/// @param _from    Address of the msg.sender of sendETH on the source chain.
-/// @param _to     Address to relay tokens to.
-/// @param _amount     Amount of tokens to relay.
+/// @param _from       Address of the msg.sender of sendETH on the source chain.
+/// @param _to         Address to relay ETH to.
+/// @param _amount     Amount of ETH to relay.
 function relayETH(address _from, address _to, uint256 _amount) external {
     // Receive message from other chain.
     IL2ToL2CrossDomainMessenger messenger = IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
