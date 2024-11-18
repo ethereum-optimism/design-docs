@@ -22,6 +22,99 @@ The goal is to reduce the transaction count from four to two, enabling users to 
 
 # Proposed Solution
 
+## Integrate `ETH` transfer into `SuperchainWETH`
+
+Add two new functions to the `SuperchainWETH` contract: `SendETH` and `RelayETH`.
+
+### `SendETH`
+
+The `SendETH` function combines the first two transactions as follows:
+
+1. Burns `ETH` within the `ETHLiquidity` contract equivalent to the `ETH` sent.
+2. Sends a message to the destination chain encoding a call to `RelayETH`.
+
+### `RelayETH`
+
+The `RelayETH` function combines the last two transactions as follows:
+
+1. Mints the specified `_amount` of `ETH` from the `ETHLiquidity` contract.
+2. Sends the minted `ETH` to the specified recipient.
+
+### Contract changes
+
+```solidity
+/// @notice Sends ETH to some target address on another chain.
+/// @param _to      Address to send tokens to.
+/// @param _chainId  Chain ID of the destination chain.
+function sendETH(address _to, uint256 _chainId) public payable {
+    if (IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken()) {
+        revert NotCustomGasToken();
+    }
+
+    // Burn to ETHLiquidity contract.
+    IETHLiquidity(Predeploys.ETH_LIQUIDITY).burn{ value: msg.value }();
+
+    // Send message to other chain.
+    IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessage({
+        _destination: _chainId,
+        _target: address(this),
+        _message: abi.encodeCall(this.relayETH, (msg.sender, _to, msg.value))
+    });
+
+    // Emit event.
+    emit SendETH(msg.sender, _to, msg.value, _chainId);
+}
+
+/// @notice Relays ETH received from another chain.
+/// @param _from    Address of the msg.sender of sendETH on the source chain.
+/// @param _to     Address to relay tokens to.
+/// @param _amount     Amount of tokens to relay.
+function relayETH(address _from, address _to, uint256 _amount) external {
+    // Receive message from other chain.
+    IL2ToL2CrossDomainMessenger messenger = IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    if (msg.sender != address(messenger)) revert CallerNotL2ToL2CrossDomainMessenger();
+    if (messenger.crossDomainMessageSender() != address(this)) revert InvalidCrossDomainSender();
+    if (IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken()) {
+        revert NotCustomGasToken();
+    }
+
+    // Mint from ETHLiquidity contract.
+    IETHLiquidity(Predeploys.ETH_LIQUIDITY).mint(_amount);
+
+    // Get source chain ID.
+    uint256 source = messenger.crossDomainMessageSource();
+
+    new SafeSend{ value: _amount }(payable(_to));
+
+    // Emit event.
+    emit RelayETH(_from, _to, _amount, source);
+}
+```
+
+### Advantages
+- Since the `SuperchainWETH` contract already has permissions to mint and burn `ETH` with the `ETHLiquidity` contract no changes to the `ETHLiquidity` contract are necessary. Any security risks with this change are limited to `SuperchainWETH` and do not affect other `SuperchainERC20` tokens.
+
+### Downsides
+- This approach introduces an additional entry point for asset transfers outside of `SuperchainTokenBridge`. While `SuperchainERC20` tokens that implement custom bridging will already have alternative entry points, adding another for native `ETH` transfers could lead to confusion and diverge from a clean separation of concerns. Additionally, by having `SuperchainWETH` serve as both a `SuperchainERC20` and a bridge for native `ETH`, there is an increased risk of ambiguity around its dual function, which could impact usability and clarity for developers.
+
+# Considerations
+
+## SuperchainWETH transfers
+
+This solution does not eliminate the `SuperchainWETH` ERC20 token. `SuperchainWETH` ERC20 transfers would still go through the `SuperchainTokenBridge`.
+
+## Custom Gas Token Chains
+
+To simplify the solution, custom gas token chains will not be supported and must follow the original four-transaction flow, which includes wrapping and unwrapping `SuperchainWETH`.
+
+# Open Questions
+- **Long-term improvements**: Could this functionality eventually extend to custom gas token chains?
+- **Rollbacks**: How would rollbacks be handled in this implementation?
+
+# Alternatives Considered
+
+## Integrate ETH transfers into `ETHLiquidity` contract
+
 Introduce `SendETH` and `RelayETH` functions to the `ETHLiquidity` contract. By adding these functions directly to `ETHLiquidity`, the contract retains its original purpose of centralizing the minting and burning of `ETH` for cross-chain transfers, ensuring that all liquidity management occurs within a single, dedicated contract.
 
 ### `SendETH` function
@@ -117,98 +210,11 @@ function relayETH(address _from, address _to, uint256 _amount) external {
 }
 ```
 
-# Considerations
-
-## SuperchainWETH transfers
-
-This solution does not eliminate the `SuperchainWETH` contract and `SuperchainWETH` transfers would still go through the `SuperchainTokenBridge`.
-
-## Custom Gas Token Chains
-
-To simplify the solution, custom gas token chains will not be supported and must follow the original four-transaction flow, which includes wrapping and unwrapping `SuperchainWETH`.
-
-# Open Questions
-- **Long-term improvements**: Could this functionality eventually extend to custom gas token chains?
-- **Rollbacks**: How would rollbacks be handled in this implementation?
-
-# Alternatives Considered
-
-## Integrate `ETH` transfer into `SuperchainWETH`
-
-Add two new functions to the `SuperchainWETH` contract: `SendETH` and `RelayETH`.
-
-### `SendETH`
-
-The `SendETH` function combines the first two transactions as follows:
-
-1. Burns `ETH` within the `ETHLiquidity` contract equivalent to the `ETH` sent.
-2. Sends a message to the destination chain encoding a call to `RelayETH`.
-
-### `RelayETH`
-
-The `RelayETH` function combines the last two transactions as follows:
-
-1. Mints the specified `_amount` of `ETH` from the `ETHLiquidity` contract.
-2. Sends the minted `ETH` to the specified recipient.
-
-### Contract changes
-
-```solidity
-/// @notice Sends ETH to some target address on another chain.
-/// @param _to      Address to send tokens to.
-/// @param _chainId  Chain ID of the destination chain.
-function sendETH(address _to, uint256 _chainId) public payable {
-    if (IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken()) {
-        revert NotCustomGasToken();
-    }
-
-    // Burn to ETHLiquidity contract.
-    IETHLiquidity(Predeploys.ETH_LIQUIDITY).burn{ value: msg.value }();
-
-    // Send message to other chain.
-    IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessage({
-        _destination: _chainId,
-        _target: address(this),
-        _message: abi.encodeCall(this.relayETH, (msg.sender, _to, msg.value))
-    });
-
-    // Emit event.
-    emit SendETH(msg.sender, _to, msg.value, _chainId);
-}
-
-/// @notice Relays ETH received from another chain.
-/// @param _from    Address of the msg.sender of sendETH on the source chain.
-/// @param _to     Address to relay tokens to.
-/// @param _amount     Amount of tokens to relay.
-function relayETH(address _from, address _to, uint256 _amount) external {
-    // Receive message from other chain.
-    IL2ToL2CrossDomainMessenger messenger = IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-    if (msg.sender != address(messenger)) revert CallerNotL2ToL2CrossDomainMessenger();
-    if (messenger.crossDomainMessageSender() != address(this)) revert InvalidCrossDomainSender();
-    if (IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken()) {
-        revert NotCustomGasToken();
-    }
-
-    // Mint from ETHLiquidity contract.
-    IETHLiquidity(Predeploys.ETH_LIQUIDITY).mint(_amount);
-
-    // Get source chain ID.
-    uint256 source = messenger.crossDomainMessageSource();
-
-    new SafeSend{ value: _amount }(payable(_to));
-
-    // Emit event.
-    emit RelayETH(_from, _to, _amount, source);
-}
-```
-
 ### Advantages
-
-Since the `SuperchainWETH` contract already has permissions to mint and burn `ETH` with the `ETHLiquidity` contract no changes to the `ETHLiquidity` contract are necessary. Any security risks with this change are limited to `SuperchainWETH` and do not affect other `SuperchainERC20` tokens.
+- All ETH liquidity management occurs within a single, dedicated contract.
 
 ### Downsides
-
-This approach introduces an additional entry point for asset transfers outside of `SuperchainTokenBridge`. While `SuperchainERC20` tokens that implement custom bridging will already have alternative entry points, adding another for native `ETH` transfers could lead to confusion and diverge from a clean separation of concerns. Additionally, by having `SuperchainWETH` serve as both a `SuperchainERC20` and a bridge for native `ETH`, there is an increased risk of ambiguity around its dual function, which could impact usability and clarity for developers.
+- Since `ETHLiquidity` holds so much ether, we have to be really careful with what functionality is added to it. It should be callable in the most minimal amount of ways. The original design of `ETHLiquidity` intended there to be only a single useful caller. We need to be very careful with any modifications to it
 
 ## Integrate `ETH` transfer into `SuperchainTokenBridge`
 
@@ -253,9 +259,7 @@ function relayETH(address _from, address _to, uint256 _amount) external {
 ```
 
 ### Advantages
-
-The advantage of this solution is that `SuperchainTokenBridge`would handle both `ETH` transfers and `SuperchainERC20` transfers, simplifying developer integrations.
+- The advantage of this solution is that `SuperchainTokenBridge`would handle both `ETH` transfers and `SuperchainERC20` transfers, simplifying developer integrations.
 
 ### Downsides
-
-This solution creates changes to a highly sensitive contract. `SuperchainTokenBridge` has permissions to `mint` and `burn` standard `SuperchainERC20` tokens, so updates must be treated with extreme caution.
+- This solution creates changes to a highly sensitive contract. `SuperchainTokenBridge` has permissions to `mint` and `burn` standard `SuperchainERC20` tokens, so updates must be treated with extreme caution.
