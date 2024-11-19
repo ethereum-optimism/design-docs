@@ -84,11 +84,12 @@ The following changes are required:
 - Overload `sendMessage` to
     - include `address entrypoint` and `bytes entrypointContext`.
     - modify `SentMessage` event to include `address entrypoint` and `bytes entrypointContext`.
-- Overload `relayMessage` to
-    - check if `msg.sender == entrypoint` and reverts if not.
-    - checks if `entrypointContext.length > 0` , and if so, it performs a callback to the `entrypoint` address with `entrypointContext` data.
+- Modify `relayMessage` to
+    - check if `msg.sender != address(0)` to check if an entrypoint has been defined.
+    - if entrypoint has been defined, check if `msg.sender == entrypoint` and reverts if not.
+    - if entrypoint has been defined and if `entrypointContext.length > 0` , performs a callback to the `entrypoint` address with `entrypointContext` data to the `onRelayMessage` function.
 - `_decodeSentMessagePayload` will decode the `entrypoint` and `entrypointContext`.
-- `hashL2toL2CrossDomainMessage` will include `entrypoint` and `entrypointContext`.
+
 
 ## Full example: Expire messages
 
