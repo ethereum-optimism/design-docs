@@ -14,7 +14,7 @@ An important nuance here is that each `FaultDisputeGame.sol` deployment has both
  
 # Proposed Solution
 
-In order to elegantly resolve this, the two sets of immutable args should be flattened into a single set of immutable args deployed alongside the proxy from the factory. The factory will instead store all of the different per-chain values, and pass in all arguments as a top level proxy with immutable args.
+In order to elegantly resolve this, the two sets of immutable args should be flattened into a single set of immutable args deployed alongside the proxy from the factory. The factory will instead store all of the different per-chain values, and pass in all arguments as a top level proxy with immutable args. This means that the implementation contract will functionally have no immutable args, with everything fetched as arguments from a proxy-with-immutable-args.
 
 # Alternatives Considered
 
@@ -22,4 +22,4 @@ It would be possible to remove out the chain specific immutable arguments to sim
 
 # Risks & Uncertainties
 
-The main risk for this upgrade is now that the factory must be properly configured, otherwise the factory will produce every single `FaultDisputeGame.sol` incorrectly.
+The main risk for this upgrade is now that the factory must be properly configured, otherwise the factory will produce every single `FaultDisputeGame.sol` incorrectly. Additionally, all risk is now concentrated on a single implementation, which if incorrect would be worse, but overall reduces the risk surface area for fraud proofs.
