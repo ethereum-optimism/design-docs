@@ -60,7 +60,7 @@ event RelayETH(address indexed from, address indexed to, uint256 amount, uint256
 /// @notice Sends ETH to some target address on another chain.
 /// @param _to       Address to send ETH to.
 /// @param _chainId  Chain ID of the destination chain.
-function sendETH(address _to, uint256 _chainId) public payable returns (bytes32 msgHash_) {
+function sendETH(address _to, uint256 _chainId) external payable returns (bytes32 msgHash_) {
     if (_to == address(0)) revert ZeroAddress();
 
     if (IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken()) {
