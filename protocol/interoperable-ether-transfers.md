@@ -4,7 +4,7 @@ This document exists to align on a design for simplifying the process for sendin
 
 # Summary
 
-New functionality is introduced to the `ETHLiquidity` contract that enables it to facilitate cross-chain `ETH` transfers to a specified recipient.
+New functionality is introduced to the `SuperchainWETH` contract that enables it to facilitate cross-chain `ETH` transfers to a specified recipient.
 
 # Problem Statement + Context
 
@@ -17,8 +17,8 @@ Currently, L2-to-L2 `ETH` transfers between two interoperable chains require fou
 
 The goal is to reduce the transaction count from four to two, enabling users to send `ETH` to a destination chain directly:
 
-1. Burn `ETH` on source chain and relay a message to destination chain that mints `ETH` to recipient on destination chain.
-2. Execute the relayed message on the destination chain that mints `ETH` to the recipient.
+1. Burn `ETH` on source chain and relay a message to destination chain that relays `ETH` to recipient on destination chain.
+2. Execute the relayed message on the destination chain that relays `ETH` to the recipient.
 
 # Proposed Solution
 
@@ -94,7 +94,11 @@ function relayETH(address _from, address _to, uint256 _amount) external {
     if (crossDomainMessageSender != address(this)) revert InvalidCrossDomainSender();
 
     if (IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken()) {
-        revert NotCustomGasToken();
+        _mint(_to, _amount);
+
+        emit RelayETH(_from, _to, _amount, source);
+
+        return;
     }
 
     IETHLiquidity(Predeploys.ETH_LIQUIDITY).mint(_amount);
@@ -119,10 +123,10 @@ This solution does not eliminate the `SuperchainWETH` ERC20 token. `SuperchainWE
 
 ## Custom Gas Token Chains
 
-To simplify the solution, custom gas token chains will not be supported and must follow the original four-transaction flow, which includes wrapping and unwrapping `SuperchainWETH`.
+The `SendETH` function will not support custom gas token chains and will revert if called on a custom gas token chain. If the `RelayETH` function is called on a custom gas token chain, it will mint `SuperchainWETH` to the recipient.
 
 # Open Questions
-- **Long-term improvements**: Could this functionality eventually extend to custom gas token chains?
+- **Long-term improvements**: Could the `SendETH` functionality eventually extend to custom gas token chains?
 - **Rollbacks**: How would rollbacks be handled in this implementation?
 
 # Alternatives Considered
