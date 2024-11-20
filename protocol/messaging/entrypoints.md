@@ -44,11 +44,104 @@ This will allow Alice to perform complex but safe cross-chain actions with a sim
 
 Following the intuition example above, we could notice a problem in 4b: the `SwapperEntrypoint` doesn’t know what pool to use, how much of the total tokens given to it to swap, or who to give the tokens to after the swap. Information is missing. `SwapperEntrypoint` could ask for these values in the `swapTokens` function, but anyone could call it with Alice’s event and provide bad values.
 
+To solve this, `Entrypoint` contracts can define a decoding method and expect a second event. Then, `Entrypoint` can recover the required parameters from a second validated message, and then perform its logic as expected.
+
+In origin, Alice would emit the `EntrypointContext` as a separate event, and send her message with her designed `Entrypoint` contract. This way, the `Entrypoint` contract can validate the `EntrypointContext` event from origin, decode it, and perform the required actions.
+
+Therefore, the processing message function in the `Entrypoint` context will validate and consume two messages: the regular `SentMessage` event and the `EntrypointContext` event.
+
+An alternative design could be to enshrine the `entrypointContext` as a `bytes` field from within the `SentMessage` event. We discuss this approach in the Appendix.
+
+Notice that, in the intuition example, the `SwapperEntrypoint` is used as both pre and post-hook for the message relay. The `EntrypointContext` is used here in the post-action, but it would be needed beforehand in other cases (like batching).
+
+### Context Binding
+
+It is important to note that `EntrypointContext` is not binding to its connected initiating message. This means that, in theory, anyone could execute the message alongside any other valid `EntrypointContext`. 
+Each `Entrypoint` and initiating message contract will be responsible for handling authentication logic.
+
+`Entrypoints` can follow the model of the `L2ToL2CrossDomainMessenger` and decode additional parameters.
+Of course, this would require the `EntrypointContext` event to encode this information.
+Some parameters that can be used for binding are
+- `L2ToL2CrossDomainMessenger` current `nonce`. The `Entrypoint` can then check that the `EntrypointContext` has the same `nonce` than the `SentMessage`.
+- Identifier's `origin` from `EntrypointContext` event matches `sender` from `SentMessage`. This could show that the context was created on the same contract than the connected message.
+- Identifier's `chainId` from `EntrypointContext` event matches `source` from `SentMessage`. Should match with the `SentMessage`.
+
+However, the most efficient way of binding both events is to check who emitted the `EntrypointContext` event against an allowed-list. This might seem restricting, but will be more than enough for many applications.
+
+
+## Full example: Expire messages
+
+Here’s an example of how `Entrypoint` contracts with `EntrypointContext` events can enable powerful features like the expiration of messages:
+
+Suppose an `ExpirableTokenBridge` contract exists, that uses an `Entrypoint` with the added functionality of expiring a failed message in destination. `ExpirableTokenBridge` has minting and burning rights over `SuperchainERC20`.
+
+- Alice will transfer `AliceSuperToken` from Chain A to Chain B through the `ExpirableTokenBridge`.
+- If `AliceSuperToken` has not yet been deployed, relaying the message will fail.
+- The user will then use the `Entrypoint` functionality to expire the message, making it non-processable by adding it to a mapping. Any call to the `Entrypoint` to relay the expired message will revert. As the `Entrypoint` is the only contract that can process this message in the `L2ToL2CrossDomainMessenger`, the expired message is effectively non-processable in Chain B.
+	- (Optional) The expiring function can also check `EntrypointContext` parameters, such as time window.
+- Lastly, after the relaying failure, the user will call the `Entrypoint` again, on chain B, to expire a message. This will emit a message that the contract in Chain A can consume to handle the expired message.
+
+The sequence diagrams will be divided in three:
+
+1. Shows the initiating interaction of the user with the `ExpirableTokenBridge` to send the message to Chain B.
+2. Shows the interaction of the user in Chain B with the `Entrypoint` to process the expirable message, and shows how it fails to be relayed, and how the `Entrypoint` expires it.
+3. Shows the interaction of the user back with the `ExpirableTokenBridge` in Chain A to recover the lost tokens.
+
+```mermaid
+sequenceDiagram
+
+title Message creation (Chain A)
+
+Alice->>ExpirableTokenBridge_A: sendERC20(to)
+ExpirableTokenBridge_A->>L2ToL2CrossDomainMessenger: sendMessage(..., entrypointAddr)
+L2ToL2CrossDomainMessenger-->L2ToL2CrossDomainMessenger: emit SentMessage(...params, entrypointAddr, message)
+ExpirableTokenBridge_A-->ExpirableTokenBridge_A: emit EntrypointContext(expirerAddr, token, deadline, receiverOfExpiredMessage, receiverOfExpiredTokens)
+```
+
+```mermaid
+sequenceDiagram
+
+title Message failed and expired (Chain B)
+
+Anyone->>Entrypoint: processMessage(Identifier messageId, Message message, Identifier contextId, Message context)
+Entrypoint->>CrossL2Inbox: Validate message and EntrypointContext event
+Entrypoint->>L2ToL2CrossDomainMessenger: relayMessage()
+L2ToL2CrossDomainMessenger->>ExpirableTokenBridge_B: relayERC2O(to, amount)
+ExpirableTokenBridge_B->>SuperchainERC20_B: FAILS
+Anyone->>Entrypoint: expireMessage(messageHash)
+Entrypoint-->Entrypoint: checks if the deadline of the message is due
+Entrypoint-->L2ToL2CrossDomainMessenger: checks if the message has been successfully relayed before
+Entrypoint-->Entrypoint: adds it to expiredMessages mapping to avoid future processing
+Entrypoint-->Entrypoint: emit ExpiredMessage(destination, messageHash, receiverOfExpiredMessage)
+```
+
+```mermaid
+sequenceDiagram
+
+title Expired message handling and funds recovery (Chain A)
+
+Anyone-->ExpirableTokenBridge_A: handleExpired(Identifier id, ExpiredMessage expiredMessage)
+ExpirableTokenBridge_A->>CrossL2Inbox: validateMessage
+ExpirableTokenBridge_A-->ExpirableTokenBridge_A: adds to expired messages mapping
+ExpirableTokenBridge_A-->SuperchainERC20_A: crosschainMint(receiverOfExpiredTokens)
+```
+
+## Notes and Open Questions
+
+- Notice the modifications basically unlock permissioned relaying. `Entrypoints` are the most clear and useful way to take benefit of this permission control, but it could potentially be used for other actions.
+- Names are all up for debate and change.
+- For `EntrypointContext`, should we emit the full struct, an encoded bytes or a hash?
+
+## Appendix
+
+### Enshrined `entrypointContext`
+
 To solve this, `Entrypoint` contracts can define a decoding method and expect a second set of data that we will call `entrypointContext`. The context is binded into the message, meaning that its not possible to frontrun the `SentMessage` event with a different context.
 
 Entrypoints that wish to use `entrypointContext` will need to implement the `onRelayMessage` function. The `L2ToL2CrossDomainMessenger` will perform a callback to `onRelayMessage` inside the `relayMessage` call and before calling the target.  
 
 `Entrypoint` can use the context however they want. It’s important to notice the `relayMessage()` is non reentrant, so the callback cannot call it back. Some possible ways to use the context are the following:
+
 
 **Optimistic**
 
@@ -89,69 +182,3 @@ The following changes are required:
     - if entrypoint has been defined, check if `msg.sender == entrypoint` and reverts if not.
     - if entrypoint has been defined and if `entrypointContext.length > 0` , performs a callback to the `entrypoint` address with `entrypointContext` data to the `onRelayMessage` function.
 - `_decodeSentMessagePayload` will decode the `entrypoint` and `entrypointContext`.
-
-
-## Full example: Expire messages
-
-Here’s an example of how `Entrypoint` contracts with `entrypointContext` can enable powerful features like the expiration of messages:
-
-Suppose an `ExpirableTokenBridge` contract exists, that uses an `Entrypoint` with the added functionality of expiring a failed message in destination. `ExpirableTokenBridge` has minting and burning rights over `SuperchainERC20`.
-
-- Alice will transfer `AliceSuperToken` from Chain A to Chain B through the `ExpirableTokenBridge`, alongside some optional expiring parameters that will get encoded in the `entrypointContext` (these could be expire time window for instance).
-- If `AliceSuperToken` has not yet been deployed, relaying the message from the `Entrypoint` will fail. 
-    - If the message has `entrypointContext`, `Entrypoint` can store it for later use.
-- The user will then use the `Entrypoint` functionality to expire the message in chain B, making it non-processable by adding it to a mapping.  This will emit a message that the contract in Chain A can consume to handle the expired message. This call might optionally check the stored context as well for time windows or allowed senders.
-Any call to the `Entrypoint` to relay the expired message will revert. As the `Entrypoint` is the only contract that can process this message in the `L2ToL2CrossDomainMessenger`, the expired message is effectively non-processable in Chain B.
-
-The sequence diagrams will be divided in three:
-
-1. Shows the initiating interaction of the user with the `ExpirableTokenBridge` to send the message to Chain B.
-2. Shows the interaction of the user in Chain B with the `Entrypoint` to process the expirable message, and shows how it fails to be relayed, and how the `Entrypoint` expires it.
-3. Shows the interaction of the user back with the `ExpirableTokenBridge` in Chain A to recover the lost tokens.
-
-```mermaid
-sequenceDiagram
-
-title Message creation (Chain A)
-
-Alice->>ExpirableTokenBridge_A: sendERC20(to)
-ExpirableTokenBridge_A->>L2ToL2CrossDomainMessenger: sendMessage(..., entrypointAddr, entrypointContext)
-L2ToL2CrossDomainMessenger-->L2ToL2CrossDomainMessenger: emit SentMessage(...params, entrypointAddr, message, entrypointContext)
-
-```
-
-```mermaid
-sequenceDiagram
-
-title Message failed and expired (Chain B)
-
-Anyone->>Entrypoint: processMessage(Identifier messageId, Message message, Identifier contextId, Message context)
-Entrypoint->>L2ToL2CrossDomainMessenger: relayMessage(id, message)
-L2ToL2CrossDomainMessenger ->> Entrypoint: onRelayMessage(entrypointContext)
-L2ToL2CrossDomainMessenger->>ExpirableTokenBridge_B: relayERC2O(to, amount)
-ExpirableTokenBridge_B->>SuperchainERC20_B: FAILS
-Anyone->>Entrypoint: expireMessage(messageHash)
-Entrypoint-->Entrypoint: checks if the deadline of the message is due
-Entrypoint-->L2ToL2CrossDomainMessenger: checks if the message has been successfully relayed before
-Entrypoint-->Entrypoint: adds it to expiredMessages mapping to avoid future processing
-Entrypoint-->Entrypoint: emit ExpiredMessage(destination, messageHash, receiverOfExpiredMessage)
-
-```
-
-```mermaid
-sequenceDiagram
-
-title Expired message handling and funds recovery (Chain A)
-
-Anyone->>ExpirableTokenBridge_A: handleExpired(Identifier id, ExpiredMessage expiredMessage)
-ExpirableTokenBridge_A->>CrossL2Inbox: validateMessage
-ExpirableTokenBridge_A-->ExpirableTokenBridge_A: adds to expired messages mapping
-ExpirableTokenBridge_A->>SuperchainERC20_A: crosschainMint(receiverOfExpiredTokens)
-
-```
-
-## Notes and Open Questions
-
-- Notice the modifications basically unlock permissioned relaying. `Entrypoints` are the most clear and useful way to take benefit of this permission control, but it could potentially be used for other actions.
-- Names are all up for debate and change.
-- For `EntrypointContext`, should we emit the full struct, an encoded bytes or a hash?
