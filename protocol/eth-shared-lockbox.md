@@ -1,6 +1,6 @@
 # Purpose
 
-*The document presented below is part of the [Interoperability project](https://github.com/orgs/ethereum-optimism/projects/71/views/1?sliceBy%5Bvalue%5D=skeletor-spaceman).*
+_The document presented below is part of the [Interoperability project](https://github.com/orgs/ethereum-optimism/projects/71/views/1?sliceBy%5Bvalue%5D=skeletor-spaceman)._
 
 This document discusses possible solutions to address the constraints on ETH withdrawals resulting from the introduction of interop and `SuperchainWETH` that share ETH liquidity across a set of interoperable OP Chains.
 
@@ -30,7 +30,7 @@ OP Chains will be governed within a common Chain Cluster governance entity (the 
 
 - **Ensuring chains are consistent at the implementation side**, achieved either through trusted deployment methods (e.g., OP Contracts Manager) or by approval after security checks are performed.
 - **Approving protocol upgrades** for all chains involved.
-- **Adding new chains** to the interoperable set, and managing the `dependencyManager` role. The final decision is up to governance and chains cannot be removed afterwards.
+- **Adding new chains** to the interoperable set. The final decision is up to governance and chains cannot be removed afterwards.
 - **Replacing chain servicers** for existing chains if they fail to satisfy technical requirements.
 
 ### Shared Bridging and SuperchainWETH usage
@@ -42,14 +42,16 @@ In any OP Chain that joins the cluster, it is assumed that `SuperchainWETH` ha
 The existing problem and considerations motivate us to propose an L1 shared liquidity design through the introduction of a new `SharedLockbox` on L1, which serves as a singleton contract for ETH, given a defined set of interoperable chains. To ensure consistency, the `SuperchainConfig` is extended to act as the *dependency set manager*, controlling the op-governed dependency set that the lockbox uses as a source of truth. New ETH deposits will be directed to the lockbox, with the same process applied to ETH withdrawals.
 
 ### Spec changes
+
 The core proposed changes are as follows:
-- **Modify the `SuperchainConfig` contract**: Extend this contract to manage the dependency set of each chain, taking ownership of the `dependencyManager` role for each `SystemConfig`.
+
+- **Modify the `SuperchainConfig` contract**: Extend this contract to manage the dependency set of each chain, interacting with each `SystemConfig`.
 - **Introduce the `SharedLockbox` contract**: This contract acts as an escrow for ETH, receiving deposits and allowing withdrawals from approved `OptimismPortal` contracts. The `SuperchainConfig` contract serves as the source of truth of the lockbox.
 - **Modify the `OptimismPortal`**: To forward ETH into the `SharedLockbox` when `depositTransaction` is called, with the inverse process applying when `finalizeWithdrawal` is called.
 
 ### Managing op-governed dependency set through `SuperchainConfig`
 
-The `SuperchainConfig` contract will serve as the single point for managing the dependency set of a cluster and will be managed by the admin as occurs in other L1 OP contracts. This contract assumes the role of `dependencyManager` for every `SystemConfig` contract involved. Since the dependency graph follows a simple dependency, it only stores a mapping (or array) of chains added, e.g. given a `chainId`.
+The `SuperchainConfig` contract will serve as the single point for managing the dependency set of a cluster and will be managed by the admin as occurs in other L1 OP contracts. This contract interacts with every `SystemConfig` contract involved. Since the dependency graph follows a simple dependency, it only stores a mapping (or array) of chains added, e.g. given a `chainId`.
 
 ```solidity
 // Mapping from chainId to SystemConfig address
@@ -126,8 +128,6 @@ Note that migration processes may not be uniform and may vary according to the s
 sequenceDiagram
     participant L1PAO as L1 ProxyAdmin Owner
     participant ProxyAdmin as ProxyAdmin
-    participant SystemConfigProxy as SystemConfig
-    participant StorageSetter
     participant SuperchainConfig
     participant OptimismPortalProxy as OptimismPortal
     participant LiquidityMigrator
@@ -135,26 +135,16 @@ sequenceDiagram
 
     Note over L1PAO: Start batch
 
-    %% Step 1: Upgrade SystemConfig to StorageSetter to zero out initialized slot
-    L1PAO->>ProxyAdmin: upgradeAndCall()
-    ProxyAdmin->>SystemConfigProxy: Upgrade to StorageSetter
-    SystemConfigProxy->>StorageSetter: Call to set initialized slot to zero
-
-    %% Step 2: Upgrade SystemConfig and initialize with SuperchainConfig
-    L1PAO->>ProxyAdmin: upgradeAndCall()
-    ProxyAdmin->>SystemConfigProxy: Upgrade to new SystemConfig implementation
-    ProxyAdmin->>SystemConfigProxy: Call initialize(...SuperchainConfig address)
-
-    %% Step 3: Add chain to SuperchainConfig
+    %% Step 1: Add chain to SuperchainConfig
     L1PAO->>SuperchainConfig: addChain(chainId, SystemConfig address)
 
-    %% Step 4: Upgrade OptimismPortal to intermediate implementation that transfers ETH
+    %% Step 2: Upgrade OptimismPortal to intermediate implementation that transfers ETH
     L1PAO->>ProxyAdmin: upgradeAndCall()
     ProxyAdmin->>OptimismPortalProxy: Upgrade to LiquidityMigrator
     OptimismPortalProxy->>LiquidityMigrator: Call migrateETH()
     OptimismPortalProxy->>SharedLockbox: Transfer entire ETH balance
 
-    %% Step 5: Upgrade OptimismPortal to final implementation
+    %% Step 3: Upgrade OptimismPortal to final implementation
     L1PAO->>ProxyAdmin: upgrade()
     ProxyAdmin->>OptimismPortalProxy: Upgrade to new OptimismPortal implementation
 
@@ -177,12 +167,11 @@ The problem with L2 reverts is that it breaks the ETH withdrawal guarantee invar
 
 ### **Permission to withdraw ETH from a different Portal**
 
-[Another solution](https://github.com/ethereum-optimism/specs/issues/362#issuecomment-2332481041) involves allowing ETH withdrawals to be finalized by taking ETH from one or more `OptimismPortal` contracts. In a cluster, this is done by authorizing withdrawals across the set of chains. For example, if  we have a dependency set composed by Chain A, B and C, a withdrawal initiated from A could be finalized by using funds from B and C if needed.
+[Another solution](https://github.com/ethereum-optimism/specs/issues/362#issuecomment-2332481041) involves allowing ETH withdrawals to be finalized by taking ETH from one or more `OptimismPortal` contracts. In a cluster, this is done by authorizing withdrawals across the set of chains. For example, if we have a dependency set composed by Chain A, B and C, a withdrawal initiated from A could be finalized by using funds from B and C if needed.
 
 The implementation would require iterating through the dependency set, determined on L1 to find the next `OptimismPortal` with available funds. This also means `OptimismPortal` would need to have authorization and validation logic to allow to extraction ETH given an arbitrary request dictated by the loop.
 **Implementation and security considerations**
 Since both approaches rely on multiple `OptimismPortal` contracts and access controls, the Shared Lockbox design stays as the minimal way to implement a shared liquidity approach. Instead, allowing a looping withdrawal into each `OptimismPortal` increases the code complexity and surface of bugs during the iterative checking.
-
 
 # Risks & Uncertainties
 
