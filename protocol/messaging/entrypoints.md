@@ -145,9 +145,11 @@ ExpirableTokenBridge_A-->SuperchainERC20_A: crosschainMint(receiverOfExpiredToke
 
 ### Enshrined `entrypointContext`
 
-To solve this, `Entrypoint` contracts can define a decoding method and expect a second set of data that we will call `entrypointContext`. The context is binded into the message, meaning that its not possible to frontrun the `SentMessage` event with a different context.
+This second design binds the context to the message and makes the `L2ToL2CrossDomainMessenger` perform a callback to the entrypoint with this data. For the moment, we decided to let this feature outside of the `L2ToL2CrossDomainMessenger` to keep it minimal, but it can be considered. It is also possible to implement into into a second `L2ToL2CrossDomainMessengerWithContext` that extends from `L2ToL2CrossDomainMessenger`.
 
-Entrypoints that wish to use `entrypointContext` will need to implement the `onRelayMessage` function. The `L2ToL2CrossDomainMessenger` will perform a callback to `onRelayMessage` inside the `relayMessage` call and before calling the target.  
+The context is binded into the message, meaning that its not possible to frontrun the `SentMessage` event with a different context.
+
+Entrypoints that wish to use enshrined `entrypointContext` would need to implement the `onRelayMessage` function. The `L2ToL2CrossDomainMessenger` will perform a callback to `onRelayMessage` inside the `relayMessage` call and before calling the target.  
 
 `Entrypoint` can use the context however they want. It’s important to notice the `relayMessage()` is non reentrant, so the callback cannot call it back. Some possible ways to use the context are the following:
 
@@ -179,7 +181,7 @@ Some applications might not require the context at the time of the message (expi
     3. do a callback to the `Entrypoint` for `onRelayMessage`, passing the encoded `entrypointContext`. `onRelayMessage` the `Entrypoint` will store the context for later use.
     4. finally, call `target` with the `message`.
 
-### Changes in this case
+### Changes for enshrinement
 
 The following changes are required:
 
