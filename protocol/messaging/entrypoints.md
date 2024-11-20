@@ -50,7 +50,7 @@ In origin, Alice would emit the `EntrypointContext` as a separate event, and sen
 
 Therefore, the processing message function in the `Entrypoint` context will validate and consume two messages: the regular `SentMessage` event and the `EntrypointContext` event.
 
-An alternative design could be to enshrine the `entrypointContext` as a `bytes` field from within the `SentMessage` event. We discuss this approach in the Appendix.
+An alternative design could be to enshrine the `entrypointContext` as a `bytes` field from within the `SentMessage` event. We discuss this approach in the [Appendix](#enshrined-entrypointcontext).
 
 Notice that, in the intuition example, the `SwapperEntrypoint` is used as both pre and post-hook for the message relay. The `EntrypointContext` is used here in the post-action, but it would be needed beforehand in other cases (like batching).
 
@@ -179,7 +179,7 @@ Some applications might not require the context at the time of the message (expi
     3. do a callback to the `Entrypoint` for `onRelayMessage`, passing the encoded `entrypointContext`. `onRelayMessage` the `Entrypoint` will store the context for later use.
     4. finally, call `target` with the `message`.
 
-## Summary of required changes
+### Changes in this case
 
 The following changes are required:
 
