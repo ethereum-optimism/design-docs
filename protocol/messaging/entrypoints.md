@@ -68,6 +68,15 @@ Some parameters that can be used for binding are
 
 However, the most efficient way of binding both events is to check who emitted the `EntrypointContext` event against an allowed-list. This might seem restricting, but will be more than enough for many applications.
 
+### Summary of required changes
+
+The following changes are required:
+
+- `sendMessage` includes `address entrypoint`.
+- `SentMessage` event includes `address entrypoint`.
+- `relayMessage` checks if `entrypoint!=0`. If so, it checks if `msg.sender == entrypoint` and reverts if not.
+- `_decodeSentMessagePayload` will decode the `entrypoint`.
+- `hashL2toL2CrossDomainMessage` will include `entrypoint`.
 
 ## Full example: Expire messages
 
