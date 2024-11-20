@@ -10,6 +10,12 @@ This document outlines an improved and standardized approach to upgrading L1 con
 
 We take the following as our design goals:
 
+- **Atomicity:** It should be possible to complete an upgrade of the entire superchain's L1
+  contracts within one block.
+- **Declarative design:** As much as possible, a developer should be able to simply indicate what
+  bytecode should be deployed, and what storage values (if any) should be initialized or modified.
+- **Deterministic upgrade calldata:** The exact calldata to be submitted during the upgrade should
+  predictable at the time of the governance proposal.
 - **Safety:** Above all the upgrade must be safe, particularly with respect to the things which can
   typically go wrong with an upgrade, ie.
   - All contracts should be upgraded to the correct implementation.
@@ -20,10 +26,6 @@ We take the following as our design goals:
 - **Auditability:** An upgrade path should be easy to understand, either by reviewing the source
   code as in the case of a forthcoming upgrade, or by reviewing the on-chain history along with
   verified source code.
-- **Atomicity:** It should be possible to complete an upgrade of the entire superchain's L1
-  contracts within one block.
-- **Declarative design:** As much as possible, a developer should be able to simply indicate what
-  bytecode should be deployed, and what storage values (if any) should be initialized or modified.
 
 ## Non-goals
 
@@ -164,7 +166,7 @@ This contract will be owned by the [Upgrade
 Controller](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/stage-1.md#L30), and
 will be a simple pass through contract with a minimal interface.
 
-```
+```solidity
 /// @notice forwards calldata to the specified address.
 ///   Reverts unless called by owner.
 function forward(address, bytes) external;
@@ -175,49 +177,76 @@ function forward(address[], bytes[]) external;
 ```
 
 This architecture makes it possible to manage upgrade authorization for the whole superchain through
-a single storage value in a single contract, rather than having a separate contract per OP Chain.
+a single storage value in a single contract (`SuperchainProxyAdmin.owner`), rather than having a separate contract per OP Chain.
 
-It also avoids the need for an `sload` to ready the `proxyType` mapping for each contract.
+It also avoids the need for an `sload` to read the `proxyType` mapping for each contract.
 
 ## Identifying OP Chains by the SystemConfig
 
-Rather than tracking the contracts within the `ProxyAdmin`, we will use the `SystemConfig` as the
-unique identifier for each OPChain, and get the contract addresses from it. The custom logic
-required for the two non-standard proxy types will be handled in the OPCM contract, and does not
-require tracking the proxy type, as it is known already for each contract, ie. the only non-standard
-Proxies are the `L1StandardBridge` (`L1ChugsplashProxy`) and `L1CrossDomainMessenger`
-(`ResolvedDelegateProxy`).
+We will use the `SystemConfig` as theunique identifier for each OPChain, and get the contract
+addresses from it. The custom logic required for the two non-standard proxy types will be handled in
+the OPCM contract, and does not require tracking the proxy type (as currently done in the
+`ProxyAdmin`), since it is known already for each contract, ie. the only non-standard Proxies are
+the `L1StandardBridge` (`L1ChugsplashProxy`) and `L1CrossDomainMessenger` (`ResolvedDelegateProxy`).
 
-## The upgrade process
+## Contract versioning
+
+As part of this work, we will cease to version each L1 contract, and instead move to a global L1
+contracts version. This version will be stored in the `SystemConfig` and OPCM. For backwards
+compatibility, the existing `version()` getters will return the value from `SystemConfig.version()`.
+
+The `DeployImplementations` script will write the version into the OPCM, which writes it into the
+`SystemConfig`.
+
+The `rc` tag will be included on the OPCM's initial version. It will be programmatically removed
+when `upgrade()` is called by the Upgrade Controller multisig, which signifies governance approval.
+
+## Proof system considerations
+
+### Adding the PermissionlessDisputeGame to a chain
+
+Given that not all chains will support the `PermissionlessDisputeGame` upon deployment, an
+`OPCM.addGameType()` method will be added which will handle this.
+
+WIP
+
+1. ideally we update op-program to remove the chain config, so that it is identical across chains
+   then it reads the config at run time.
+   But we won't block isthmus on it, and will allow the `FaultDisputeGame` and `PermissionedDisputeGame` to be non-compliant.
+2. inputs for each hardfork: one prestatehash per chain.
+
+## Release process
 
 As part of the release process, the associated implementation contracts and a new OPCM, will be deployed.
 
-The Upgrade Controller MUST be a Safe in order to perform the following actions atomically:
+The Upgrade Controller (which MUST be a Safe), will `DELEGATECALL` the `OPCM.upgrade()` function,
+providing the address of the `SuperchainProxyAdmin` and a list of the `SystemConfig` contracts for the
+OP Chains to be upgraded.
 
-1. transfer ownership of the `SuperchainProxyAdmin` to the new OPCM.
-2. call `OPCM.upgrade()` which will return ownership to the Safe immediately upon completing the
-   upgrade.
+Importantly,
 
 Thus the high level logic for upgrading a contract should be roughly as follows:
 
 ```js
-SuperchainProxyAdmin admin;
-ISystemConfigs[] public systemConfigs;
+
+// Some upgrades will
+struct NewChainConfig {
+  address newValues;
+}
 
 Addresses immutable implementations;
 
-constructor(Addresses _implementations, ISystemConfigs[] _systemConfigs) {
+constructor(Addresses _implementations) {
   implementations = _implementations;
-  for(uint i=0; i < _systemConfigs.length; i++){
-    systemConfigs.push(_systemConfigs[i])
-  }
 }
 
-function upgrade() public {
+function upgrade(SuperchainProxyAdmin _admin, ISystemConfig[] _systemConfigs, NewChainConfig[] _newConfigs) public {
   for(uint i=0; i< systemConfigs.length; i++) {
     // Read the `Addresses` struct from each `SystemConfig` in the `systemConfigs` mapping.
     // For each entry in the `Addresses` struct:
-      // 1. Call the `SuperchainProxyAdmin` to update the implementation to the `Populator` contract and call `Populator.upgrade()`.
+      // 1. Call the `SuperchainProxyAdmin` to update the implementation to the `Populator` contract
+      //    TODO: OR update the implementation to
+      // 2. call
       // 2. Update the implementation to the final implementation contract.
   }
   // Return ownership of the `SuperchainProxyAdmin` to the Upgrade Controller (`msg.sender`)
@@ -230,33 +259,6 @@ function upgrade() public {
 
 - A new getter should be added to the `SystemConfig` to retrieve the `Addresses` in a single call.
 - The `AddressManager` for each chain must be used to upgrade the `L1CrossDomainMessenger`, therefore it should be added to the `Addresses` struct.
--
-
-## L1ChugsplashProxy Considerations
-
-The L1 Chugsplash proxy is much more expensive to upgrade, as it is done by calling
-[`setCode()`](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/legacy/L1ChugSplashProxy.sol#L92)
-which creates a new implementation contract. In this sense the L1StandardBridge is not truly MCP-L1
-ready.
-
-This will required an intermediate proxy to enable pointing to a single implementation contract,
-options for this intermediate proxy include:
-
-1. **Cheaper upgrades, costlier bridging:** a onetime upgrade which sets the implementation for all L1
-   Standard bridges to an intermediate standard Proxy contract. From then on the standard proxy
-   will have its implementation upgraded.
-   This is a tradeoff between token bridging costs and upgrade
-   costs. It may also add complexity in the form of needing to track a new contract for each OP
-   Chain.
-2. **Middle ground:** each time the implementation is changed, `setCode()` could deploy a minimal
-   intermediate immutable proxy which hardcodes the address of the implementation. This reduces the
-   size of the contract, is more gas efficient (no `sload` in the intermediate proxy) and avoids the
-   need to track the intermediate proxies.
-3. **Costlier upgrades, cheaper bridging:** deploy a new but identical implementation for every
-   L1 Standard Bridge. Off chain analysis can easily verify that the implementatin matches the
-   governance approved bytecode.
-
-Further gas cost analysis and product discussion will be required to make a final decision.
 
 ## Development and Testing considerations
 
@@ -310,3 +312,12 @@ We will likely need to handle that limitation at some point in the future, but c
 # Risks & Uncertainties
 
 TODO
+
+---
+
+6. We will track the correct addresses of the OPCMs in the registry. If you are upgrading by more than one version, you'll
+   get the list from there.
+
+function upgrade() {
+require(systemConfig.releaseVersion() < )
+}
