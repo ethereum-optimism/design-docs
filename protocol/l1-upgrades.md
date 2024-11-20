@@ -92,19 +92,27 @@ Taking inspiration from Chugsplash, we wish to separate the concern of what byte
 what to write to storage. However we also wish to avoid using the current `StorageSetter` pattern,
 which simply provides logic to "write anything anywhere" in storage.
 
-In order to achieve this, each contract will be refactored to inherit from a `__Layout` contract. By
-way of example, we take an initializable version of `SimpleStorage`, and refactor it into the set of
-contracts which would be required to specify a hypothetical Magma release, which adds a new variable
-to the contract.
+In order to achieve this, each contract will have its `initializer()` function moved intoa
+release specific `__Populator` contract.
+
+By way of example, we take an initializable version of `SimpleStorage`:
+
+- the current version of the contract has only a `uint256 foo` variable.
+- the new version of the contract introduces a `bytes32 bar` variable.
+
+The status quo implementation of the new Simple Storage would look like this:
 
 ```solidity
 contract SimpleStorage is Initializable {
   uint public foo;
-  bytes32 public bar; // new variable added for the Magma release.
+  bytes32 public bar; // new variable added for the current release
 
+  constructor() {
+    _disableInitializers();
+  }
 
   /// @notice initialize is called whether for a fresh system or when upgrading an existing system.
-  function initialize(uint _foo, bytes32 bar) public initializer {
+  function initialize(uint _foo, bytes32 _bar) public initializer {
     // chains being upgraded need to read the current value of foo, then write it again.
     foo = _foo;
     bar = _bar;
@@ -112,42 +120,49 @@ contract SimpleStorage is Initializable {
 }
 ```
 
-This `SimpleStorage` will become:
+This document proposes that the above contract should be refactored accordingly:
 
 ```solidity
-abstract contract SimpleStorageLayout {
+/// @notice The base contract with all runtime logic
+contract SimpleStorage {
   uint public foo;
-  bytes32 public bar;
+  bytes32 public bar; // new variable added for the current release.
 }
 
-contract SimpleStoragePopulator is SimpleStorageLayout {
-  function initialize() public {
-    foo = 1;
-    bar = 2_000
+/// @notice an ephemeral contract which is temporarily set as the implementation during deployment
+///         or upgrae.
+contract SimpleStoragePopulator is SimpleStorage {
+  /// @notice Called to initialize a freshly deployed system.
+  function initialize(uint _foo, bytes32 _bar) public {
+    foo = _foo;
+    bar = _bar;
   }
 
-  function upgrade() public {
-    bar = 2_000;
+  /// @notice Called to upgrade a pre-existing system.
+  /// TODO: clarify how to handle this if no new values are being added.
+  function upgrade(bytes32 _bar) public {
+    bar = _bar;
   }
-}
-
-contract SimpleStorage is SimpleStorageLayout {
-  // Whatever runtime logic is needed
 }
 ```
 
 With this architecture, the OPCM contract (which will be a non-proxied singleton per release) would
 then either:
 
-1. Deploy a new contract by:
-   1. Deploying a new proxy
-   1. setting its implementation to the `SimpleStoragePopulator`
-   1. calling `initialize()`
-   1. setting its implementation to `SimpleStorage`
-1. Upgrade a contract by:
-   1. setting its implementation to the `SimpleStoragePopulator`
-   1. calling `upgrade()`
-   1. setting its implementation to `SimpleStorage`
+The new contract deployment flow used by the OPCM thus becomes:
+
+1.  Deploy a new proxy
+2.  If and only if the proxy has state variables:
+    1.  set its implementation to the `SimpleStoragePopulator`
+    1.  call `initialize()`
+3.  Finally set its implementation to `SimpleStorage`
+
+And the contract upgrade flow used by the OPCM would be:
+
+1. If and only if the proxy has NEWLY ADDED state variables:
+   1. set its implementation to the `SimpleStoragePopulator`
+   1. call `upgrade()`
+1. set its implementation to `SimpleStorage`
 
 This workflow has the benefit of removing the `initializer()` functions, which:
 
@@ -183,7 +198,7 @@ It also avoids the need for an `sload` to read the `proxyType` mapping for each 
 
 ## Identifying OP Chains by the SystemConfig
 
-We will use the `SystemConfig` as theunique identifier for each OPChain, and get the contract
+We will use the `SystemConfig` as the unique identifier for each OPChain, and get the contract
 addresses from it. The custom logic required for the two non-standard proxy types will be handled in
 the OPCM contract, and does not require tracking the proxy type (as currently done in the
 `ProxyAdmin`), since it is known already for each contract, ie. the only non-standard Proxies are
