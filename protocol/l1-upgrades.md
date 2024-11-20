@@ -21,8 +21,9 @@ We take the following as our design goals:
   - All contracts should be upgraded to the correct implementation.
   - Storage layouts should not be incorrectly modified.
   - Contracts should not be 're-initializable'
-- **Simplicity:** We avoid trying to account for all special cases, and instead require contracts to
+- **Standardization:** We avoid trying to account for all special cases, and instead require contracts to
   be implemented in a manner compatible with the solution outlined here.
+- **Simplicity:** We avoid adding conventions which will require frequent conversations starting with "ok here's how it works..."
 - **Auditability:** An upgrade path should be easy to understand, either by reviewing the source
   code as in the case of a forthcoming upgrade, or by reviewing the on-chain history along with
   verified source code.
@@ -48,17 +49,7 @@ work will either include, or else depend on, all L1 contracts becoming either:
 While the length will likely be proportional to the length of the full document,
 the summary should be as succinct as possible. -->
 
-The proposed solution will perform upgrades by transferring upgrade authorization of all L1
-contracts to the release specific OPCM. Upon completion of the upgrade, this authorization will
-be returned to the Security Council.
-
-Rather than the curent `StorageSetter` based approach which simply deletes the `_initialized` slot,
-allowing for `initialize()` to be called, we take this two-step upgrade further, with a short-lived
-`Populator` contract being temporarily set as the implementation in order to set or modify any
-values as required. This has two significant benefits. First it removes the need to keep a one-time
-`initialize()` function in the run-time logic. Secondly it enables a clean separation of concerns
-between contracts which are newly deployed (requiring all values to be set), and contracts being
-upgraded (requiring only new values to be set).
+TODO
 
 # Problem Statement + Context
 
@@ -130,7 +121,7 @@ contract SimpleStorage {
 }
 
 /// @notice an ephemeral contract which is temporarily set as the implementation during deployment
-///         or upgrae.
+///         or upgrade.
 contract SimpleStoragePopulator is SimpleStorage {
   /// @notice Called to initialize a freshly deployed system.
   function initialize(uint _foo, bytes32 _bar) public {
@@ -139,7 +130,7 @@ contract SimpleStoragePopulator is SimpleStorage {
   }
 
   /// @notice Called to upgrade a pre-existing system.
-  /// TODO: clarify how to handle this if no new values are being added.
+  ///         This function is only necessary if new values are being added to the storage layout.
   function upgrade(bytes32 _bar) public {
     bar = _bar;
   }
