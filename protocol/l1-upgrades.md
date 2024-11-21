@@ -121,12 +121,12 @@ The only change to this contract will be to:
 2. add a new `upgrade()` function which also has the `initializer` modifier.
 
 ```solidity
-  /// @notice Called to upgrade a pre-existing system.
-  ///         If new values are not being added to the storage layout, this function can be empty
-  ///         and take no arguments.
-  function upgrade(bytes32 _bar) public initializer {
-    bar = _bar;
-  }
+/// @notice Called to upgrade a pre-existing system.
+///         If new values are not being added to the storage layout, this function can be empty
+///         and take no arguments.
+function upgrade(bytes32 _bar) public initializer {
+  bar = _bar;
+}
 ```
 
 The `StorageSetter` contract can then be replaced with a special purpose contract which
@@ -262,6 +262,7 @@ Thus the high level logic for upgrading a contract should be roughly as follows:
 // Some upgrades will
 struct NewChainConfig {
   address newValues;
+  address disputeGameBlueprint;
 }
 
 Addresses immutable implementations;
@@ -279,6 +280,7 @@ function upgrade(SuperchainProxyAdmin _admin, ISystemConfig[] _systemConfigs, Ne
       // 1. Call the appropriate `SuperchainProxyAdmin.upgradeAndCall()` function to reset the initialized slot.
       // 2. Call the appropriate `SuperchainProxyAdmin.upgradeAndCall()` function to update the
       //    implementation and call `upgrade()` on the contract.
+      // 3. For non-MCP compliant dispute game contracts, call `setImplementation()` and update the AnchorStateRegistry.
   }
   // run safety assertions to validate the upgrade
 }
@@ -291,7 +293,9 @@ To enumerate the full flow:
    1. immutables pointing to all new implementation contracts and shared config (e.g. a new contract).
 1. For each new implementation an upgrade call will be executed via the `SuperchainProxyAdmin`
 1. A Safe will `DELEGATECALL` to the OPCM.upgrade(...) method, which MUST be `pure` for safety purposes.
-1. A two step upgrade is used where the first upgrade is to an `UpgradePreparer` which resets the `initialized` value, then the implementation is updated to the final address and `upgrade()` is called.
+1. A two step upgrade is used where the first upgrade is to an `InitializerResetter` which resets
+   the `initialized` value, then the implementation is updated to the final address and `upgrade()`
+   is called.
 
    **Notes:**
 
@@ -319,10 +323,13 @@ the upgrade path from the most recent release to the one curently being develope
 will be necessary to have a deployment of the previous release available on the current commit, in
 order to test the upgrade path. This is achievable using `op-deployer`.
 
-Testing should also be done to ensure that, given the same configuration as inputs, a fresh chain
-has the same resulting configuration as an upgraded chain.
+All tests should be executed against both a freshly deployed and upgraded system.
 
 **Alternatives considered:**
+
+- Rather than duplicated tests, new tests could ensure that given the same configuration as inputs,
+  a fresh chain has the same resulting configuration as an upgraded chain. Duplicating tests was
+  deemed acceptable as they are parallelizable.
 
 # Resource Usage
 
