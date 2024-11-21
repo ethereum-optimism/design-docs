@@ -115,8 +115,10 @@ contract SimpleStorage is Initializable {
 }
 ```
 
-The only change to this contract will be to add a new `upgrade()` function which also
-has the `initializer` modifier.
+The only change to this contract will be to:
+
+1. store the `initialized` value in an unstructured storage location.
+2. add a new `upgrade()` function which also has the `initializer` modifier.
 
 ```solidity
   /// @notice Called to upgrade a pre-existing system.
@@ -128,7 +130,7 @@ has the `initializer` modifier.
 ```
 
 The `StorageSetter` contract can then be replaced with a special purpose contract which
-directly reset the `initialized` slot.
+directly resets the `initialized` slot.
 
 The new contract **deployment** flow used by the OPCM thus becomes:
 
@@ -141,7 +143,7 @@ And the contract **upgrade** flow used by the OPCM would be:
 1. set its implementation to an `InitializerResetter` contract (does what the name says).
 2. call `InitializerResetter.reset()`
 3. set its implementation to `SimpleStorage`.
-4. Call `SimpleStorage.initialize()`.
+4. Call `SimpleStorage.upgrade()`.
 
 **Alternatives considered:** Other approaches were considered including:
 
@@ -278,6 +280,7 @@ function upgrade(SuperchainProxyAdmin _admin, ISystemConfig[] _systemConfigs, Ne
       // 2. Call the appropriate `SuperchainProxyAdmin.upgradeAndCall()` function to update the
       //    implementation and call `upgrade()` on the contract.
   }
+  // run safety assertions to validate the upgrade
 }
 ```
 
