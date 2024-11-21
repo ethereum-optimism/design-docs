@@ -14,11 +14,13 @@ An important nuance here is that each `FaultDisputeGame.sol` deployment has both
  
 # Proposed Solution
 
-In order to elegantly resolve this, the two sets of immutable args should be flattened into a single set of immutable args deployed alongside the proxy from the factory. The factory will instead store all of the different per-chain values, and pass in all arguments as a top level proxy with immutable args. This means that the implementation contract will functionally have no immutable args, with everything fetched as arguments from a proxy-with-immutable-args.
+In order to fix this we need create a new class of `Creator` contracts for each `FaultDisputeGame`. Each Creator contract is responsible for deploying its own type of `FaultDisputeGame`, and instead `FaultDisputeGameFactory.sol` will no longer have a set implementaiton it clones from, or a `gameType` to implementation mapping. Instead, the `FaultDisputeGameFactory.sol` will be responsible for keeping track of "creators" disputeGame per `gameType`. The main advantage of this is that the information and configuration for each fault dispute game be granually controlled and adjusted, without forcing it into an unreadable "blob of bytes." Additionally we can allow each creator to be owned, and so for upgrades redeployment may be not even neccessary, variables like `absolutePrestate` could instead just be simply updated. 
 
 # Alternatives Considered
 
 It would be possible to remove out the chain specific immutable arguments to simply become "extraData" passed into the proxy constructor, however this complicates the system further because the ultimate goal is to consildate all of our contracts so that each rollup can point to a single set of implementation contracts, so keeping some configuration parameters on the implementation of `FaultDisputeGame.sol` would not be flexible enough down the line.
+
+Flattening all immutables into a single layer was also considerered heavily, but ultimately rejected because it concentrates too much configuration and information in the `DisputeGameFactory.sol`, and places the critical configuration variables in a more unreadable format.
 
 # Risks & Uncertainties
 
