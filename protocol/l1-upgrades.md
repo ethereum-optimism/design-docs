@@ -36,9 +36,8 @@ This document is not concerned with:
 1. modifications to the ownership system, ie, it does not attempt to modify Safes, modules or
    guards.
 
-More over, it does not present a plan for managing contracts which are not proxied, and not
-Multichain Prepared (MCP-L1) contracts (ie. FaultDisputeGame, AnchorStateRegistry). This
-work will either include, or else depend on, all L1 contracts becoming either:
+With the exception of dispute game implementations this work will either include, or else depend on,
+all L1 contracts becoming either:
 
 1. Proxied and MCP ready
 2. Superchain-shared contracts (proxied or not)
@@ -259,7 +258,7 @@ OP Chains to be upgraded.
 Thus the high level logic for upgrading a contract should be roughly as follows:
 
 ```solidity
-// Some upgrades will
+// Some upgrades will not require any new values
 struct NewChainConfig {
   address newValues;
   address disputeGameBlueprint;
@@ -280,7 +279,7 @@ function upgrade(SuperchainProxyAdmin _admin, ISystemConfig[] _systemConfigs, Ne
       // 1. Call the appropriate `SuperchainProxyAdmin.upgradeAndCall()` function to reset the initialized slot.
       // 2. Call the appropriate `SuperchainProxyAdmin.upgradeAndCall()` function to update the
       //    implementation and call `upgrade()` on the contract.
-      // 3. For non-MCP compliant dispute game contracts, call `setImplementation()` and update the AnchorStateRegistry.
+      // 3. For non-MCP compliant dispute game contracts, call `setImplementation()` and update the `AnchorStateRegistry`.
   }
   // run safety assertions to validate the upgrade
 }
@@ -292,7 +291,7 @@ To enumerate the full flow:
    1. `deploy()` and `upgrade()` methods to deploy new chains and ugprade existing chains
    1. immutables pointing to all new implementation contracts and shared config (e.g. a new contract).
 1. For each new implementation an upgrade call will be executed via the `SuperchainProxyAdmin`
-1. A Safe will `DELEGATECALL` to the OPCM.upgrade(...) method, which MUST be `pure` for safety purposes.
+1. A Safe will `DELEGATECALL` to the `OPCM.upgrade()` method, which MUST be `pure` for safety purposes.
 1. A two step upgrade is used where the first upgrade is to an `InitializerResetter` which resets
    the `initialized` value, then the implementation is updated to the final address and `upgrade()`
    is called.
