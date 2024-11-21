@@ -69,7 +69,7 @@ Our upgrades have the following issues:
 Each new release will have its own OP Contracts Manager which can perform the following distinct
 actions:
 
-1. Deploy new proxies for a new OP Chain (this work is already covered by [link to Blaine's doc]())
+1. Deploy new proxies for a new OP Chain (this work is already covered by a recent [OPCM redesign](./op-contracts-manager-single-release-redesign.md)).
 1. Upgrade all existing OP Chains.
 1. Deploy any newly added superchain-shared contracts.
 1. Upgrade existing superchain-shared contracts.
@@ -77,14 +77,18 @@ actions:
 Note that the above functionality also makes for a good set of milestones, each of which can and
 should be implemented incrementally.
 
-## Declarative storage management
+## Contract specific upgrade paths
 
 Taking inspiration from Chugsplash, we wish to separate the concern of what bytecode to run, and
 what to write to storage. However we also wish to avoid using the current `StorageSetter` pattern,
 which simply provides logic to "write anything anywhere" in storage.
 
-In order to achieve this, each contract will have its `initializer()` function moved intoa
-release specific `__Populator` contract.
+In order to achieve this, each contract will:
+
+1. Use the OpenZeppelin v5 Initializable contract, which stores the `initialized` value in an
+   [unstructured storage location](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v5.0.2/contracts/proxy/utils/Initializable.sol#L77).
+2. Have a new `upgrade()` method added alongside the existing `initialize()` method, both of which
+   will have the `initializer` modifier
 
 By way of example, we take an initializable version of `SimpleStorage`:
 
@@ -111,56 +115,44 @@ contract SimpleStorage is Initializable {
 }
 ```
 
-This document proposes that the above contract should be refactored accordingly:
+The only change to this contract will be to add a new `upgrade()` function which also
+has the `initializer` modifier.
 
 ```solidity
-/// @notice The base contract with all runtime logic
-contract SimpleStorage {
-  uint public foo;
-  bytes32 public bar; // new variable added for the current release.
-}
-
-/// @notice an ephemeral contract which is temporarily set as the implementation during deployment
-///         or upgrade.
-contract SimpleStoragePopulator is SimpleStorage {
-  /// @notice Called to initialize a freshly deployed system.
-  function initialize(uint _foo, bytes32 _bar) public {
-    foo = _foo;
-    bar = _bar;
-  }
-
   /// @notice Called to upgrade a pre-existing system.
-  ///         This function is only necessary if new values are being added to the storage layout.
-  function upgrade(bytes32 _bar) public {
+  ///         If new values are not being added to the storage layout, this function can be empty
+  ///         and take no arguments.
+  function upgrade(bytes32 _bar) public initializer {
     bar = _bar;
   }
-}
 ```
 
-With this architecture, the OPCM contract (which will be a non-proxied singleton per release) would
-then either:
+The `StorageSetter` contract can then be replaced with a special purpose contract which
+directly reset the `initialized` slot.
 
-The new contract deployment flow used by the OPCM thus becomes:
+The new contract **deployment** flow used by the OPCM thus becomes:
 
-1.  Deploy a new proxy
-2.  If and only if the proxy has state variables:
-    1.  set its implementation to the `SimpleStoragePopulator`
-    1.  call `initialize()`
-3.  Finally set its implementation to `SimpleStorage`
+1. Deploy a new proxy.
+2. Set its implementation to `SimpleStorage`.
+3. Call `SimpleStorage.initialize()`.
 
-And the contract upgrade flow used by the OPCM would be:
+And the contract **upgrade** flow used by the OPCM would be:
 
-1. If and only if the proxy has NEWLY ADDED state variables:
-   1. set its implementation to the `SimpleStoragePopulator`
-   1. call `upgrade()`
-1. set its implementation to `SimpleStorage`
+1. set its implementation to an `InitializerResetter` contract (does what the name says).
+2. call `InitializerResetter.reset()`
+3. set its implementation to `SimpleStorage`.
+4. Call `SimpleStorage.initialize()`.
 
-This workflow has the benefit of removing the `initializer()` functions, which:
+**Altneratives considered:** Other approaches were considered including:
 
-- create a risk of reinit attacks
-- bloat the runtime bytecode size
-- are extremely verbose
-- require finesse to avoid modifying or resetting values which are not meant to be changed.
+1. Remove the two step upgrade approach. This would have required using a `reinitializer` like pattern
+   which was deemed more complex and error prone.
+2. Separating the `initializer()` and `upgrade()` methods into a separate contract used in the
+   first part of a two step upgrade. This was deemed to complex as it created more contracts to manage.
+3. Breaking out the storage layout into a separate contract, this would have created a complex refactor
+   and inheritance tree.
+4. Using `StorageSetter` directly udring the first step, in place of an `upgrade()` method. This approach
+   would not allow us to easily perform sanity checks on inputs without duplicating logic into the OPCM.
 
 ## A single `SuperchainProxyAdmin`
 
@@ -170,22 +162,30 @@ will have minimal storage, and will not internally track the type of Proxy which
 
 This contract will be owned by the [Upgrade
 Controller](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/stage-1.md#L30), and
-will be a simple pass through contract with a minimal interface.
+will have the following minimal interface:
 
 ```solidity
-/// @notice forwards calldata to the specified address.
-///   Reverts unless called by owner.
-function forward(address, bytes) external;
+function upgrade(address _proxy, address _implementation) external;
+function upgradeAndCall(address _proxy, address _implementation, bytes memory _data) external;
 
-/// @notice forwards calldata to the specified addresses.
-///   Reverts unless called by owner.
-function forward(address[], bytes[]) external;
+function upgradeResolved(address _addressManager, address _implementation) external;
+function upgradeAndCallResolved(address _addressManager, address _implementation, address _proxy, bytes memory _data) external;
+
+function upgradeChugsplash(address _proxy, address _implementation) external;
+function upgradeAndCallChugsplash(address _proxy, address _implementation, bytes memory _data) external;
 ```
 
 This architecture makes it possible to manage upgrade authorization for the whole superchain through
-a single storage value in a single contract (`SuperchainProxyAdmin.owner`), rather than having a separate contract per OP Chain.
+a single storage value in a single contract (ie. `SuperchainProxyAdmin.owner`), rather than having a separate contract per OP Chain.
 
-It also avoids the need for an `sload` to read the `proxyType` mapping for each contract.
+By having the caller identify the proxy type, it also avoids the need for an `sload` to read the
+`proxyType` mapping for each contract.
+
+**Altneratives considered:** Other approaches were considered including:
+
+1. Keeping many `ProxyAdmin`s: this is complicated and expensive.
+2. Making the `SuperchainProxyAdmin` an even thinner wrapper which effectively just forwards
+   calldat. The approach chosen will reduce the amount of boilerplate in the OPCM.
 
 ## Identifying OP Chains by the SystemConfig
 
@@ -204,7 +204,7 @@ compatibility, the existing `version()` getters will return the value from `Syst
 The `DeployImplementations` script will write the version into the OPCM, which writes it into the
 `SystemConfig`.
 
-The `rc` tag will be included on the OPCM's initial version. It will be programmatically removed
+The `rc` tag will be included on the OPCM upon deployment. It will be programmatically removed
 when `upgrade()` is called by the Upgrade Controller multisig, which signifies governance approval.
 
 ## Proof system considerations
@@ -212,14 +212,23 @@ when `upgrade()` is called by the Upgrade Controller multisig, which signifies g
 ### Adding the PermissionlessDisputeGame to a chain
 
 Given that not all chains will support the `PermissionlessDisputeGame` upon deployment, an
-`OPCM.addGameType()` method will be added which will handle this.
+`OPCM.addGameType()` method will be added which will orchestrate the actions required to add a
+new game type.
 
-WIP
+This method will:
 
-1. ideally we update op-program to remove the chain config, so that it is identical across chains
-   then it reads the config at run time.
-   But we won't block isthmus on it, and will allow the `FaultDisputeGame` and `PermissionedDisputeGame` to be non-compliant.
-2. inputs for each hardfork: one prestatehash per chain.
+1. deploy the `FaultDisputeGame` contract
+2. setup the `DelayedWethProxy` for the new game
+3. Reinitialize the `AnchorStateRegistry` to add the new game type.
+
+### Making `op-program` shared
+
+`op-program` will be updated by [other work](https://github.com/ethereum-optimism/design-docs/pull/161) to remove the chain config, so that it can be shared across chains.
+
+### Short term allowances for non-compliant contracts
+
+In order to avoid blocking this work, if the `FaultDisputeGame` and `PermissionedDisputeGame`
+have not become MCP-L1 compatible in time, the OPCM upgrade path will deploy chain specific instances.
 
 ## Release process
 
@@ -229,12 +238,9 @@ The Upgrade Controller (which MUST be a Safe), will `DELEGATECALL` the `OPCM.upg
 providing the address of the `SuperchainProxyAdmin` and a list of the `SystemConfig` contracts for the
 OP Chains to be upgraded.
 
-Importantly,
-
 Thus the high level logic for upgrading a contract should be roughly as follows:
 
-```js
-
+```solidity
 // Some upgrades will
 struct NewChainConfig {
   address newValues;
@@ -250,14 +256,10 @@ function upgrade(SuperchainProxyAdmin _admin, ISystemConfig[] _systemConfigs, Ne
   for(uint i=0; i< systemConfigs.length; i++) {
     // Read the `Addresses` struct from each `SystemConfig` in the `systemConfigs` mapping.
     // For each entry in the `Addresses` struct:
-      // 1. Call the `SuperchainProxyAdmin` to update the implementation to the `Populator` contract
-      //    TODO: OR update the implementation to
-      // 2. call
-      // 2. Update the implementation to the final implementation contract.
+      // 1. Call the appropriate `SuperchainProxyAdmin.upgradeAndCall()` function to reset the initialized slot.
+      // 2. Call the appropriate `SuperchainProxyAdmin.upgradeAndCall()` function to update the
+      //    implementation and call `upgrade()` on the contract.
   }
-  // Return ownership of the `SuperchainProxyAdmin` to the Upgrade Controller (`msg.sender`)
-      //    `SuperchainProxyAdmin`. The unique upgrade call encoding required for the non-standard proxies
-      //    should be handled here.
 }
 ```
 
@@ -266,18 +268,29 @@ function upgrade(SuperchainProxyAdmin _admin, ISystemConfig[] _systemConfigs, Ne
 - A new getter should be added to the `SystemConfig` to retrieve the `Addresses` in a single call.
 - The `AddressManager` for each chain must be used to upgrade the `L1CrossDomainMessenger`, therefore it should be added to the `Addresses` struct.
 
+Importantly, this design does not provide special affordances to enable systems with different
+upgrade controllers to upgrade together atomically, although this could be achieved with additional
+coordination.
+
+## Upgrading multiple versions
+
+All systems MUST undergo the same upgrade path, using each OPCM in order.
+
+For example, if the latest version is `2.2.0`, and a system is on `2.0.0`, then it will first need to
+be upgraded to `2.1.0` using the OPCM for that version.
+
+The address of the OPCM corresponding to each upgrade will be stored in the `superchain-registry`,
+and `op-deployer` will ensure that upgrades conform to the specified ordering.
+
 ## Development and Testing considerations
 
 This solution should be implemented such that it both enables and _requires_ developers to implement
 the upgrade path from the most recent release to the one curently being developed. This means it
 will be necessary to have a deployment of the previous release available on the current commit, in
-order to test the upgrade path.
+order to test the upgrade path. This is achievable using `op-deployer`.
 
-This can be achieved by storing an L1 Genesis representation of the latest release in the monorepo.
-This genesis file can be generated by from a state dump of the currently deployed test system. The
-test suite should then be modified so that each test runs twice, one against a system freshly
-deployed by the OPCM, and another which was upgraded from the previous release. In CI these two
-major test groups can be run in parallel.
+Testing should also be done to ensure that, given the same configuration as inputs, a fresh chain
+has the same resulting configuration as an upgraded chain.
 
 # Resource Usage
 
@@ -289,10 +302,12 @@ A rough per-chain estimate (accounting for lookups but not memory) based on the 
 - `CALL` the `SuperchainProxyAdmin`: 2600
   - Do the following 6 times:
     - `CALL` the Proxy: 2600
-    - Cold `SSTORE` the temporary `Populator` implementation address over a non-zero slot: 5,000
-    - Cold `SSTORE` new values: 20,000 each assuming empty slots.
+    - Cold `SSTORE` the temporary `InitializerResetter` implementation address over a non-zero slot: 5,000
+    - Cold `SSTORE` a zero value: 2900
     - Warm `CALL` the Proxy again: 100
     - Warm `SSTORE` the final implementation address over a non-zero slot: 100
+    - Warm `CALL` the Proxy again: 100
+    - Cold `SSTORE` new values: 20,000 each
 
 Aggregating the above slightly:
 
@@ -310,20 +325,8 @@ We will likely need to handle that limitation at some point in the future, but c
 
 # Alternatives Considered
 
-1. Keeping the existing L1 Proxy Admin was rejected as being overly redundant and inefficient.
-2.
-3. Keeping initializers, and the StorageSetter was rejected as more over-prone, though possible simpler for testing purposes.
-4.
+Where relevant, alternatives considered are documented above in each section.
 
 # Risks & Uncertainties
 
 TODO
-
----
-
-6. We will track the correct addresses of the OPCMs in the registry. If you are upgrading by more than one version, you'll
-   get the list from there.
-
-function upgrade() {
-require(systemConfig.releaseVersion() < )
-}
