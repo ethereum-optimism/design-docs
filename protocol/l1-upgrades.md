@@ -77,7 +77,7 @@ actions:
 Note that the above functionality also makes for a good set of milestones, each of which can and
 should be implemented incrementally.
 
-## Contract specific upgrade paths
+## Modfications to L1 contracts
 
 Taking inspiration from Chugsplash, we wish to separate the concern of what bytecode to run, and
 what to write to storage. However we also wish to avoid using the current `StorageSetter` pattern,
@@ -143,7 +143,7 @@ And the contract **upgrade** flow used by the OPCM would be:
 3. set its implementation to `SimpleStorage`.
 4. Call `SimpleStorage.initialize()`.
 
-**Altneratives considered:** Other approaches were considered including:
+**Alternatives considered:** Other approaches were considered including:
 
 1. Remove the two step upgrade approach. This would have required using a `reinitializer` like pattern
    which was deemed more complex and error prone.
@@ -167,12 +167,15 @@ will have the following minimal interface:
 ```solidity
 function upgrade(address _proxy, address _implementation) external;
 function upgradeAndCall(address _proxy, address _implementation, bytes memory _data) external;
+function changeProxyAdmin(address payable _proxy, address _newAdmin) external;
 
 function upgradeResolved(address _addressManager, address _implementation) external;
 function upgradeAndCallResolved(address _addressManager, address _implementation, address _proxy, bytes memory _data) external;
+function changeProxyAdminResolved(address payable _proxy, address _newAdmin) external
 
 function upgradeChugsplash(address _proxy, address _implementation) external;
 function upgradeAndCallChugsplash(address _proxy, address _implementation, bytes memory _data) external;
+function changeProxyAdminChugsplash(address payable _proxy, address _newAdmin) external
 ```
 
 This architecture makes it possible to manage upgrade authorization for the whole superchain through
@@ -181,11 +184,24 @@ a single storage value in a single contract (ie. `SuperchainProxyAdmin.owner`), 
 By having the caller identify the proxy type, it also avoids the need for an `sload` to read the
 `proxyType` mapping for each contract.
 
-**Altneratives considered:** Other approaches were considered including:
+The `SuperchainProxyAdmin` contract will also use a two step ownership transfer mechanism, which
+will require a new owner to accept the transfer before it is finalized.
+
+### Ownership transfer process
+
+Replacing the ProxyAdmin is a high risk operation, requiring a transfer of ownership of every single
+L1 contract. However these risks can be mitigated, and the benefits of reduced complexity are
+believed to be worthwhile, and better done sooner than later.
+
+The ownership transfer operation should be handled by the OPCM itself. The success of the
+ownership transfer should be verified after execution, and the transfer should revert unless
+successful.
+
+**Alternatives considered:** Other approaches were considered including:
 
 1. Keeping many `ProxyAdmin`s: this is complicated and expensive.
 2. Making the `SuperchainProxyAdmin` an even thinner wrapper which effectively just forwards
-   calldat. The approach chosen will reduce the amount of boilerplate in the OPCM.
+   calldata. The approach chosen will reduce the amount of boilerplate in the OPCM.
 
 ## Identifying OP Chains by the SystemConfig
 
@@ -252,7 +268,9 @@ constructor(Addresses _implementations) {
   implementations = _implementations;
 }
 
-function upgrade(SuperchainProxyAdmin _admin, ISystemConfig[] _systemConfigs, NewChainConfig[] _newConfigs) public {
+/// @notice This function is intended to be DELEGATECALLed by the chain's Upgrade Controller, therefore it
+///         must not read or write from storage, and should receive all required data as calldata.
+function upgrade(SuperchainProxyAdmin _admin, ISystemConfig[] _systemConfigs, NewChainConfig[] _newConfigs) public pure {
   for(uint i=0; i< systemConfigs.length; i++) {
     // Read the `Addresses` struct from each `SystemConfig` in the `systemConfigs` mapping.
     // For each entry in the `Addresses` struct:
