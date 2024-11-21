@@ -150,10 +150,10 @@ And the contract **upgrade** flow used by the OPCM would be:
 1. Remove the two step upgrade approach. This would have required using a `reinitializer` like pattern
    which was deemed more complex and error prone.
 2. Separating the `initializer()` and `upgrade()` methods into a separate contract used in the
-   first part of a two step upgrade. This was deemed to complex as it created more contracts to manage.
+   first part of a two step upgrade. This was deemed too complex as it created more contracts to manage.
 3. Breaking out the storage layout into a separate contract, this would have created a complex refactor
    and inheritance tree.
-4. Using `StorageSetter` directly udring the first step, in place of an `upgrade()` method. This approach
+4. Using `StorageSetter` directly during the first step, in place of an `upgrade()` method. This approach
    would not allow us to easily perform sanity checks on inputs without duplicating logic into the OPCM.
 
 ## A single `SuperchainProxyAdmin`
@@ -284,7 +284,16 @@ function upgrade(SuperchainProxyAdmin _admin, ISystemConfig[] _systemConfigs, Ne
 }
 ```
 
-**Notes:**
+To enumerate the full flow:
+
+1. Deploy new OPCM contract, which contains:
+   1. `deploy()` and `upgrade()` methods to deploy new chains and ugprade existing chains
+   1. immutables pointing to all new implementation contracts and shared config (e.g. a new contract).
+1. For each new implementation an upgrade call will be executed via the `SuperchainProxyAdmin`
+1. A Safe will `DELEGATECALL` to the OPCM.upgrade(...) method, which MUST be `pure` for safety purposes.
+1. A two step upgrade is used where the first upgrade is to an `UpgradePreparer` which resets the `initialized` value, then the implementation is updated to the final address and `upgrade()` is called.
+
+   **Notes:**
 
 - A new getter should be added to the `SystemConfig` to retrieve the `Addresses` in a single call.
 - The `AddressManager` for each chain must be used to upgrade the `L1CrossDomainMessenger`, therefore it should be added to the `Addresses` struct.
@@ -312,6 +321,8 @@ order to test the upgrade path. This is achievable using `op-deployer`.
 
 Testing should also be done to ensure that, given the same configuration as inputs, a fresh chain
 has the same resulting configuration as an upgraded chain.
+
+**Alternatives considered:**
 
 # Resource Usage
 
