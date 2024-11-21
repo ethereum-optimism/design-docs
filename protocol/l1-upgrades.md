@@ -48,7 +48,14 @@ all L1 contracts becoming either:
 While the length will likely be proportional to the length of the full document,
 the summary should be as succinct as possible. -->
 
-TODO
+Key points of the proposed L1 contract upgrade system:
+
+- Uses a two step upgrade flow, using a standard unstructured slot for `initialized`
+- Adds an `upgrade() initializer` function to each L1 contract
+- Consolidates `ProxyAdmin` contracts into a single superchain wide ProxyAdmin for all L1 contracts
+- Performs an upgrade based entirely on calldata inputs, without reading or modify state
+- Records the `op-contracts` release version in the OPCM
+- Outlines special considerations for dispute game contracts
 
 # Problem Statement + Context
 
@@ -155,48 +162,19 @@ And the contract **upgrade** flow used by the OPCM would be:
 4. Using `StorageSetter` directly during the first step, in place of an `upgrade()` method. This approach
    would not allow us to easily perform sanity checks on inputs without duplicating logic into the OPCM.
 
-## A single `SuperchainProxyAdmin`
+## A single Superchain wide `ProxyAdmin`
 
-The existing L1 `ProxyAdmin` (of which there is currently one per OP Chain), will be replaced with a
-single L1 `SuperchainProxyAdmin`. The `SuperchainProxyAdmin`, in contrast with the L1 `ProxyAdmin`,
-will have minimal storage, and will not internally track the type of Proxy which each contract is.
+All contracts will have their upgrade auth consolidated into a single Superchain-wide `ProxyAdmin`.
 
-This contract will be owned by the [Upgrade
-Controller](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/stage-1.md#L30), and
-will have the following minimal interface:
-
-```solidity
-function upgrade(address _proxy, address _implementation) external;
-function upgradeAndCall(address _proxy, address _implementation, bytes memory _data) external;
-function changeProxyAdmin(address payable _proxy, address _newAdmin) external;
-
-function upgradeResolved(address _addressManager, address _implementation) external;
-function upgradeAndCallResolved(address _addressManager, address _implementation, address _proxy, bytes memory _data) external;
-function changeProxyAdminResolved(address payable _proxy, address _newAdmin) external
-
-function upgradeChugsplash(address _proxy, address _implementation) external;
-function upgradeAndCallChugsplash(address _proxy, address _implementation, bytes memory _data) external;
-function changeProxyAdminChugsplash(address payable _proxy, address _newAdmin) external
-```
-
-This architecture makes it possible to manage upgrade authorization for the whole superchain through
-a single storage value in a single contract (ie. `SuperchainProxyAdmin.owner`), rather than having a separate contract per OP Chain.
-
-By having the caller identify the proxy type, it also avoids the need for an `sload` to read the
-`proxyType` mapping for each contract.
-
-The `SuperchainProxyAdmin` contract will also use a two step ownership transfer mechanism, which
-will require a new owner to accept the transfer before it is finalized.
-
-### Ownership transfer process
-
-Replacing the ProxyAdmin is a high risk operation, requiring a transfer of ownership of every single
-L1 contract. However these risks can be mitigated, and the benefits of reduced complexity are
-believed to be worthwhile, and better done sooner than later.
+This will require a transfer of ownership of every single L1 contract. However these risks can be
+mitigated, and the benefits of reduced complexity are believed to be worthwhile, and better done
+sooner than later.
 
 The ownership transfer operation should be handled by the OPCM itself. The success of the
 ownership transfer should be verified after execution, and the transfer should revert unless
 successful.
+
+A separate design doc will be created to document this process.
 
 **Alternatives considered:** Other approaches were considered including:
 
@@ -214,15 +192,14 @@ the `L1StandardBridge` (`L1ChugsplashProxy`) and `L1CrossDomainMessenger` (`Reso
 
 ## Contract versioning
 
-As part of this work, we will cease to version each L1 contract, and instead move to a global L1
-contracts version. This version will be stored in the `SystemConfig` and OPCM. For backwards
-compatibility, the existing `version()` getters will return the value from `SystemConfig.version()`.
+Existing `version()` getters will continue to work as normal.
 
-The `DeployImplementations` script will write the version into the OPCM, which writes it into the
-`SystemConfig`.
+The OPCM will have a `version()` getter with a version matching `X.Y.Z` in the `op-contracts/vX.Y.Z` release
+tag.
 
-The `rc` tag will be included on the OPCM upon deployment. It will be programmatically removed
-when `upgrade()` is called by the Upgrade Controller multisig, which signifies governance approval.
+The `DeployImplementations` script will write the version into the OPCM, along with an `rc` tag. The
+`rc` tag will be programmatically removed when `upgrade()` is called by the Upgrade Controller
+multisig, which signifies governance approval.
 
 ## Proof system considerations
 
@@ -272,7 +249,7 @@ constructor(Addresses _implementations) {
 
 /// @notice This function is intended to be DELEGATECALLed by the chain's Upgrade Controller, therefore it
 ///         must not read or write from storage, and should receive all required data as calldata.
-function upgrade(SuperchainProxyAdmin _admin, ISystemConfig[] _systemConfigs, NewChainConfig[] _newConfigs) public pure {
+function upgrade(SuperchainProxyAdmin _admin, ISystemConfig[] _systemConfigs, NewChainConfig[] _newConfigs) public {
   for(uint i=0; i< systemConfigs.length; i++) {
     // Read the `Addresses` struct from each `SystemConfig` in the `systemConfigs` mapping.
     // For each entry in the `Addresses` struct:
@@ -300,6 +277,8 @@ To enumerate the full flow:
 
 - A new getter should be added to the `SystemConfig` to retrieve the `Addresses` in a single call.
 - The `AddressManager` for each chain must be used to upgrade the `L1CrossDomainMessenger`, therefore it should be added to the `Addresses` struct.
+- We should identify measures for ensuring the OPCM is nearly stateless, and the `upgrade()` function
+  should not read or write from its own storage.
 
 Importantly, this design does not provide special affordances to enable systems with different
 upgrade controllers to upgrade together atomically, although this could be achieved with additional
@@ -367,4 +346,29 @@ Where relevant, alternatives considered are documented above in each section.
 
 # Risks & Uncertainties
 
-TODO
+1. **Storage Layout Risks**: There are risks around incorrect storage layout modifications during upgrades, which could corrupt contract state if not handled properly.
+
+2. **Re-initialization Risk**: Contracts could potentially be re-initialized if the initialization state is not properly managed. The proposed solution mitigates this by using OpenZeppelin v5's unstructured storage for initialization state.
+
+3. **Gas Cost Uncertainty**: While estimates suggest ~250,000 gas per chain upgrade would allow 120 OP Chain upgrades per L1 block, actual gas costs could vary significantly:
+
+   - Cold storage access patterns may differ from estimates
+   - Number of new storage values needed could exceed assumptions
+   - Future L1 gas cost changes could impact upgrade capacity
+
+4. **Testing Coverage**: The dual testing approach (fresh deploy vs upgrade) adds complexity:
+
+   - Need to maintain previous release state representations
+   - Must ensure test coverage is equivalent for both paths
+   - Parallel test execution could mask upgrade-specific issues
+
+5. **Implementation Complexity**: The new upgrade pattern requires:
+
+   - Careful coordination between implementation and upgrade code
+   - Strict adherence to standardized contract modifications
+   - Proper handling of the initialization state across all contracts
+
+6. **Scale Limitations**: While current estimates support 120 chain upgrades per block, this may become insufficient as the number of OP Chains grows, potentially requiring:
+   - Breaking upgrades across multiple blocks
+   - More sophisticated batching mechanisms
+   - Additional gas optimizations
