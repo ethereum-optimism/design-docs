@@ -50,7 +50,7 @@ In origin, Alice would emit the `EntrypointContext` as a separate event, and sen
 
 Therefore, the processing message function in the `Entrypoint` context will validate and consume two messages: the regular `SentMessage` event and the `EntrypointContext` event.
 
-An alternative design could be to enshrine the `entrypointContext` as a `bytes` field from within the `SentMessage` event. We discuss this approach in the [Appendix](#enshrined-entrypointcontext).
+An alternative design could be to enshrine the `entrypointContext` as a `bytes` field from within the `SentMessage` event. We discuss this approach in [Future Considerations](#enshrined-entrypointcontext).
 
 Notice that, in the intuition example, the `SwapperEntrypoint` is used as both pre and post-hook for the message relay. The `EntrypointContext` is used here in the post-action, but it would be needed beforehand in other cases (like batching).
 
@@ -141,7 +141,7 @@ ExpirableTokenBridge_A-->SuperchainERC20_A: crosschainMint(receiverOfExpiredToke
 - Names are all up for debate and change.
 - For `EntrypointContext`, should we emit the full struct, an encoded bytes or a hash?
 
-## Appendix
+## Future Considerations
 
 ### Enshrined `entrypointContext`
 
