@@ -32,15 +32,8 @@ The `DeputyGuardianModule` has an unclear security model and underlying purpose.
 intent behind the `DeputyGuardianModule` was to provide a fast way to respond to potential
 incidents in a manner that can impact liveness but not system safety. A lack of strict clarity
 behind this design has meant that the `DeputyGuardianModule` has become a source of security
-implications that are not often easy to reason about.
-
-For instance, the `DeputyGuardianModule` currently allow the Deputy Guardian account to change the
-dispute game type that is respected within the `OptimismPortal` contract from the
-`FaultDisputeGame` to the `PermissionedDisputeGame`. The `PermissionedDisputeGame` has a security
-model that differs from the `FaultDisputeGame` which essentially means that the Deputy Guardian is
-given the ability to change the security model of the system. This is a departure from the original
-design of the `DeputyGuardianModule` which should only impact liveness and should not modify the
-security model of the system.
+implications that are not often easy to reason about. We would like to be more strict about what
+the `DeputyGuardianModule` can and cannot do.
 
 ## Proposed Solution
 
@@ -52,12 +45,13 @@ The `DeputyGuardianModule` would be permitted to:
 
 1. Trigger the Superchain-wide pause.
 1. Blacklist an individual dispute game.
+1. Change the respected game type to the `PermissionedDisputeGame`.
+1. Trigger the `setAnchorState` function in the `AnchorStateRegistry`.
 
 The `DeputyGuardianModule` would **no longer** be permitted to:
 
 1. Undo the Superchain-wide pause ("unpause").
-1. Change the respected game type.
-1. Set the anchor state in the `AnchorStateRegistry`.
+1. Change the respected game type to the `FaultDisputeGame`.
 
 The `DeputyGuardianModule` would be accessible to:
 
@@ -77,11 +71,9 @@ liveness and cannot impact safety.
 1. We remove the ability to unpause the system because this makes it possible for the
    `DeputyGuardianModule` to diminish safety by unpausing the system when it was explicitly placed
    into a paused state for security reasons.
-1. We remove the ability to change the respected game tybe because this allows the
-   `DeputyGuardianModule` to modify the security model of the system and does not align with the
-   goal of limiting the module to liveness-impacting actions.
-1. We remove the ability to set the anchor state within the `DisputeGameFactory` because this can
-   potentially impact safety if the provided anchor state game is sufficiently old.
+1. We restrain the `DeputyGuardianModule` to be able to change the respected game type to the
+   `PermissionedDisputeGame` but not back to the `FaultDisputeGame` for similar reasons to the
+   removal of the ability to unpause the system.
 
 ## Alternatives Considered
 
@@ -123,3 +115,11 @@ Various processes and runbooks will need to be updated to reflect this new state
 be happy, but it will take some effort. All of these updates will need to be made before we
 actually go live with these changes and we should run drills on testnet and propose that drills be
 run on mainnet.
+
+### Incident Response Improvements
+
+We are currently working on a number of changes to various contracts under the banner of a project
+generally known as the Incident Response Improvements project. The Incident Response Improvements
+project will modify the `OptimismPortal` and `AnchorStateRegistry` contracts and will therefore
+require changes to the `DeputyGuardianModule`. We should make sure that these changes are in line
+with the intent laid out in this document.
