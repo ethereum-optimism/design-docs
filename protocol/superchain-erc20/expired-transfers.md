@@ -1,5 +1,6 @@
 ## Summary
 This design document introduces a solution to recover stuck `SuperchainERC20` cross-chain transfers due to a failed relay. It builds on top of the `Entrypoint` vertical to minimize new logic on the bridge and optimize for upgradability. It introduces a method for expiring messages and sending them back for the original sender to recover its burn balance in `origin`.
+
 ## Problem Statement 
 
 Messages that fail to be relayed cannot be recovered in origin. This is particularly sensitive for messages part of `SuperchainERC20` cross-chain transfer, as tokens get burned in the origin chain. The user cannot recover their funds without a way to recover the message.
@@ -119,6 +120,3 @@ Then, in destination, anyone can pass this even identifier alongside the message
 - Check that the `msgHash` is not part of the `sucessfulMessages` mapping
 - add the `msgHash` to the `expired` mapping
 - Craft and send a message back to `origin` calling `relayERC20` on the `SuperchainTokenBridge` with the original `sender` and `amount` information. 
-## Random Ideas
-- The `expiredMessages` mapping could be a Merkle Root (MMR or Sparse actually). `sendExpire` could ask for an inclusion proof. Don't think this is necessary, though.
-- If `sendExpire` is a function separate from `expireMessage`, then there is room for batching multiple messages back to `origin`. Again, don't think its worth.
