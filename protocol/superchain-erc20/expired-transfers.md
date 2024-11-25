@@ -1,5 +1,5 @@
 ## Summary
-This design document introduces a solution to recover stuck `SuperchainERC20` cross-chain transfers due to a failed relay. It builds on top of the `Entrypoint` vertical to minimize new logic on the bridge and optimize for upgradability. It introduces a method for expiring messages and sending them back for the original sender to recover its burn balance in `origin`.
+This design document introduces possible designs to recover stuck `SuperchainERC20` cross-chain transfers due to a failed relay. It introduces a method for expiring messages and sending them back for the original sender to recover its burn balance in `origin`.
 
 ## Problem Statement 
 
@@ -33,6 +33,8 @@ The new system will need to
 4. Mint the tokens back to the original `sender` in the `origin` chain.
 
 ## Architecture
+
+We will present two possible approaches for handling expiration and recovery of transfers. The first one will focus on modifying the `SuperchainTokenBridge` and the second one will leverage the `entrypoint` primitive to externalize logic from the bridge.
 
 ### Modify the `SuperchainTokenBridge`
 
@@ -106,7 +108,7 @@ The `relayERC20` in the `SuperchainTokenBridge` must be modified to also accept 
 
 **Example flow**
 
-We assume in this example that the original `sender` is the only one who can expire a message.
+We use here the same example, where only the original `sender` can expire a message.
 
 
 ```mermaid
@@ -160,6 +162,7 @@ Users or relays will be able to expire transfers. There are multiple possible cr
 - **Failure-Triggered Expiration:** A transfer only expires when a relay attempt fails.
     **Advantage:** Focuses on addressing actual failed relays. 
     **Disadvantage:** requires changes on key contracts.
+
 ### Standarization vs Customization
 
 We could enforce a single expiration method for all tokens at the Bridge level to ensure simplicity and clarity. Allowing per-token or per-user customization might be better, but it also introduces complexity and risks confusion.
