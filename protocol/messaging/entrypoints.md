@@ -65,6 +65,8 @@ The following changes are required:
 
 ## Full example: Expire messages
 
+You can check the full example and rationale in the dedicated [design doc](https://github.com/ethereum-optimism/design-docs/pull/170)
+
 Suppose an `ExpirableTokenBridge` contract exists, that uses an `Entrypoint` with the added functionality of expiring a failed message in destination. Let's suppose that `ExpirableTokenBridge` has minting and burning rights over `SuperchainERC20` and that only the original sender can expire a message.
 
 - Alice will transfer `AliceSuperToken` from Chain A to Chain B through the `ExpirableTokenBridge`.
