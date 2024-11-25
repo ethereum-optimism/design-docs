@@ -68,7 +68,7 @@ SuperchainTokenBridge --> SuperchainTokenBridge: check expiredMsg[mshHash] == fa
 SuperchainTokenBridge ->> SuperchainERC20: call fails
 end
 
-rect rgb(0, 0, 200)
+rect rgb(0, 0, 300)
 Note over Sender: expire transfer
 Sender ->> SuperchainTokenBridge: expireRelay(message)
 SuperchainTokenBridge --> SuperchainTokenBridge: check decoded sender matches msg.sender
