@@ -20,22 +20,74 @@ This document focuses on the second scenario applied to `SuperchainERC20` tokens
 
 The `relayMessage` function does not store failed messages, but it does store successful ones in the `successfulMessages` mapping. While it is impossible to know whether a message has failed to be relayed, it is easy to check if it has still not been successfully relayed.
 
-## Solution
-### New concepts
+## New concepts
 We introduce two concepts:
 - **Expired transfer:** a valid cross-chain transfer marked as non-relayable on the destination chain. If a transfer gets marked as expired, it will not be possible to relay it ever again. This is necessary to prevent someone from relaying after recovering the transfer (and funds).
 - **Recovered transfer:** A rollback process where the origin chain mints the burned tokens back to the user. A recovered transfer must only be processed once.
 
-### Design properties
+## Design properties
 The new system will need to 
 1. Enable users to expire messages if the expiry condition is met.
 2. Store the expired messages so that these can no longer be relayed in the destination chain.
 3. Send a message back to the `origin` chain.
 4. Mint the tokens back to the original `sender` in the `origin` chain.
 
-### Architecture
+## Architecture
 
-Even though it is possible to include these changes directly in the `SuperchainTokenBridge`, using [`Entrypoint` contracts](https://github.com/ethereum-optimism/design-docs/pull/163) is a cleaner approach, as it separates concerns.
+### Modify the `SuperchainTokenBridge`
+
+This approach adds the whole expiration logic to the token bridge. It doesn't require to change access control.
+
+The token bridge must include
+- An `expiredMsg` mapping that marks `msgHash` to `bool`, indicating if a a message has been already expired.
+- An `expireRelay` function that will:
+	- Check the expiration condition is met (see [Expiration Methods](#expiration-methods))
+	- Check that the `msgHash` is not part of the `sucessfulMessages` mapping in the `L2ToL2CrossDomainMessenger`
+	- Add the `msgHash` to the `expiredMsg` mapping
+	- Craft and send a message back to the `SuperchainTokenBridge` in `origin` with the original `sender` and `amount` information to mint back the burnt tokens. 
+
+Additionally, in origin, the `SuperchainTokenBridge` will need a way to handle recovered transfers. We can reuse the `relayERC20` logic as it is, so there is no need to introduce new functions. The `SuperchainTokenBridge` already has access to calling this function, so there is no need to modify the security checks.
+
+Notice that the message sent back to the origin in `expireRelay` could be triggered in a posterior `sendExpire` function. In that case, the design would need an additional storage, `expiredSent`, to prevent double calls to `sendExpire`. This design's downside is that an expired message could get sent back, marked as `expiredSent`, but fail to be relayed on the `origin` chain.
+
+**Example flow**
+
+We assume in this example that the original `sender` is the only one who can expire a message.
+
+```mermaid
+sequenceDiagram
+title Transfer expiration
+
+rect rgb(160, 0, 0)
+Note over Sender: failed transfer
+Sender ->> L2ToL2: relayMessage(id, message)
+L2ToL2 ->> SuperchainTokenBridge: relayERC20()
+SuperchainTokenBridge --> SuperchainTokenBridge: check expiredMsg[mshHash] == false
+SuperchainTokenBridge ->> SuperchainERC20: call fails
+end
+
+rect rgb(0, 0, 200)
+Note over Sender: expire transfer
+Sender ->> SuperchainTokenBridge: expireRelay(message)
+SuperchainTokenBridge --> SuperchainTokenBridge: check decoded sender matches msg.sender
+SuperchainTokenBridge --> L2ToL2: checks succesfulMessages[msgHash] == false
+SuperchainTokenBridge --> SuperchainTokenBridge: sets expiredMessages[msgHash] == true
+SuperchainTokenBridge ->> L2ToL2: sendMessage() to relayERC20() on origin
+end
+```
+
+
+```mermaid
+sequenceDiagram
+title Transfer recovery (origin chain)
+
+Anyone ->> L2ToL2: relayMessage()
+L2ToL2 ->> SuperchainTokenBridge: relayERC20()
+SuperchainTokenBridge ->> SuperchainERC20: crosschainMint(sender, amount)
+```
+
+### Use entrypoints
+Using [`Entrypoint` contracts](https://github.com/ethereum-optimism/design-docs/pull/163) might be a cleaner approach, as it separates concerns. 
 
 The `SuperchainTokenBridge` can pass an `entrypoint` address that contains the expiring logic on the call to the `L2ToL2CrossDomainMessenger`. Then, in destination, only the `entrypoint` can relay the call to the `L2ToL2CrossDomainMessenger`, which allows to set the expiring logic. Any posterior attempt at relaying the message will be forced to go through the `entrypoint` and revert if expired.
 
@@ -44,21 +96,22 @@ The `entrypoint` must include
 - A `startRelayERC20` function to work as a regular interface for integrators that will need to call the `L2ToL2CrossDomainMessenger` through the `entrypoint` now.
 	- This function will check that `expiredMsg[mshHash] == false` .
 - An `expireRelay` function that will:
-	- Check the expiration condition is met (see Expiration Methods)
+	- Check the expiration condition is met (see [Expiration Methods](#expiration-methods))
 	- Check that the `msgHash` is not part of the `sucessfulMessages` mapping in the `L2ToL2CrossDomainMessenger`
-	- add the `msgHash` to the `expiredMsg` mapping
-	- Craft and send a message back to the `SuperchainTokenBridge` in `origin` with the original `sender` and `amount` information to mint back the burnt tokens. 
+	- Add the `msgHash` to the `expiredMsg` mapping
+	- Craft and send a message back to `relayERC20` to the `SuperchainTokenBridge` in `origin` with the original `sender` and `amount` information to mint back the burnt tokens. 
 
-Additionally, in origin, the `SuperchainTokenBridge` will need a way to handle recovered transfers. We can reuse the `relayERC20` logic as it is, so there is no need to introduce new functions. The `relayERC20` must be modified to also accept messages from the `entrypoint`.
+The `relayERC20` in the `SuperchainTokenBridge` must be modified to also accept messages from the `entrypoint`. This is the primary point against using an `entrypoint` over the standard token.
 
 
-Notice that the message sent back to the origin in `expireRelay` could be triggered in a posterior `sendExpire` function. In that case, the design would need an additional storage, `expiredSent`, to prevent double calls to `sendExpire`. This design's downside is that an expired message could get sent back, marked as `expiredSent`, but fail to be relayed on the `origin` chain.
-### Example: Permissioned expire
+**Example flow**
+
 We assume in this example that the original `sender` is the only one who can expire a message.
+
 
 ```mermaid
 sequenceDiagram
-title Transfer expiration
+title Transfer expiration (destination chain)
 
 rect rgb(160, 0, 0)
 Note over Sender: failed transfer
@@ -79,14 +132,16 @@ ExpirerEntrypoint ->> L2ToL2: sendMessage() to relayERC20()
 end
 ```
 
+
 ```mermaid
 sequenceDiagram
-title Transfer recovery
+title Transfer recovery (origin chain)
 
 Anyone ->> L2ToL2: relayMessage()
 L2ToL2 ->> SuperchainTokenBridge: relayERC20()
 SuperchainTokenBridge ->> SuperchainERC20: crosschainMint(sender, amount)
 ```
+
 ## Open Design Decisions
 
 ### Expiration Methods
@@ -120,3 +175,4 @@ Then, in destination, anyone can pass this even identifier alongside the message
 - Check that the `msgHash` is not part of the `sucessfulMessages` mapping
 - add the `msgHash` to the `expired` mapping
 - Craft and send a message back to `origin` calling `relayERC20` on the `SuperchainTokenBridge` with the original `sender` and `amount` information. 
+
