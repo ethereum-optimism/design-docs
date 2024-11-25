@@ -124,7 +124,7 @@ L2ToL2 ->> SuperchainTokenBridge: relayERC20()
 SuperchainTokenBridge ->> SuperchainERC20: call fails
 end
 
-rect rgb(0, 0, 200)
+rect rgb(0, 0, 300)
 Note over Sender: expire transfer
 Sender ->> ExpirerEntrypoint: expireRelay(message)
 ExpirerEntrypoint --> ExpirerEntrypoint: check decoded sender matches msg.sender
