@@ -42,6 +42,13 @@ An entrypoint can allow Alice to store each in a centralized place without addin
 
 This type of flow will be fundamental for expired messages, where storing the `msgHash` is necessary to prevent anyone from relaying recovered messages (see [here](#full-example-expire-messages)).
 
+**Paymasters**
+
+A regular cross-chain message requires two actions to be completed: the initiating message and the execution. It is very likely that the execution can be sold as a service, akin to the concept of Paymasters. With an `entrypoint`, and a user approval on destination, this can easily be built.
+
+With the user's prior approval on the destination chain, the entrypoint can automatically deduct a precomputed service fee or receive compensation through predefined mechanisms upon successful execution.
+
+
 **Ordered relays**
 
 Entrypoints allow multiple messages to be executed in a specific order on the destination chain. By binding messages together, users can ensure that two initiating messages get executed in the correct order only.
