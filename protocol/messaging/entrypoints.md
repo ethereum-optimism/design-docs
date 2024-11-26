@@ -11,6 +11,9 @@ Building functionality on top of the `L2ToL2CrossDomainMessenger` is not simple.
 
 The `entrypoint` primitive solves this issue and unlocks new powerful cross-chain actions. The integration with `entrypoint` is simple, and the code difference is small.
 
+The advantage of using `entrypoints` over wrapper contracts is that, instead of embedding complex conditions into the message or the `target` contract, users can delegate this logic to the `entrypoint`. Separating validation logic from the message payload and target contract makes it easier to compose and reuse components. The `target` contract and the initiating message remain simple and focused on its core functionality.
+
+
 ## `entrypoint`
 
 ### Main idea
@@ -107,14 +110,7 @@ L2ToL2 ->> SuperchainTokenBridge: relayERC20()
 SuperchainTokenBridge ->> SuperchainERC20: crosschainMint(sender, amount)
 ```
 
-## Using `target` instead of `entrypoint` 
 
-All of the use cases listed above can be achieved by encoding additional information (on an `Initiator` contract or manually) on the origin chain and then sending a message to a dedicated `target` (that we will call `Receiver` here) for decoding and crafting the final calls in destination. 
-
-The advantage of using `entrypoints` is that, instead of embedding complex conditions into the message or the `target` contract, users can delegate this logic to the `entrypoint`. Separating validation logic from the message payload and target contract makes it easier to compose and reuse components. The `target` contract and the initiating message remain simple and focused on its core functionality.
-
-Moreover, for message bundles, `entrypoint` have a considerably better user flow. 
-Even though it is possible for bundles to be processed using `Receiver` contracts, these would need to receive each relayed message, wait for the bundle to be completed, and finally require a final transaction to execute them all (N+1 relay transactions vs 1). 
 
 ## Appendix
 ###  `Context`
