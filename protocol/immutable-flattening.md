@@ -1,6 +1,6 @@
 # Purpose
 
-The current fault proof system requires a redeployment of the `DisputeGame.sol`, `DisputeGameFactory.sol`, and `AnchorStateRegistry.sol`. Due to the immutable arguments in the constructor, specifically `_weth`, `_anchorStateRegistry`, and `_l2ChainId` the implementations must be fully redeployed for each new chain. The aim of this proposal is to simplify the Fauly Dispute Game contract setup so that all new deployments simply just require new proxies rather than new deployments of the factory and implementation.
+The current fault proof system requires a redeployment of the `DisputeGame.sol`, `DisputeGameFactory.sol`, and `AnchorStateRegistry.sol`. Due to the immutable arguments in the constructor, specifically `_weth`, `_anchorStateRegistry`, and `_l2ChainId` the implementations must be fully redeployed for each new chain. The aim of this proposal is to simplify the Fault Dispute Game contract setup so that all new deployments simply just require new proxies rather than new deployments of the factory and implementation.
 
 # Summary
 
