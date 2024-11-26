@@ -17,7 +17,7 @@ Currently, L2-to-L2 `ETH` transfers between two interoperable chains require fou
 
 The goal is to reduce the transaction count from four to two, enabling users to send `ETH` to a destination chain directly:
 
-1. Burn `ETH` on source chain and relay a message to destination chain that relays `ETH` to recipient on destination chain.
+1. Locks `ETH` on source chain and relay a message to destination chain that relays `ETH` to recipient on destination chain.
 2. Execute the relayed message on the destination chain that relays `ETH` to the recipient.
 
 # Proposed Solution
