@@ -54,42 +54,42 @@ This document covers the conversion of the [Cannon Fault Proof VM](https://docs.
 ### Unimplemented syscalls or opcodes needed by `op-program`
 
 - **Description:** We only aim to implement syscalls and opcodes that are required by `op-program` so there are some unimplemented. The risk is that there is some previously untested code path that uses an opcode or syscall that we haven't implemented and this code path ends up being exercised by an input condition some time in the future.
-- **Risk Assessment:** *Simple low/medium/high rating of impact (severity) + likelihood.*
-- **Mitigations:** *What mitigations are in place, or what should we add, to reduce the chance of this occurring?*
-- **Detection:** *How do we detect if this occurs?*
-- **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
+- **Risk Assessment:** High severity, low likelihood.
+- **Mitigations:** We periodically use Cannon to execute the op-program using inputs from op-mainnet and op-sepolia. This periodic cannon runner (vm-runner) runs on oplabs infrastructure.
+- **Detection:** Alerting is setup to notify the proofs team whenever the vm-runner fails to complete a cannon run.
+- **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
 ### Failure to run correct VM based on prestate input
 
-- **Description:** The off-chain Cannon [attempts to run the correct VM version based on the prestate input](https://github.com/ethereum-optimism/design-docs/pull/88/files). If it doesn't work correctly the on-chain steps would not match.
-- **Risk Assessment:** *Simple low/medium/high rating of impact (severity) + likelihood.*
-- **Mitigations:** *What mitigations are in place, or what should we add, to reduce the chance of this occurring?*
-- **Detection:** *How do we detect if this occurs?*
-- **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
+- **Description:** The off-chain Cannon [attempts to run the correct VM version based on the prestate input](https://github.com/ethereum-optimism/design-docs/blob/0034943e42b8ab5f9dd9ded2ef2b6b55359c922c/cannon-state-versioning.md). If it doesn't work correctly the on-chain steps would not match.
+- **Risk Assessment:** Medium severity, low likelihood.
+- **Mitigations:** Multicannon mitigates this issue by embedding a variety of cannon STFs into a single binary. This shifts the concern of ensuring the correct VM selection to multicannon. We also run multicannon on oplabs infra via the vm-runner, to assert the multicannon binary was built correctly.
+- **Detection:** This can be detected by manual review. Failing that, it would only be detected when malicious activity occurs and an honest op-challenger fails to generate a fault proof.
+- **Recovery Path(s)**: Fix the op-challenger multicannon configuration.
 
 ### Mismatch between on-chain and off-chain execution
 
 - **Description:** There could be bugs in the implementation of either the Solidity or Go versions that make them incompatible with each other.
-- **Risk Assessment:** *Simple low/medium/high rating of impact (severity) + likelihood.*
-- **Mitigations:** *What mitigations are in place, or what should we add, to reduce the chance of this occurring?*
+- **Risk Assessment:** High severity, low likelihood.
+- **Mitigations:** Diffeerential testing asserts identical on-chain and off-chain execution. A third-party audit (in progress) review of both VMs.
 - **Detection:** *How do we detect if this occurs?*
-- **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
+- **Recovery Path(s)**: Depends on the specifics. If the onchain VM implementation is "more correct", then fixing this can be done solely offchain. Otherwise, a governance vote will be needed. As usual, the [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f) provides the best guidance on this.
 
 ### Livelocks in the fault proof
 
-- **Description:** *Details of the failure mode go here. What the causes and effects of this failure?*
-- **Risk Assessment:** *Simple low/medium/high rating of impact (severity) + likelihood.*
-- **Mitigations:** *What mitigations are in place, or what should we add, to reduce the chance of this occurring?*
-- **Detection:** *How do we detect if this occurs?*
-- **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
+- **Description:** A livelocked execution prevents an honest challenger from generating a fault proof.
+- **Risk Assessment:** High severity, low likelihood.
+- **Mitigations:** Manual review of the op-program and a quick review of Go runtime internals. The op-program uses 3 threads, and only one of those threads are used by the mutator main function. This makes livelocks very unlikely.
+- **Detection:** This would manifest as an execution that runs forever. Eventually, but well before the dispute period ends, op-dispute-mon will indicate that a game is forecasted to resolve incorrectly.
+- **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
 ### Execution traces too long for the fault proof
 
-- **Description:** *Details of the failure mode go here. What the causes and effects of this failure?*
-- **Risk Assessment:** *Simple low/medium/high rating of impact (severity) + likelihood.*
-- **Mitigations:** *What mitigations are in place, or what should we add, to reduce the chance of this occurring?*
-- **Detection:** *How do we detect if this occurs?*
-- **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
+- **Description:** It's possible that introducing multi-threading/gc greatly increases the execution time of the op-program.
+- **Risk Assessment:** Medium severity, low likelihood.
+- **Mitigations:** Based on vm-runner executions of 64-bit Cannon and 32-bit singlethreaded cannon, the 64-bit VM executes the op-program much faster than the 32-bit VM. However, we can always use CPUs with beefier single-core performance to mitigate.
+- **Detection:** op-dispute-mon notifies proofs team if the op-challenger stops interacting with a game.
+- **Recovery Path(s)**: By migrating the op-challenger to a beefier CPU. [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f) provides guidance on when it'll be appropriate to do so.
 
 ### [Name of Failure Mode]
 
@@ -110,7 +110,7 @@ See [./fma-generic-hardfork.md](./fma-generic-hardfork.md).
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
-- [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
+- [ ] Third-party audit the offchain and onchain VM implementation and specification (Assignee: document author).
 - [ ] *Action item 2 (Assignee: tag assignee)*
 - [ ] *Action item 3 (Assignee: tag assignee)*
 
