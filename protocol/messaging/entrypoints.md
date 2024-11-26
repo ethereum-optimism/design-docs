@@ -110,10 +110,7 @@ L2ToL2 ->> SuperchainTokenBridge: relayERC20()
 SuperchainTokenBridge ->> SuperchainERC20: crosschainMint(sender, amount)
 ```
 
-
-
-## Appendix
-###  `Context`
+##  `Context`
 Entrypoints might require additional information to relay an event. This information might be additional checks or variables to use. As the current `L2ToL2CrossDomainMessenger` does not allow to encode additional information (the call to `target` passes the full message), we need a second executing message that we will call `Context`. 
 
 
@@ -131,7 +128,22 @@ Each `Entrypoint` and initiating message contract will be responsible for handli
 
 The most efficient way of binding both events is to check who emitted the `EntrypointContext` event against an allowed-list. This might seem restricting, but will be more than enough for many applications.
 
-### Future considerations: Enshrined `entrypointContext`
+## Risk & Uncertainties
+While the `entrypoint` primitive introduces powerful capabilities and flexibility in cross-chain messaging, it also brings certain risks and uncertainties that need to be carefully considered:
+
+- Entrypoint Failure: If an `entrypoint` contract fails during the relaying process—due to bugs, insufficient gas, or intentional reverts—the message may remain unprocessed, potentially causing funds or state changes to be locked or delayed.
+    - Mitigation: Users should ensure that `entrypoint` contracts are thoroughly tested and audited.
+- Security: Since `entrypoint` contracts can contain arbitrary logic and may be developed by third parties, they could introduce security vulnerabilities or malicious behavior, such as unauthorized fund transfers, message manipulation or poor security checks.
+    - Mitigation: Users should interact only with trusted and audited `entrypoint` contracts. 
+- Compatibility with existing protocols: Introducing `entrypoints` may affect compatibility with existing wallets, or protocols not designed to handle the additional logic. `entrypoint` are optional, and not including them leads to the current flow. Still, some flows might require two separate integrators, so it might happen that only one party uses it and the other is not aware. 
+    - Mitigation: Raising awareness is crucial. Developers and users should ensure all parties involved are informed about `entrypoint` and verify compatibility to prevent integration issues.
+
+
+This design space is relatively unexplored territory and may lead to the creation of new standards in cross-chain messaging.
+
+## Alternatives considered
+
+### Enshrined `entrypointContext`
 
 This second design binds the context to the message and makes the `L2ToL2CrossDomainMessenger` perform a callback to the entrypoint with this data. For the moment, we decided to let this feature outside of the `L2ToL2CrossDomainMessenger` to keep it minimal, but it can be considered. It is also possible to implement into into a second `L2ToL2CrossDomainMessengerWithContext` that extends from `L2ToL2CrossDomainMessenger`.
 
