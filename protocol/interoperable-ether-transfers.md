@@ -30,7 +30,7 @@ Add two new functions to the `SuperchainWETH` contract: `SendETH` and `RelayETH`
 
 The `SendETH` function combines the first two transactions as follows:
 
-1. Burns `ETH` within the `ETHLiquidity` contract equivalent to the `ETH` sent.
+1. Locks `ETH` within the `ETHLiquidity` contract equivalent to the `ETH` sent.
 2. Sends a message to the destination chain encoding a call to `RelayETH`.
 
 ### `RelayETH`
