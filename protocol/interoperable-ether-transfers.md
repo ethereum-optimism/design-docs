@@ -37,7 +37,7 @@ The `SendETH` function combines the first two transactions as follows:
 
 The `RelayETH` function combines the last two transactions as follows:
 
-1. Mints the specified `_amount` of `ETH` from the `ETHLiquidity` contract.
+1. Withdraws the specified `_amount` of `ETH` from the `ETHLiquidity` contract.
 2. Sends the minted `ETH` to the specified recipient.
 
 ### Contract changes
