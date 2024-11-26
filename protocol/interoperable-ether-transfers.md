@@ -110,7 +110,7 @@ function relayETH(address _from, address _to, uint256 _amount) external {
 ```
 
 ### Advantages
-- Since the `SuperchainWETH` contract already has permissions to mint and burn `ETH` with the `ETHLiquidity` contract no changes to the `ETHLiquidity` contract are necessary. Any security risks with this change are limited to `SuperchainWETH` and do not affect other `SuperchainERC20` tokens.
+- Since the `SuperchainWETH` contract already has permissions to withdraw and lock `ETH` with the `ETHLiquidity` contract no changes to the `ETHLiquidity` contract are necessary. Any security risks with this change are limited to `SuperchainWETH` and do not affect other `SuperchainERC20` tokens.
 
 ### Downsides
 - This approach introduces an additional entry point for asset transfers outside of `SuperchainTokenBridge`. While `SuperchainERC20` tokens that implement custom bridging will already have alternative entry points, adding another for native `ETH` transfers could lead to confusion and diverge from a clean separation of concerns. Additionally, by having `SuperchainWETH` serve as both a `SuperchainERC20` and a bridge for native `ETH`, there is an increased risk of ambiguity around its dual function, which could impact usability and clarity for developers.
