@@ -133,7 +133,7 @@ The `SendETH` function will not support custom gas token chains and will revert 
 
 ## Integrate ETH transfers into `ETHLiquidity` contract
 
-Introduce `SendETH` and `RelayETH` functions to the `ETHLiquidity` contract. By adding these functions directly to `ETHLiquidity`, the contract retains its original purpose of centralizing the minting and burning of `ETH` for cross-chain transfers, ensuring that all liquidity management occurs within a single, dedicated contract.
+Introduce `SendETH` and `RelayETH` functions to the `ETHLiquidity` contract. By adding these functions directly to `ETHLiquidity`, the contract retains its original purpose of centralizing the withdrawal and locking of `ETH` for cross-chain transfers, ensuring that all liquidity management occurs within a single, dedicated contract.
 
 ### `SendETH` function
 
