@@ -44,7 +44,10 @@ The current foundry testing uses the following high level call flow.
 
 ```mermaid
 graph LR
-    A["CommonTest.setUp()"] --> B["Setup.L1()"] --> C["Deploy.run()"] --> D["OPCM.deploy()"]
+    A["CommonTest.setUp()"] --> B["Setup.L1()"] --> C["Deploy.run()"]
+    C --> D["DeployImplementations.run()"]
+    C --> E["DeploySuperchain.run()"]
+    C --> F["OPCM.deploy()"]
 ```
 
 This is roughly what each component does:
@@ -62,32 +65,39 @@ This is roughly what each component does:
       vm.label(address(optimismPortal), "OptimismPortal");
     ```
 - **`Deploy.run()`:**
-  - Deploys all necessary contracts via calls to the `DeploySuperchain`, `DeployImplementations`,
-    and `OPContractsManager`
-  - Makes modifications to the resulting system for non-standard configurations.
+  - Deploys all necessary contracts via calls to `DeploySuperchain`, `DeployImplementations`.
+- **`DeploySuperchain.run()`:**
+  - Deploys superchain contracts (`SuperchainConfig` and `ProtocolVersions`).
+- **`DeployImplementations.run()`:**
+  - Deploys contracts (implementations and singletons) necessary for upgrading to the system on
+    `develop`.
 - **`OPCM.deploy()`:**
   - Deploys all proxies and bespoke singleton contracts as necessary for a new OP Chain.
 
-This work would provide an alternative testing route for the standard configuration:
+This work would replace the `Deploy` script with a new `Upgrade` script, resulting in the following
+call flow:
 
 ```mermaid
 graph LR
-    A["CommonTest.setUp()"] --> B["Setup.L1()"] -->  C["Upgrade.run()"] --> D["OPCM.upgrade()"]
+    A["CommonTest.setUp()"] --> B["Setup.L1()"] -->  C["Upgrade.run()"]
+    C --> D["DeployImplementations.run()"]
+    C --> E["OPCM.upgrade()"]
 ```
-
-This testing setup route would be indicated with a new `useUpgradedSystem` flag in `CommonTest`. The
-new flag could only be enabled when other flags (`useAltDAOverride`, `useLegacyContracts`,
-`useInteropOverride`, `customGasToken`) are disabled.
 
 A description of what new components would do is:
 
 - **`Upgrade.run()`:**
-  - Calls `op-deployer get-artifacts` to download the artifacts for the previous release.
-  - Reads bytecode from the artifacts
-  - Deploys all necesssary implementations and singleton contracts using that bytecode.
-  - Deploys contracts necessary for upgrading the the system on `develop` using `DeployImplementations`.
+  - Calls `op-deployer bootstrap superchain` to deploy new superchain contracts (`SuperchainConfig`
+    and `ProtocolVersions`), corresponding to the previous release.
+  - Calls `op-deployer bootstrap opcm` to deploy release OPCM, corresponding to the previous release.
+  - Calls to `DeployImplementations.run()` to deploy contracts necessary for upgrading to the system on `develop`.
 - **`OPCM.upgrade()`:**
   - Upgrades proxies to new implementation contracts and bespoke singleton contracts as necessary for a new OP Chain.
+  - This flow is descibed in detail in the [L1 Upgrades design](../protocol/l1-upgrades.md#release-process).
+
+This testing setup route would be indicated with a new `useUpgradedSystem` flag in `CommonTest`. The
+new flag could only be enabled when other flags (`useAltDAOverride`, `useLegacyContracts`,
+`useInteropOverride`, `customGasToken`) are disabled.
 
 # Alternatives Considered
 
