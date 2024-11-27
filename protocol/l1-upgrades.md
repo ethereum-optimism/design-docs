@@ -224,7 +224,7 @@ This method will:
 In order to avoid blocking this work, if the `FaultDisputeGame` and `PermissionedDisputeGame`
 have not become MCP-L1 compatible in time, the OPCM upgrade path will deploy chain specific instances.
 
-## Release process
+## Upgrade process
 
 As part of the release process, the associated implementation contracts and a new OPCM, will be deployed.
 
