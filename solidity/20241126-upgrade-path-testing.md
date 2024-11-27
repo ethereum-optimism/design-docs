@@ -28,12 +28,12 @@ As we're moving towards onchain upgrades via the OPCM, we want to be able to tes
 
 # Proposed Solution
 
-## Getting artifacts with `op-deployer`
+## Deploying Superchain contracts with `op-deployer`
 
-We propose to extend `op-deployer`, which already includes functionality for downloading a set of artifacts, to expose that functionality, with a command like:
+We propose to extend `op-deployer bootstrap` to enable deploying superchain contracts.
 
-```
-op-deployer get-artifacts <artifacts-locator> --outdir <outdir>
+```shell
+op-deployer bootstrap superchain <artifacts-locator> --outdir <outdir>
 ```
 
 This command will write the artifacts to the outdir.
@@ -91,6 +91,8 @@ A description of what new components would do is:
     and `ProtocolVersions`), corresponding to the previous release.
   - Calls `op-deployer bootstrap opcm` to deploy release OPCM, corresponding to the previous release.
   - Calls to `DeployImplementations.run()` to deploy contracts necessary for upgrading to the system on `develop`.
+  - Parses the deployment output from `op-deployer` and writes to disk using the `Deploy.save()`
+    functions, so that `Setup.L1()` can read the deployment.
 - **`OPCM.upgrade()`:**
   - Upgrades proxies to new implementation contracts and bespoke singleton contracts as necessary for a new OP Chain.
   - This flow is descibed in detail in the [L1 Upgrades design](../protocol/l1-upgrades.md#release-process).
@@ -99,10 +101,19 @@ This testing setup route would be indicated with a new `useUpgradedSystem` flag 
 new flag could only be enabled when other flags (`useAltDAOverride`, `useLegacyContracts`,
 `useInteropOverride`, `customGasToken`) are disabled.
 
+Note that this testing would need to be run against an `anvil` node, as `op-deployer bootstrap`
+requires an RPC endpoint. I am not experienced with running `forge test` against an anvil node,
+so appreciate any gotchas I might be missing.
+
 # Alternatives Considered
 
-<!-- List out a short summary of each possible solution that was considered.
-Comparing the effort of each solution -->
+An alternative considered was to add a new `op-deployer download` command to get artifacts, then
+make minimal modifications to `DeploySuperchain` and `DeployImplementations` to deploy those
+artifacts by providing branching logic to provide a different artifacts path to `vm.getCode()`.
+
+The challenge with this approach is that `DeployImplementations` will need other changes from
+release to release, so we would be in a position of needing branching logic to accomodate
+at least the most recent release and current release in that script.
 
 # Risks & Uncertainties
 
