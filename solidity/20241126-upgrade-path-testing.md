@@ -87,10 +87,10 @@ graph LR
 A description of what new components would do is:
 
 - **`Upgrade.run()`:**
-  - Calls `op-deployer get-artifacts` to download the artifacts for the previous release.
-  - Reads bytecode from the artifacts
-  - Deploys all necesssary implementations and singleton contracts using that bytecode.
-  - Deploys contracts necessary for upgrading the the system on `develop` using `DeployImplementations`.
+  - Calls `op-deployer bootstrap superchain` to deploy new superchain contracts (`SuperchainConfig`
+    and `ProtocolVersions`), corresponding to the previous release.
+  - Calls `op-deployer bootstrap opcm` to deploy release OPCM, corresponding to the previous release.
+  - Calls to `DeployImplementations.run()` to deploy contracts necessary for upgrading to the system on `develop`.
 - **`OPCM.upgrade()`:**
   - Upgrades proxies to new implementation contracts and bespoke singleton contracts as necessary for a new OP Chain.
   - This flow is descibed in detail in the [L1 Upgrades design](../protocol/l1-upgrades.md#release-process).
