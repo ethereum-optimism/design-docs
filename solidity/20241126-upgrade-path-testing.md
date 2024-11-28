@@ -33,10 +33,8 @@ As we're moving towards onchain upgrades via the OPCM, we want to be able to tes
 We propose to extend `op-deployer bootstrap` to enable deploying superchain contracts.
 
 ```shell
-op-deployer bootstrap superchain <artifacts-locator> --outdir <outdir>
+op-deployer bootstrap superchain <artifacts-locator>
 ```
-
-This command will write the artifacts to the outdir.
 
 ## Setting up the system to test
 
