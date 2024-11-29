@@ -33,6 +33,7 @@ This document covers the L1 Upgrades project, which aims to improve and standard
 Below are references for this project:
 
 - [L1 Upgrades Design Doc](../protocol/l1-upgrades.md)
+- [OPCM spec](https://github.com/ethereum-optimism/specs/blob/opcm/upgrades/specs/experimental/op-contracts-manager.md)
 
 ### FM1: Contract Initializers
 
