@@ -20,6 +20,7 @@ As for whether or not arguments provided by the `Creator` contracts should be im
 
 It would be possible to remove the chain-specific immutable arguments to simply become "extraData" passed into the proxy constructor, however, this complicates the system further because the ultimate goal is to consolidate all of our contracts so that each rollup can point to a single set of implementation contracts, so keeping some configuration parameters on the implementation of `FaultDisputeGame.sol` would not be flexible enough down the line.
 Flattening all immutables into a single layer was also considered heavily, but ultimately rejected because it concentrates too much configuration and information in the `DisputeGameFactory.sol`, and places the critical configuration variables in a more unreadable format.
+
 # Risks & Uncertainties
 
 The main risk for this upgrade is now that the factory must be properly configured, otherwise, the factory will produce every single `FaultDisputeGame.sol` incorrectly. Additionally, all risk is now concentrated on a single implementation, which if incorrect would be worse, but overall reduces the risk surface area for fraud proofs.
