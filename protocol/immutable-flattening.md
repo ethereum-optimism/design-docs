@@ -4,8 +4,6 @@ The current fault proof system requires a redeployment of the `DisputeGame.sol`,
 
 # Summary
 
-The `DisputeGameFactory.sol` should be upgraded to contain the arguments needed for every new `DisputeGame.sol`, and all of the constructor argument/logic should be moved into proxy which is actually pointed toward the `DisputeGame.sol` implementation, so that a single implementation of `DisputeGame.sol` can be used across each rollup.
-
 The `DisputeGameFactory.sol` should be upgraded to allow for multiple "Creator" contracts which control the creation of each GameType, which when proxied will allow for all new standard rollup deployments to be able to use proxies rather than needing to redeploy the Dispute Game system each time, instead pointing to a canonical implementation. Additionally, "Creator" contracts will make upgrades easier allowing reconifguaration of new `DisputeGame.sol` clones without needing to redeploy the entire contract.
 
 # Problem Statement + Context
