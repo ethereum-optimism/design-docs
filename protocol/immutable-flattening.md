@@ -6,6 +6,8 @@ The current fault proof system requires a redeployment of the `DisputeGame.sol`,
 
 The `DisputeGameFactory.sol` should be upgraded to contain the arguments needed for every new `DisputeGame.sol`, and all of the constructor argument/logic should be moved into proxy which is actually pointed toward the `DisputeGame.sol` implementation, so that a single implementation of `DisputeGame.sol` can be used across each rollup.
 
+The `DisputeGameFactory.sol` should be upgraded to allow for multiple "Creator" contracts which control the creation of each GameType, which when proxied will allow for all new standard rollup deployments to be able to use proxies rather than needing to redeploy the Dispute Game system each time, instead pointing to a canonical implementation. Additionally, "Creator" contracts will make upgrades easier allowing reconifguaration of new `DisputeGame.sol` clones without needing to redeploy the entire contract.
+
 # Problem Statement + Context
 
 The Fault Dispute Game contracts are currently made up of a couple core contracts, `AnchorStateRegistry.sol`, `DelayedWETH.sol`, `DisputeGameFactory.sol`, and `FaultDisputeGame.sol/PermissionedFaultDisputeGame.sol`. When deploying "standard" rollups we currently need to deploy a new set of all of these contracts because specific immutable arguments in the implementation of `FaultDisputeGame.sol`, which in turn requires a specific `FaultDisputeGameFactory.sol` and in turn `AnchorStateRegistry.sol`. If `FaultDisputeGame.sol` implementations did not have chain specific immutables, then they could simply be added at the time of cloning on a per chain basis, requiring only one set of deployments and making the process simpler.
