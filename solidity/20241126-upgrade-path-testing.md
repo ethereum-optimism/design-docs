@@ -108,10 +108,18 @@ so appreciate any gotchas I might be missing.
 An alternative considered was to add a new `op-deployer download` command to get artifacts, then
 make minimal modifications to `DeploySuperchain` and `DeployImplementations` to deploy those
 artifacts by providing branching logic to provide a different artifacts path to `vm.getCode()`.
-
 The challenge with this approach is that `DeployImplementations` will need other changes from
 release to release, so we would be in a position of needing branching logic to accomodate
 at least the most recent release and current release in that script.
+
+Another alternative would be to always test against a fork of mainnet. This was
+rejected as it would prevent development from occuring on features which are
+further out. For example, while the current production version is `2.0.0`, an RC
+candidate OPCM (`2.1.0-rc.1`) would be deployed and submitted to governance for
+approval. Developer would then wish to begin developing the upgrade from
+`2.1.0` to `2.2.0` but the upgrade has not yet been activated, causing fork
+based tests to pass. Enabling upgrade tests to occur against an arbitrary tag
+is seen as more flexible and robust.
 
 # Risks & Uncertainties
 
