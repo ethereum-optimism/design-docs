@@ -185,8 +185,8 @@ Below is what needs to be done before launch to reduce the chances of the above 
     * [op-batcher: add channel.straddlesActivation method (for Holocene) and wire it up #12743](https://github.com/ethereum-optimism/optimism/pull/12743)
 - [x] (BLOCKING): we will add functionality to the batcher to periodically detect when the safe chain should have progressed but didn't, and to recover from that
     * [batcher: batchSubmitter.checkExpectedProgress #12430](https://github.com/ethereum-optimism/optimism/pull/12430)
-- [ ] (BLOCKING): the script(s) or tooling for the `SystemConfig` upgrade contract will exit with an error if the activation time has not yet passed.
-    * The scripts are here https://github.com/ethereum-optimism/optimism/pull/12878 but there is no check on the activation time
+- [x] (BLOCKING): the [script(s)/tooling for the `SystemConfig` upgrade](https://github.com/ethereum-optimism/optimism/pull/12878) are split into _two_ superchain-ops tasks, one for before activation 
+    and one for after. This is considered sufficient for preventing the contracts upgrade happening _before_ the hardfork activates.
 - [ ] (non-BLOCKING): We will update the op-sepolia vm-runner to use the new FPVM. The vm-runner runs the op-program in the MIPS FPVM using inputs sampled from a live chain. Having the vm-runner run the op-program on op-sepolia for a couple days will increase confidence that the network will continue to be fault provable.
 
 Additional action items are copied here from the [generic hardfork FMA](./fma-generic-hardfork.md) doc:
