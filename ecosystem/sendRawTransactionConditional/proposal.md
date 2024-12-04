@@ -54,7 +54,7 @@ Verticalization is possible in the proposed solution by configuring the allowlis
 
     * **Authentication**: Allowlist Policy
 
-        Requests to this endpoint MUST be authenticated with a secp256K1 keypair, similar to [flashbots authentication](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#authentication). The [EIP-191](https://eips.ethereum.org/EIPS/eip-191) hash of the json-rpc payload must be signed and included in the the `X-Optimism-Signature` header of the request in a `<public key adddress>:<signature>` format.
+        Requests to this endpoint MUST be authenticated with a secp256K1 keypair, similar to [flashbots authentication](https://docs.flashbots.net/flashbots-auction/advanced/rpc-endpoint#authentication). The [EIP-191](https://eips.ethereum.org/EIPS/eip-191) hash of the json-rpc payload must be signed and included in the the `X-Optimism-Signature` header of the request in a `<public key address>:<signature>` format.
 
         With the public key of the caller, we can implement an allowlist policy module, allowing the chain operator to verticalize by running their own bundler or delegating to partners. This allowlist module does NOT have to be enabled for permissionless bundler participation.
 
