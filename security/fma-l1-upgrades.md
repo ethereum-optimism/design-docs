@@ -287,6 +287,29 @@ This will be detected when an upgrade fails due to OOG. That's fine.
 
 The upgrade will need to be gas optimized or rearchitected to break it up. We can cross that bridge when we get to it.
 
+### FM6: Supply Chain Attack Against op-deployer or Contract Artifacts
+
+#### **Description:**
+
+The upgrade process relies on artifacts and tooling which could be compromised in a supply chain attack,
+leading to deployment of malicious contracts.
+
+#### **Risk Assessment:**
+
+TODO
+
+#### **Mitigations:**
+
+TODO
+
+#### **Detection:**
+
+TODO
+
+#### **Recovery Path(s):**
+
+TODO
+
 ### Generic items we need to take into account:
 
 See [./fma-generic-hardfork.md](./fma-generic-hardfork.md).
