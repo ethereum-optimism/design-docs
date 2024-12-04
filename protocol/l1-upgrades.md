@@ -14,10 +14,10 @@ We take the following as our design goals:
   contracts within one block.
 - **Declarative design:** As much as possible, a developer should be able to simply indicate what
   bytecode should be deployed, and what storage values (if any) should be initialized or modified.
-- **Deterministic upgrade calldata:** The exact calldata to be submitted during the upgrade should
+- **Deterministic upgrade calldata:** The exact calldata to be submitted during the upgrade should be 
   predictable at the time of the governance proposal.
 - **Safety:** Above all the upgrade must be safe, particularly with respect to the things which can
-  typically go wrong with an upgrade, ie.
+  typically go wrong with an upgrade, i.e.
   - All contracts should be upgraded to the correct implementation.
   - Storage layouts should not be incorrectly modified.
   - Contracts should not be 're-initializable'
@@ -83,7 +83,7 @@ actions:
 Note that the above functionality also makes for a good set of milestones, each of which can and
 should be implemented incrementally.
 
-## Modfications to L1 contracts
+## Modifications to L1 contracts
 
 Taking inspiration from Chugsplash, we wish to separate the concern of what bytecode to run, and
 what to write to storage. However we also wish to avoid using the current `StorageSetter` pattern,
@@ -187,7 +187,7 @@ A separate design doc will be created to document this process.
 We will use the `SystemConfig` as the unique identifier for each OPChain, and get the contract
 addresses from it. The custom logic required for the two non-standard proxy types will be handled in
 the OPCM contract, and does not require tracking the proxy type (as currently done in the
-`ProxyAdmin`), since it is known already for each contract, ie. the only non-standard Proxies are
+`ProxyAdmin`), since it is known already for each contract, i.e. the only non-standard Proxies are
 the `L1StandardBridge` (`L1ChugsplashProxy`) and `L1CrossDomainMessenger` (`ResolvedDelegateProxy`).
 
 ## Contract versioning
@@ -265,10 +265,12 @@ function upgrade(SuperchainProxyAdmin _admin, ISystemConfig[] _systemConfigs, Ne
 To enumerate the full flow:
 
 1. Deploy new OPCM contract, which contains:
-   1. `deploy()` and `upgrade()` methods to deploy new chains and ugprade existing chains
+   1. `deploy()` and `upgrade()` methods to deploy new chains and upgrade existing chains
    1. immutables pointing to all new implementation contracts and shared config (e.g. a new contract).
 1. For each new implementation an upgrade call will be executed via the `SuperchainProxyAdmin`
-1. A Safe will `DELEGATECALL` to the `OPCM.upgrade()` method, which MUST be `pure` for safety purposes.
+1. A Safe will `DELEGATECALL` the `OPCM.upgrade()` method. It is critical that no storage reads or writes occur during the
+   execution of the upgrade function. While the `pure` keyword would typically enforce this at the compiler level, it
+   cannot be used here because the function will make multiple external calls to non-pure functions.
 1. A two step upgrade is used where the first upgrade is to an `InitializerResetter` which resets
    the `initialized` value, then the implementation is updated to the final address and `upgrade()`
    is called.
@@ -297,7 +299,7 @@ and `op-deployer` will ensure that upgrades conform to the specified ordering.
 ## Development and Testing considerations
 
 This solution should be implemented such that it both enables and _requires_ developers to implement
-the upgrade path from the most recent release to the one curently being developed. This means it
+the upgrade path from the most recent release to the one currently being developed. This means it
 will be necessary to have a deployment of the previous release available on the current commit, in
 order to test the upgrade path. This is achievable using `op-deployer`.
 
@@ -334,7 +336,7 @@ Aggregating the above slightly:
 
 Since new values in storage are fairly rare, with the possible exception of the System Config, we'll assume just one new value per-chain, giving a cost of: 17,300 + 6\*7,800 + 20,000 = 84,100
 
-This is a lower bound, but if we give a healthy margin of 3x,for
+This is a lower bound, but if we give a healthy margin of 3x, for
 about 250,000 per chain upgraded, we can fit 120 OP Chain upgrades
 inside an L1 block.
 
