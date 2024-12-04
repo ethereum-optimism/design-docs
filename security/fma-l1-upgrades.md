@@ -53,7 +53,7 @@ High impact, Medium likelihood
 
 #### **Mitigations:**
 
-1. In the first step to reset the initializer with varied layouts, a custom contract can be
+1. In the first step to reset the initializer with varied layouts, a custom, one-time use, contract can be
    created which hardcodes the exact modifications required for each contract with a unique
    contracts specific function, such as `resetL1CrossDomainMessenger()`.
 2. Upgrading to use OpenZeppelin's unstructured storage for initialization state reduces the risk
@@ -65,7 +65,7 @@ High impact, Medium likelihood
 #### **Detection:**
 
 Global event monitoring COULD be used on `monitorism` for the `Initialized` event, however in the past similar monitoring
-has been deemed to noisy and not useful.
+has been deemed too noisy and not useful.
 
 #### **Recovery Path(s)**:
 
@@ -166,7 +166,7 @@ graph LR
 ```
 
 This is a particular risk we have chosen to accept as opposed to enforcing the upgrade path onchain,
-because doing so comes with operational complications.
+because doing so comes with operational [complications](https://github.com/ethereum-optimism/design-docs/blob/main/protocol/op-contracts-manager-single-release-redesign.md#managing-patches-for-opcm-deployments).
 
 #### **Risk Assessment:**
 
@@ -243,7 +243,6 @@ This scenario would require two additional PATCH OPCMs, and an additional OCPM f
 5. `OPCM-v2.2.0`
 
 This is not necessarily dangerous, but is likely to complicate operations in various ways.
-to complicate operations in various ways.
 
 #### **Risk Assessment:**
 
