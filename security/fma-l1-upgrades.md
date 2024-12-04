@@ -1,4 +1,4 @@
-# [Project Name]: Failure Modes and Recovery Path Analysis
+# L1 Upgrades: Failure Modes and Recovery Path Analysis
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -20,7 +20,7 @@ _Italics are used to indicate things that need to be replaced._
 | ------------------ | ---------- |
 | Author             | Maurelian  |
 | Created at         | 2024-03-26 |
-| Initial Reviewers  | [TBD]      |
+| Initial Reviewers  | @blmalone      |
 | Need Approval From | [TBD]      |
 | Status             | Draft      |
 
@@ -64,7 +64,7 @@ High impact, Medium likelihood
 
 #### **Detection:**
 
-Global event monitoring COULD be used on `monitorism` for the `Initialized` event, howevrer in the past similar monitoring
+Global event monitoring COULD be used on `monitorism` for the `Initialized` event, however in the past similar monitoring
 has been deemed to noisy and not useful.
 
 #### **Recovery Path(s)**:
