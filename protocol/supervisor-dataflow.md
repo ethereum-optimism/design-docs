@@ -28,7 +28,7 @@ Leading up to this document were two documents and a meeting:
 
 # Proposed Solution(s)
 
-This document contains a colleciton of moderate sized refactoring tasks for the OP Node and OP Supervisor which seek to make our abstractions and patterns better suited to the goals of Interop.
+This document contains a collection of moderate sized refactoring tasks for the OP Node and OP Supervisor which seek to make our abstractions and patterns better suited to the goals of Interop.
 
 ## Distinguishing Node Relationships
 First, we should define two different modes of association an OP Node can have with an OP Supervisor:
@@ -41,7 +41,7 @@ Owned Nodes are special OP Nodes which are paired to the Supervisor. There must 
 ## Specifying External Node Architecture
 External Nodes have minimal bearing on the complexity of a Supervisor. That is because the External Nodes *only* make simple queries, and data held by that Node is never considered by the Supervisor. Their connections should be made from the Node to the Supervisor, and a one-way, unauthenticated RPC connection is fine.
 
-However, the OP Node *does* need to take protective measures if it is using an External Supervisor. It is possible the the OP Node in question is deriving its chain based on data which is *not consistent* with the data the External Supervisor is using. When this occurs, the OP Node **must** halt. There is no way to attribute fault, and so the Supervisor is effectively unusable by the Node for this period. The system would resume operation when one side or the other handles a reorg which re-aligns the views.
+However, the OP Node *does* need to take protective measures if it is using an External Supervisor. It is possible that the OP Node in question is deriving its chain based on data which is *not consistent* with the data the External Supervisor is using. When this occurs, the OP Node **must** halt. There is no way to attribute fault, and so the Supervisor is effectively unusable by the Node for this period. The system would resume operation when one side or the other handles a reorg which re-aligns the views.
 
 ## Specifying Owned Node Architecture
 For Owned Nodes, there are several architecture decisions being made in this document:
@@ -50,7 +50,7 @@ For Owned Nodes, there are several architecture decisions being made in this doc
 For Owned Nodes, the Supervisor should initiate the connection. The connection should be an authenticated two-way RPC which the units can communicate over. This gives us strong connectivity and instant signaling mechanisms from the Supervisor down to the OP Node.
 
 ### Supervisor as Orchestrator for Sync
-In the current architecture, OP Nodes decide to send their updated heads to the Supervisor as part of Derivation. When this happens, the Supervisor reaches out and fetches receipt data. Both of these activites load data into the Supervisor's database, and this presents a problem -- how can the Supervisor interact with multiple Nodes without suffering redundant or conflicting writes?
+In the current architecture, OP Nodes decide to send their updated heads to the Supervisor as part of Derivation. When this happens, the Supervisor reaches out and fetches receipt data. Both of these activities load data into the Supervisor's database, and this presents a problem -- how can the Supervisor interact with multiple Nodes without suffering redundant or conflicting writes?
 
 To solve this, we propose that the Supervisor should be in control of Synchronization. The Supervisor would now take an approach like this:
 
@@ -76,7 +76,7 @@ Instead, we should use the Supervisor as the source of L1 data which Owned Nodes
 - Establish an L1 Provider component of the Supervisor which uses the L1 fetching OP Nodes already do. Match existing data formats such that the Supervisor acts mostly as a proxy, and does not introspect the data.
 - For Owned Nodes, disable L1 fetching for Derivation.
 - Add an RPC API to Owned Nodes which accepts the L1 data and starts Derivation on it.
-- When the Supervisor recieves a new L1 payload, it calls it down to the Owned Nodes to start their Derivation against the data.
+- When the Supervisor receives a new L1 payload, it calls it down to the Owned Nodes to start their Derivation against the data.
 
 By doing this, we ensure that the data used to construct the Supervisor Database is consistent, and we allow the OP Node to still perform derivation per usual. In addition, by putting Supervisor in control of the data administration, it is able to better predict and control updates to Safe data. Any time it sends new L1 data down, it can immediately listen back for the updates from that data.
 
@@ -121,4 +121,4 @@ We could try to continue to chase stability and consistency issues into our curr
 
 ###### There are no risks, this team can do anything. There is only upside; WAGMI.
 
-* Edge cases could inflate the complexities described above and make achieving this plan more difficult. We have seen in development of this system that edge cases can significantly increase our complexity. However, as this document describes a *reduction* of complexity though an increase of explicit control, we should have this well in-hand.
+* Edge cases could inflate the complexities described above and make achieving this plan more difficult. We have seen in development of this system that edge cases can significantly increase our complexity. However, as this document describes a *reduction* of complexity through an increase of explicit control, we should have this well in-hand.
