@@ -198,8 +198,7 @@ Additional action items are copied here from the [generic hardfork FMA](./fma-ge
     * action tests run on op-node, op-program and kona (see links above)
 - [x] (BLOCKING): We will be testing the activation on our devnets and testnets.
     * see above
-- [ ] (BLOCKING): We have prepared datadir backups close before the upgrade, so we can use these in an emergency to rollback.
-- [ ] (BLOCKING): We have updated the runbook for recovering from a hardfork activation chain halt (including rolling back contract changes), if necessary. See https://oplabs.notion.site/RB-000-How-To-Rewind-a-Network-c21f628205354dbdbed9c691b2455a7c?pvs=74.
+- [x] (BLOCKING): We have prepared a runbook for recovering from a hardfork activation chain halt (including rolling back contract changes), if necessary. See https://www.notion.so/oplabs/Hardfork-Activation-Failed-Activation-Contingency-151f153ee16280ce868ef171ad6489e5
 - [ ] (non-BLOCKING): The superchain-ops task to upgrade any contract should check if the semantic versions and bytecodes after the upgrade are as expected. 
 - [ ] (non-BLOCKING): We have implemented fuzz testing in a kurtosis multi-client devnet to reduce the chance of bugs
 
