@@ -67,7 +67,7 @@ Once everything is set, the adapters are ready to transfer USDC between domains.
 
 ### 2) Deposits & withdrawals
 
-For an user to make a deposit, the process remains as simple as follows:
+For a user to make a deposit, the process remains as simple as follows:
 
 1. Users approve the `L1OpUSDCBridgeAdapter` to spend USDC.
 2. Users proceed to deposit USDC by calling the contract.
