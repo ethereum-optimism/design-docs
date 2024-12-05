@@ -4,13 +4,17 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 - [Introduction](#introduction)
-- [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [[Name of Failure Mode 1]](#name-of-failure-mode-1)
-  - [[Name of Failure Mode 2]](#name-of-failure-mode-2)
-- [Audit Requirements](#audit-requirements)
+- [Introduction](#introduction-1)
+  - [FM1: Contract Initializers](#fm1-contract-initializers)
+  - [FM2: Storage Layout Corruption in an OP Chain Contract](#fm2-storage-layout-corruption-in-an-op-chain-contract)
+  - [FM3: Storage Layout Corruption in the Upgrade Controller Safe](#fm3-storage-layout-corruption-in-the-upgrade-controller-safe)
+  - [FM4: Failure to follow upgrade path](#fm4-failure-to-follow-upgrade-path)
+  - [FM5: Patches result in a complex upgrade path](#fm5-patches-result-in-a-complex-upgrade-path)
+  - [FM5: Gas Limit Exceeded](#fm5-gas-limit-exceeded)
+  - [FM6: Supply Chain Attack Against op-deployer or Contract Artifacts](#fm6-supply-chain-attack-against-op-deployer-or-contract-artifacts)
+  - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
 - [Action Items](#action-items)
-- [Appendix](#appendix)
-  - [Appendix A: This is a Placeholder Title](#appendix-a-this-is-a-placeholder-title)
+- [Audit Requirements](#audit-requirements)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
