@@ -5,12 +5,15 @@
 
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [[Name of Failure Mode 1]](#name-of-failure-mode-1)
-  - [[Name of Failure Mode 2]](#name-of-failure-mode-2)
-- [Audit Requirements](#audit-requirements)
+  - [Incorrect Linux/MIPS emulation](#incorrect-linuxmips-emulation)
+  - [Unimplemented syscalls or opcodes needed by `op-program`](#unimplemented-syscalls-or-opcodes-needed-by-op-program)
+  - [Insufficient memory in the program](#insufficient-memory-in-the-program)
+  - [Failure to run correct VM based on prestate input](#failure-to-run-correct-vm-based-on-prestate-input)
+  - [Mismatch between on-chain and off-chain execution](#mismatch-between-on-chain-and-off-chain-execution)
+  - [Livelocks in the fault proof](#livelocks-in-the-fault-proof)
+  - [Execution traces too long for the fault proof](#execution-traces-too-long-for-the-fault-proof)
+  - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
 - [Action Items](#action-items)
-- [Appendix](#appendix)
-  - [Appendix A: This is a Placeholder Title](#appendix-a-this-is-a-placeholder-title)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
