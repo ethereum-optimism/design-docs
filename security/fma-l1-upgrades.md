@@ -28,7 +28,6 @@ _Italics are used to indicate things that need to be replaced._
 | Need Approval From | [TBD]      |
 | Status             | Draft      |
 
-## Introduction
 
 ## Introduction
 
@@ -43,12 +42,12 @@ Below are references for this project:
 
 #### **Description:**
 
-During the first step of the ugprade, the contracts will not yet have a shared
+During the first step of the upgrade, the contracts will not yet have a shared
 storage location for the `initialized` value. Therefore each contract will require custom storage
 manipulation to properly reset the `initialized` value, without modifying values which may be
 packed into the same slot.
 
-Moreoever, contracts could be re-initialized if the initialization state is not properly managed
+Moreover, contracts could be re-initialized if the initialization state is not properly managed
 during the two-step upgrade process.
 
 #### **Risk Assessment:**
@@ -63,7 +62,7 @@ High impact, Medium likelihood
 2. Upgrading to use OpenZeppelin's unstructured storage for initialization state reduces the risk
    of incorrectly reinitializing at the end of the upgrade, as it ensures that the `initializer`
    modifier can operate on the same slot across contracts.
-3. After calling `OPCM.upgrade()` the `superchain-ops` script can use `vm.load()` and attempt to call `L1CrossDomainMessenger.upgrade()` (for example) to verify the intitialized status.
+3. After calling `OPCM.upgrade()` the `superchain-ops` script can use `vm.load()` and attempt to call `L1CrossDomainMessenger.upgrade()` (for example) to verify the initialized status.
 4. Tenderly simulation should look for unexpected storage changes.
 
 #### **Detection:**
@@ -183,7 +182,7 @@ Medium impact, Medium likelihood
 
 #### **Detection:**
 
-**Montoring:** We could consider introducing monitoring which:
+**Monitoring:** We could consider introducing monitoring which:
 
 1. Reads OPCM addresses from the `superchain-registry`
 2. Monitors those addresses for `Upgraded` events
