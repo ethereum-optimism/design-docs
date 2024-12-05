@@ -173,11 +173,14 @@ Below is what needs to be done before launch to reduce the chances of the above 
     * [op-e2e/actions: Cover Holocene activation and pipeline reset #12891](https://github.com/ethereum-optimism/optimism/pull/12891)
     * [chore(ci): Bump monorepo commit](https://github.com/anton-rs/kona/pull/805)
 
-- [x] (BLOCKING): The changes will be deployed to a devnet with both geth and reth running
+- [x] (BLOCKING): The changes will be deployed to a devnet and/or testnet with both geth and reth running
     * [Add Holocene activation timestamps for Sepoila devnets and testnets](https://github.com/ethereum-optimism/superchain-registry/pull/677)
     * [chore: Update Holocene timestamp for Sepolia](https://github.com/paradigmxyz/reth/pull/12479)
-    * Reth does not have a chain spec built in for devnet, so a custom one will be used
-    * TODO link to op-node/op-geth/reth activation releases and k8s PR for rollout
+    * https://github.com/ethereum-optimism/optimism/releases/tag/op-node%2Fv1.10.0
+    * https://github.com/ethereum-optimism/op-geth/releases/tag/v1.101411.2
+    * https://github.com/paradigmxyz/reth/releases/tag/v1.1.2
+    * https://github.com/ethereum-optimism/k8s/pull/5032
+    * https://github.com/ethereum-optimism/k8s/pull/5053
 
 - [x] (BLOCKING): we will re-architect the batcher to eliminate the cases above
     * [Holocene-D: Batcher Hardening](https://github.com/ethereum-optimism/optimism/issues/12120)
