@@ -17,8 +17,6 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-*Italics are used to indicate things that need to be replaced.*
-
 | | |
 |--------|--------------|
 | Author | Paul Dowman, Mofi Taiwo |
