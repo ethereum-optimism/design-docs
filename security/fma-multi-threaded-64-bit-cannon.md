@@ -46,10 +46,18 @@
 
 ## Introduction
 
-This document covers the conversion of the [Cannon Fault Proof VM](https://docs.optimism.io/stack/protocol/fault-proofs/cannon) to support multi-threading and 64-bit architecture. This increases addressable memory and allows better memory management with garbage collection.
+This document covers the conversion of the [Cannon Fault Proof VM](https://docs.optimism.io/stack/protocol/fault-proofs/cannon) to support multi-threading and 64-bit architecture. These changes increase addressable memory and support better memory management by unlocking garbage collection in the op-program. 
 
 
 ## Failure Modes and Recovery Paths
+
+### Incorrect Linux/MIPS emulation
+
+- **Description:** An incorrectly implemented FPVM could result in an invalid fault proof. This can be caused by bugs in the thread scheduler, incorrect emulation of MIPS64 instructions, and so on.
+- **Risk Assessment:** High severity, Low likelihood.
+- **Mitigations:** Comprehensive testing. This includes full test coverage of every supported MIPS instruction, threading semantics, and verifying op-program execution on live chain data.
+- **Detection:** op-dispute-mon forecasts and alerts on undesirable game resolutions.
+- **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
 ### Unimplemented syscalls or opcodes needed by `op-program`
 
@@ -57,6 +65,14 @@ This document covers the conversion of the [Cannon Fault Proof VM](https://docs.
 - **Risk Assessment:** High severity, low likelihood.
 - **Mitigations:** We periodically use Cannon to execute the op-program using inputs from op-mainnet and op-sepolia. This periodic cannon runner (vm-runner) runs on oplabs infrastructure.
 - **Detection:** Alerting is setup to notify the proofs team whenever the vm-runner fails to complete a cannon run.
+- **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
+
+### Insufficient memory in the program
+
+- **Description:** The op-program may run out of memory, causing it to crash.
+- **Risk Assessment:** High severity, low likelihood.
+- **Mitigations:** The 64-bit address space virtually eliminates memory exhaustion risks. Go's concurrent garbage collector automatically manages memory through scheduled background goroutines.
+- **Detection:** op-dispute-mon forecasts and alerts on undesirable game resolutions that would result due to a program crash.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
 ### Failure to run correct VM based on prestate input
@@ -71,7 +87,7 @@ This document covers the conversion of the [Cannon Fault Proof VM](https://docs.
 
 - **Description:** There could be bugs in the implementation of either the Solidity or Go versions that make them incompatible with each other.
 - **Risk Assessment:** High severity, low likelihood.
-- **Mitigations:** Diffeerential testing asserts identical on-chain and off-chain execution. A third-party audit (in progress) review of both VMs.
+- **Mitigations:** Diffeerential testing asserts identical on-chain and off-chain execution.
 - **Detection:** *How do we detect if this occurs?*
 - **Recovery Path(s)**: Depends on the specifics. If the onchain VM implementation is "more correct", then fixing this can be done solely offchain. Otherwise, a governance vote will be needed. As usual, the [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f) provides the best guidance on this.
 
@@ -79,7 +95,7 @@ This document covers the conversion of the [Cannon Fault Proof VM](https://docs.
 
 - **Description:** A livelocked execution prevents an honest challenger from generating a fault proof.
 - **Risk Assessment:** High severity, low likelihood.
-- **Mitigations:** Manual review of the op-program and a quick review of Go runtime internals. The op-program uses 3 threads, and only one of those threads are used by the mutator main function. This makes livelocks very unlikely.
+- **Mitigations:** Manual review of the op-program and a quick review of Go runtime internals. The op-program uses 3 threads, and only one of those threads is used by the mutator main function. This makes livelocks very unlikely.
 - **Detection:** This would manifest as an execution that runs forever. Eventually, but well before the dispute period ends, op-dispute-mon will indicate that a game is forecasted to resolve incorrectly.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
@@ -87,17 +103,9 @@ This document covers the conversion of the [Cannon Fault Proof VM](https://docs.
 
 - **Description:** It's possible that introducing multi-threading/gc greatly increases the execution time of the op-program.
 - **Risk Assessment:** Medium severity, low likelihood.
-- **Mitigations:** Based on vm-runner executions of 64-bit Cannon and 32-bit singlethreaded cannon, the 64-bit VM executes the op-program much faster than the 32-bit VM. However, we can always use CPUs with beefier single-core performance to mitigate.
-- **Detection:** op-dispute-mon notifies proofs team if the op-challenger stops interacting with a game.
-- **Recovery Path(s)**: By migrating the op-challenger to a beefier CPU. [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f) provides guidance on when it'll be appropriate to do so.
-
-### [Name of Failure Mode]
-
-- **Description:** *Details of the failure mode go here. What the causes and effects of this failure?*
-- **Risk Assessment:** *Simple low/medium/high rating of impact (severity) + likelihood.*
-- **Mitigations:** *What mitigations are in place, or what should we add, to reduce the chance of this occurring?*
-- **Detection:** *How do we detect if this occurs?*
-- **Recovery Path(s)**: *How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?*
+- **Mitigations:** Based on vm-runner executions of 64-bit Cannon and 32-bit single-threaded Cannon, the 64-bit VM executes the op-program much faster than the 32-bit VM. However, we can always use CPUs with better single-core performance to mitigate.
+- **Detection:** op-dispute-mon provides an early forecast and triggers an alert if the op-challenger stops interacting with a game.
+- **Recovery Path(s)**: This can be mitigated by migrating the op-challenger to a more powerful CPU. [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f) provides guidance on when it'll be appropriate to do so.
 
 
 ### Generic items we need to take into account:
@@ -110,19 +118,4 @@ See [./fma-generic-hardfork.md](./fma-generic-hardfork.md).
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
-- [ ] Third-party audit the offchain and onchain VM implementation and specification (Assignee: document author).
-- [ ] *Action item 2 (Assignee: tag assignee)*
-- [ ] *Action item 3 (Assignee: tag assignee)*
-
-## Audit Requirements
-
-*Given the failure modes and action items, will this project require an audit? See [OP Labs Audit Framework: When to get external security review and how to prepare for it](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864) for a reference decision making framework. Please explain your reasoning.*
-
-## Appendix
-
-### Appendix A: This is a Placeholder Title
-
-*Appendices must include any additional relevant info, processes, or documentation that is relevant for verifying and reproducing the above info. Examples:*
-
-- *If you used certain tools, specify their versions or commit hashes.*
-- *If you followed some process/procedure, document the steps in that process or link to somewhere that process is defined.*
+- [ ] Third-party audit the offchain and onchain VM implementation and specification (Assignee: @inphi)
