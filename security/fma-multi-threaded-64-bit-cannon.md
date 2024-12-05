@@ -12,7 +12,7 @@
   - [Mismatch between on-chain and off-chain execution](#mismatch-between-on-chain-and-off-chain-execution)
   - [Livelocks in the fault proof](#livelocks-in-the-fault-proof)
   - [Execution traces too long for the fault proof](#execution-traces-too-long-for-the-fault-proof)
-  - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
+  - [Invalid `DisputeGameFactory.setImplementation` execution](#invalid-disputegamefactorysetimplementation-execution)
 - [Action Items](#action-items)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -21,7 +21,7 @@
 
 | | |
 |--------|--------------|
-| Author | *Author Name* |
+| Author | Paul Dowman, Mofi Taiwo |
 | Created at | *2024-10-09* |
 | Initial Reviewers | *Reviewer Name 1, Reviewer Name 2* |
 | Need Approval From | *Security Reviewer Name* |
@@ -51,6 +51,7 @@
 
 This document covers the conversion of the [Cannon Fault Proof VM](https://docs.optimism.io/stack/protocol/fault-proofs/cannon) to support multi-threading and 64-bit architecture. These changes increase addressable memory and support better memory management by unlocking garbage collection in the op-program. 
 
+The multi-threaded Fault Proof VM is specified [here](https://github.com/ethereum-optimism/specs/blob/3abc17a68727e22c31a7a113be935943f717ee63/specs/experimental/cannon-fault-proof-vm-mt.md).
 
 ## Failure Modes and Recovery Paths
 
@@ -110,11 +111,15 @@ This document covers the conversion of the [Cannon Fault Proof VM](https://docs.
 - **Detection:** op-dispute-mon provides an early forecast and triggers an alert if the op-challenger stops interacting with a game.
 - **Recovery Path(s)**: This can be mitigated by migrating the op-challenger to a more powerful CPU. [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f) provides guidance on when it'll be appropriate to do so.
 
+### Invalid `DisputeGameFactory.setImplementation` execution
 
-### Generic items we need to take into account:
-See [./fma-generic-hardfork.md](./fma-generic-hardfork.md). 
-
-- [ ] Check this box to confirm that these items have been considered and updated if necessary.
+- Description: This occurs when either the call to the DisputeGameFactory could not be made due to grossly unfavorable base fees on L1, an invalidly approved safe nonce, or a successful execution to a misconfigured dispute game implementation.
+- **Risk Assessment:** Low severity, low likelihood.
+  - Low Likelihood: The low likelihood is a result of tenderly simulation testing of safe transactions, code review of the upgrade playbook, and manual review of the dispute game implementations (which are deployed on mainnet and specified in the governance proposal so they may be reviewed).
+  - Low severity: Fault Proofs continues to use the existing single-threaded FPVM. This carries a reputational risk, but it doesn't diminish the security of the system. Withdrawals will continue to work against outputs secured by the single-threaded FPVM.
+- **Mitigations:** No immediate action is needed other than to retry the safe transaction. This may require another signing ceremony. Note that the op-challenger does not need to be rolled back, as multicannon is backwards compatible with older FPVM state transition functions.
+- **Detection:** An un-executed safe transaction is easily detectable.
+- **Recovery Path(s)**: Reschedule upgrade, possibly releasing new binary though without immediate urgency.
 
 
 ## Action Items
