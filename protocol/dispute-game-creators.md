@@ -10,7 +10,7 @@ The `DisputeGameFactory.sol` should be upgraded to allow for multiple "Creator" 
 
 The Fault Dispute Game contracts are currently made up of a couple of core contracts, `AnchorStateRegistry.sol`, `DelayedWETH.sol`, `DisputeGameFactory.sol`, and `FaultDisputeGame.sol/PermissionedFaultDisputeGame.sol`. When deploying "standard" rollups we currently need to deploy a new set of all of these contracts because of specific immutable arguments in the implementation of `FaultDisputeGame.sol`, which in turn requires a specific `FaultDisputeGameFactory.sol` and in turn `AnchorStateRegistry.sol`. If `FaultDisputeGame.sol` implementations did not have chain-specific immutables, then they could simply be added at the time of cloning on a per-chain basis, requiring only one set of deployments and making the process simpler.
 
-An important nuance here is that each `FaultDisputeGame.sol` deployment has both a minimal proxy with immutable args deployed that points at an implementation specific to the `FaultDisputeGameFactory.sol`. The two sets of immutable args are first specific to the fault dipuste game, then the second set on the implementation are specific to the rollup.
+An important nuance here is that each `FaultDisputeGame.sol` deployment has both a minimal proxy with immutable args deployed that points at an implementation specific to the `FaultDisputeGameFactory.sol`. The two sets of immutable args are first specific to the fault dispute game, then the second set on the implementation are specific to the rollup.
 
 # Proposed Solution
 
