@@ -4,7 +4,7 @@ To fully unlock ERC-4337 on the OP-Stack.
 
 # Summary
 
-By providing an auxilliary transaction submission mechanism, [eth_sendRawTransactionConditional](https://notes.ethereum.org/@yoav/SkaX2lS9j), we can enable Bundlers to submit [Entrypoint](https://eips.ethereum.org/EIPS/eip-4337#entrypoint-definition) transactions with stronger guarantees, avoiding costly inadvertent reverts. The endpoint is an extension to `eth_sendRawTransaction` with the added ability to attach a conditional. The conditional are a set of options that specify requirements for inclusion, otherwise rejected out of protocol.
+By providing an auxiliary transaction submission mechanism, [eth_sendRawTransactionConditional](https://notes.ethereum.org/@yoav/SkaX2lS9j), we can enable Bundlers to submit [Entrypoint](https://eips.ethereum.org/EIPS/eip-4337#entrypoint-definition) transactions with stronger guarantees, avoiding costly inadvertent reverts. The endpoint is an extension to `eth_sendRawTransaction` with the added ability to attach a conditional. The conditional are a set of options that specify requirements for inclusion, otherwise rejected out of protocol.
 
 We can implement this endpoint in op-geth with an additional layer of external validation to ensure this endpoint is safe from DoS, does not supersede `eth_sendRawTransaction`, and can be deprecated if native account abstraction efforts in the future absolves the need for this endpoint.
 
