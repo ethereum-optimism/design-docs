@@ -12,7 +12,7 @@ The purpose of this design-doc is to propose and get buy-in in on a first step t
 
 # Summary
 
-This document proposes a sidecar to `op-node` for requesting block production from an external party. This sidecar has two roles: 1) obfuscate the presence of builder software from the `op-node` and `op-geth` software and 2) manage communication with a block builder and handle block delivery to `op-node`. The first role is achieved via the sidecar forwarding all API calls to it's local `op-geth` and delivering 1 block exactly for each block request from `op-node`. The second role is achieved by the sidecar implementing the communication protocol with the builder, including authentication, and payload selection rules.
+This document proposes a sidecar to `op-node` for requesting block production from an external party. This sidecar has two roles: 1) obfuscate the presence of builder software from the `op-node` and `op-geth` software and 2) manage communication with a block builder and handle block delivery to `op-node`. The first role is achieved via the sidecar forwarding all API calls to its local `op-geth` and delivering 1 block exactly for each block request from `op-node`. The second role is achieved by the sidecar implementing the communication protocol with the builder, including authentication, and payload selection rules.
 
 By decoupling the block construction process from the Sequencer's Execution Engine, operators can tailor transaction sequencing rules without diverging from the standard Optimism Protocol Client. This flexibility allows individual chains to experiment on sequencing features, providing a means for differentiation. This minimum viable design also includes a local block production fallback as a training wheel to ensure liveness and network performance in the event of local Block Builder failure.
 
@@ -24,7 +24,7 @@ The tight coupling of proposer and sequencer roles in the `op-node` limits the a
 
 ## Context
 
-As of September 2024, the `op-node` sofware in `sequencer` mode performs both the role of "proposer" and "sequencer". As the "proposer", the `op-node` propagates a proposal, with full authority, for the next block in the canonical L2 chain to the network. Unlike a layer 1 "proposer", it does not have a "vote" in the finality of that block, other than by committing it to the L1 chain. As a "sequencer", it is also responsible for the ordering of transactions in the L2 block's it proposes. Today, it uses a `op-geth`, a diff-minimized fork of the Layer 1 Execution client `geth`, and it's stock transaction ordering algorithm.
+As of September 2024, the `op-node` software in `sequencer` mode performs both the role of "proposer" and "sequencer". As the "proposer", the `op-node` propagates a proposal, with full authority, for the next block in the canonical L2 chain to the network. Unlike a layer 1 "proposer", it does not have a "vote" in the finality of that block, other than by committing it to the L1 chain. As a "sequencer", it is also responsible for the ordering of transactions in the L2 block's it proposes. Today, it uses a `op-geth`, a diff-minimized fork of the Layer 1 Execution client `geth`, and its stock transaction ordering algorithm.
 
 On Ethereum Layer 1, a concept known as "Proposer Builder Separation" has become popularized as a client architecture decision to purposefully enable the "proposer" to request a block from an external party. These parties run modified versions of `geth` and newer clients like `reth` to build blocks with numerous ordering algorithms and features. On Layer 1, the communication between the proposer and the builder is achieved via the [`mev-boost` software](https://github.com/flashbots/mev-boost). 
 
@@ -74,7 +74,7 @@ Preemptively sending these API calls from the sidecar, instead of waiting for th
 
 This approach doubles the amount of bandwidth needed for sending a block to the `op-node` by accepting an external block from the block builder. However, the sidecar only forwards one payload to `op-node` based on its selection criteria.
 
-## Software Maintence
+## Software Maintenance
 
 Flashbots will develop and maintain the initial versions of this software in a modular and contributor friendly manner to the standards of our existing Ethereum L1 `mev-boost` sidecar. We will take a crawl, walk, run approach with this software by trial'ing it with one OP-stack chain outside of local testing. From there, we can decide if the feature set is standardized enough to begin efforts to merge into the OP-stack, or in the event we want to delay this decision further, Flashbots will contribute this sidecar to the docker compose setup of OP stack and assist in ensuring smooth operation during any hardfork related work as we have historically done on Ethereum L1.
 
@@ -92,16 +92,16 @@ This solution provides a balance between enabling external block production and 
 ### Costs
 
 1. It breaks any existing and future assumptions around there being 1 execution layer for each consensus layer client in the OP Stack.
-2. Adding software between a source and desintination will always incur some latency hit.
-3. Without propoer illumination, it could make portions of the protocol opaque to the user, but this may be true of any custom ordering rule.
+2. Adding software between a source and destination will always incur some latency hit.
+3. Without proper illumination, it could make portions of the protocol opaque to the user, but this may be true of any custom ordering rule.
 4. A working solution could delay an in-protocol solution indefinitely due to lack of urgency to merge in.
 
 ## Resource Usage
 
-This approach doubles the amount of bandwidth needed for sending a block to the `op-node` by accepting an external block from the block builder. Bu the sidecar only forwards one payload to `op-node` based on it's selection criteria.
+This approach doubles the amount of bandwidth needed for sending a block to the `op-node` by accepting an external block from the block builder. But the sidecar only forwards one payload to `op-node` based on its selection criteria.
 
 # Alternatives Considered
-A variety of alternate desgns we're considered and some implemented.
+A variety of alternate designs we're considered and some implemented.
 
 1. Proposer `op-node` <> `builder-op-geth` (payload attributes stream):
    - Proposer's` op-node` requests block from builder's op-geth.
@@ -123,7 +123,7 @@ A variety of alternate desgns we're considered and some implemented.
 4. Proposer `op-geth` <> Builder `op-geth`:
    - Proposer's op-geth requests block directly from builder's op-geth.
    - Pros: likely the fastest approach since proposers `op-geth` is the ultimate executor of the payload.
-   - Cons: requires modification to `op-geth` which is in some ways more sacred than `op-geth` due to it's policy of a minized code diff to upstream geth.
+   - Cons: requires modification to `op-geth` which is in some ways more sacred than `op-geth` due to its policy of a minimized code diff to upstream geth.
 
 # Risks & Uncertainties
 

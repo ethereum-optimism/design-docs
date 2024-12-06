@@ -48,4 +48,4 @@ No other alternatives considered.
 
 ### Consideration
 
-- Another rule that might help this proposal is asserting via Semgrep that all `initialize()` functions have an `external` modifier and there's no occurence of `this.initialize()`. This would help in enforcing this rule. Is there any scenario where `initialize()` functions need to be called from within a contract or an inheriting contract?
+- Another rule that might help this proposal is asserting via Semgrep that all `initialize()` functions have an `external` modifier and there's no occurrence of `this.initialize()`. This would help in enforcing this rule. Is there any scenario where `initialize()` functions need to be called from within a contract or an inheriting contract?

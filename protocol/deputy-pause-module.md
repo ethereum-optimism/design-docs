@@ -18,7 +18,7 @@ same configuration as the original Foundation Safe was made to be the Deputy Gua
 
 Even with this second Foundation Safe, pre-signed pauses are invalidated on a regular basis
 whenever an upgrade touches the `DeputyGuardianModule`. Gripes with the pre-signed pause system
-could fill a whole role of toilet paper and are not just limited to the issues noted above.
+could fill a whole roll of toilet paper and are not just limited to the issues noted above.
 
 ## Proposed Solution
 
@@ -36,14 +36,14 @@ Foundation Operations Safe entirely, generally simplifying our multisig setup.
 
 We propose using an Externally Owned Account (EOA) instead of a smart contract as the deputy here.
 Using an EOA is simpler and easier to reason about. The private key for this EOA can be stored
-securely and made accessible to a limited set of security personel.
+securely and made accessible to a limited set of security personnel.
 
 ### Single Account vs Mapping
 
 We propose having the `DeputyPauseModule` use a single account instead of a mapping of accounts
 that are able to act as the deputy. A single account is easier to keep track of and having multiple
 accounts does not decrease the risk involved with this module, it simply spreads it across more
-private keys. Having multiple keys be able to act as the deputy here might have some slighty
+private keys. Having multiple keys be able to act as the deputy here might have some slight
 benefits but this begins to scope creep beyond the original intention of replacing the pre-signed
 pause functionality.
 
