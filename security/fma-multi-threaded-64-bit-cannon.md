@@ -15,6 +15,7 @@
   - [Execution traces too long for the fault proof](#execution-traces-too-long-for-the-fault-proof)
   - [Invalid `DisputeGameFactory.setImplementation` execution](#invalid-disputegamefactorysetimplementation-execution)
 - [Action Items](#action-items)
+- [Audit requirements](#audit-requirements)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -59,6 +60,7 @@ The multi-threaded Fault Proof VM is specified [here](https://github.com/ethereu
 - **Description:** An incorrectly implemented FPVM could result in an invalid fault proof. This can be caused by bugs in the thread scheduler, incorrect emulation of MIPS64 instructions, and so on.
 - **Risk Assessment:** High severity, Low likelihood.
 - **Mitigations:** Comprehensive testing. This includes full test coverage of every supported MIPS instruction, threading semantics, and verifying op-program execution on live chain data.
+  This includes [unit and fuzz](https://github.com/ethereum-optimism/optimism/tree/eabf70498f68f321f5de003f1d443d3e3c8100b8/cannon/mipsevm/tests) testing of MIPS instructions and Linux syscalls. It also includes [testing](https://github.com/ethereum-optimism/optimism/blob/eabf70498f68f321f5de003f1d443d3e3c8100b8/cannon/mipsevm/multithreaded/state_test.go) of multithreaded specific functionality.
 - **Detection:** op-dispute-mon forecasts and alerts on undesirable game resolutions.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
@@ -67,7 +69,8 @@ The multi-threaded Fault Proof VM is specified [here](https://github.com/ethereu
 - **Description:** We only aim to implement syscalls and opcodes that are required by `op-program` so there are some unimplemented. The risk is that there is some previously untested code path that uses an opcode or syscall that we haven't implemented and this code path ends up being exercised by an input condition some time in the future.
 - **Risk Assessment:** High severity, low likelihood.
 - **Mitigations:** We periodically use Cannon to execute the op-program using inputs from op-mainnet and op-sepolia. This periodic cannon runner (vm-runner) runs on oplabs infrastructure.
-- **Detection:** Alerting is setup to notify the proofs team whenever the vm-runner fails to complete a cannon run.
+Furthermore, we [sanitize](https://github.com/ethereum-optimism/optimism/blob/eabf70498f68f321f5de003f1d443d3e3c8100b8/cannon/Makefile#L51) the op-program [in CI](https://github.com/ethereum-optimism/optimism/blob/eabf70498f68f321f5de003f1d443d3e3c8100b8/.circleci/config.yml#L928C1-L929C111) for unsupported opcodes.
+- **Detection:** Alerting is setup to notify the proofs team whenever the vm-runner fails to complete a cannon run. And the CI check provides an early warning against unsupported opcodes.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
 ### Insufficient memory in the program
@@ -99,15 +102,15 @@ The multi-threaded Fault Proof VM is specified [here](https://github.com/ethereu
 
 - **Description:** There could be bugs in the implementation of either the Solidity or Go versions that make them incompatible with each other.
 - **Risk Assessment:** High severity, low likelihood.
-- **Mitigations:** Diffeerential testing asserts identical on-chain and off-chain execution.
-- **Detection:** *How do we detect if this occurs?*
+- **Mitigations:** [Diffeerential testing](https://github.com/ethereum-optimism/optimism/tree/eabf70498f68f321f5de003f1d443d3e3c8100b8/cannon/mipsevm/tests) asserts identical on-chain and off-chain execution.
+- **Detection:** An op-challenger fails to fault prove an invalid claim using a witness generated offchain.
 - **Recovery Path(s)**: Depends on the specifics. If the onchain VM implementation is "more correct", then fixing this can be done solely offchain. Otherwise, a governance vote will be needed. As usual, the [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f) provides the best guidance on this.
 
 ### Livelocks in the fault proof
 
 - **Description:** A livelocked execution prevents an honest challenger from generating a fault proof.
 - **Risk Assessment:** High severity, low likelihood.
-- **Mitigations:** Manual review of the op-program and a quick review of Go runtime internals. The op-program uses 3 threads, and only one of those threads is used by the mutator main function. This makes livelocks very unlikely.
+- **Mitigations:** Manual review of the op-program and a quick review of Go runtime internals. The op-program uses 3 threads, and only one of those threads is used by the mutator main function. This makes livelocks very unlikely. This [issue](https://github.com/ethereum-optimism/optimism/issues/11979) looks into the livelock problem with possible solutions. The proposed solutions are deferred for future work as the risk of a livelock is considered too low to be addressed immediately.
 - **Detection:** This would manifest as an execution that runs forever. Eventually, but well before the dispute period ends, op-dispute-mon will indicate that a game is forecasted to resolve incorrectly.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
@@ -135,3 +138,9 @@ The multi-threaded Fault Proof VM is specified [here](https://github.com/ethereu
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [ ] Third-party audit the offchain and onchain VM implementation and specification (Assignee: @inphi)
+
+## Audit requirements
+
+An audit of the multithreaded VM is not required per the [OP Labs Audit Framework](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864).
+A failure in the new Cannon VM and thus dispute games is mitigated by an airgap in finalized withdrawals. Furthermore, there's a window whereby the Security Council can override the results of invalid games.
+Nonetheless, we will be auditing the new VM.
