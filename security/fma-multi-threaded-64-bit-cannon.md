@@ -118,8 +118,8 @@ Furthermore, we [sanitize](https://github.com/ethereum-optimism/optimism/blob/ea
 
 - **Description:** It's possible that introducing multi-threading/gc greatly increases the execution time of the op-program.
 - **Risk Assessment:** Medium severity, low likelihood.
-- **Mitigations:** Based on vm-runner executions of 64-bit Cannon and 32-bit single-threaded Cannon, the 64-bit VM executes the op-program much faster than the 32-bit VM. However, we can always use CPUs with better single-core performance to mitigate.
-- **Detection:** op-dispute-mon provides an early forecast and triggers an alert if the op-challenger stops interacting with a game.
+- **Mitigations:** Based on [vm-runner executions of 64-bit Cannon and 32-bit single-threaded Cannon](https://optimistic.grafana.net/goto/IlD3Tu4Hg?orgId=1), the 64-bit VM executes the op-program much faster than the 32-bit VM. As such, we do not expect worse performance over the existing VM, which was already found to be adequate. However, we can always use CPUs with better single-core performance to mitigate.
+- **Detection:** op-dispute-mon provides an early forecast (see [this alerting rule](https://github.com/ethereum-optimism/k8s/blob/6416658dd9602f83c6be093c5c57af45877258a3/grafana-cloud/rules/dispute-mon.yaml#L154)) and triggers an alert if the op-challenger stops interacting with a game.
 - **Recovery Path(s)**: This can be mitigated by migrating the op-challenger to a more powerful CPU. [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f) provides guidance on when it'll be appropriate to do so.
 
 ### Invalid `DisputeGameFactory.setImplementation` execution
