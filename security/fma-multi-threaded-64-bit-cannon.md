@@ -8,6 +8,7 @@
   - [Incorrect Linux/MIPS emulation](#incorrect-linuxmips-emulation)
   - [Unimplemented syscalls or opcodes needed by `op-program`](#unimplemented-syscalls-or-opcodes-needed-by-op-program)
   - [Insufficient memory in the program](#insufficient-memory-in-the-program)
+  - [Compromised Control Flow in the program](#compromised-control-flow-in-the-program)
   - [Failure to run correct VM based on prestate input](#failure-to-run-correct-vm-based-on-prestate-input)
   - [Mismatch between on-chain and off-chain execution](#mismatch-between-on-chain-and-off-chain-execution)
   - [Livelocks in the fault proof](#livelocks-in-the-fault-proof)
@@ -75,6 +76,15 @@ The multi-threaded Fault Proof VM is specified [here](https://github.com/ethereu
 - **Risk Assessment:** High severity, low likelihood.
 - **Mitigations:** The 64-bit address space virtually eliminates memory exhaustion risks. Go's concurrent garbage collector automatically manages memory through scheduled background goroutines.
 - **Detection:** op-dispute-mon forecasts and alerts on undesirable game resolutions that would result due to a program crash.
+- **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
+
+### Compromised Control Flow in the program
+
+- **Description:** This could theoretically occur when the op-program runs out of memory in a way that lets the attacker reuse code to subvert execution.
+- **Risk Assessment:** High severity, low likelihood.
+  - Low likelihood: This requires an attacker to craft inputs that not only induce high memory usage, but also corrupt or spray the heap in a way that either produces invalid fault proofs or prevents valid fault proofs from being generated.
+- **Mitigations:** As with [Insufficient memory in the program](#insufficient-memory-in-the-program), the 64-bit address space effectively prevents this from occurring. Furthermore, the Go runtime checks memory allocations against heap corruption. However, such memory protections may not hold due to bugs in the Go runtime.
+- **Detection:** op-dispute-mon forecasts and alerts on undesirable game resolutions that would result due to honest claims being disputed at the bottom of the game tree.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
 ### Failure to run correct VM based on prestate input
