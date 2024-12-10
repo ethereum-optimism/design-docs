@@ -25,7 +25,7 @@
 | Created at | *2024-10-09* |
 | Initial Reviewers | *Reviewer Name 1, Reviewer Name 2* |
 | Need Approval From | *Security Reviewer Name* |
-| Status | Draft |
+| Status | In Review |
 
 > [!NOTE]
 > 📢 Remember:
