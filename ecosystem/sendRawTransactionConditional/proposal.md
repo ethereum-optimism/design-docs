@@ -4,7 +4,7 @@ To fully unlock ERC-4337 on the OP-Stack.
 
 # Summary
 
-By providing an auxilliary transaction submission mechanism, [eth_sendRawTransactionConditional](https://notes.ethereum.org/@yoav/SkaX2lS9j), we can enable Bundlers to submit [Entrypoint](https://eips.ethereum.org/EIPS/eip-4337#entrypoint-definition) transactions with stronger guarantees, avoiding costly inadvertent reverts. The endpoint is an extension to `eth_sendRawTransaction` with the added ability to attach a conditional. The conditional are a set of options that specify requirements for inclusion, otherwise rejected out of protocol.
+By providing an auxiliary transaction submission mechanism, [eth_sendRawTransactionConditional](https://notes.ethereum.org/@yoav/SkaX2lS9j), we can enable Bundlers to submit [Entrypoint](https://eips.ethereum.org/EIPS/eip-4337#entrypoint-definition) transactions with stronger guarantees, avoiding costly inadvertent reverts. The endpoint is an extension to `eth_sendRawTransaction` with the added ability to attach a conditional. The conditional are a set of options that specify requirements for inclusion, otherwise rejected out of protocol.
 
 We can implement this endpoint in op-geth with an additional layer of external validation to ensure this endpoint is safe from DoS, does not supersede `eth_sendRawTransaction`, and can be deprecated if native account abstraction efforts in the future absolves the need for this endpoint.
 
@@ -15,7 +15,7 @@ We can implement this endpoint in op-geth with an additional layer of external v
 
 Account Abstraction is a [growing ecosystem](https://dune.com/sixdegree/account-abstraction-overview) and solution to many wallet UX issues. Polygon currently dominates the market on the number of active smart accounts and we want to ensure the op-stack enables this growth in the superchain as the ecosystem continues to evolve.
 
-Bundlers aggregate [UserOp](https://eips.ethereum.org/EIPS/eip-4337#useroperation)s from an external mempool into a single transaction sent to the enshrined 4337 [Entrypoint](https://eips.ethereum.org/EIPS/eip-4337#entrypoint-definition) contract. It is the Bundler responsibility to ensure every UserOp can succesfully execute its validation step, otherwise resulting in a reverted top-level transaction. With private Bundler mempools, the likelihood of these reverts are small as Bundlers are operating over different sets of UserOps. Unless a smart account frontruns a submitted UserOp to the Entrypoint, a Bundler doesn't have to worry about changes in network state such as an incremented smart account nonce invalidating their entire transaction during the building process.
+Bundlers aggregate [UserOp](https://eips.ethereum.org/EIPS/eip-4337#useroperation)s from an external mempool into a single transaction sent to the enshrined 4337 [Entrypoint](https://eips.ethereum.org/EIPS/eip-4337#entrypoint-definition) contract. It is the Bundler responsibility to ensure every UserOp can successfully execute its validation step, otherwise resulting in a reverted top-level transaction. With private Bundler mempools, the likelihood of these reverts are small as Bundlers are operating over different sets of UserOps. Unless a smart account frontruns a submitted UserOp to the Entrypoint, a Bundler doesn't have to worry about changes in network state such as an incremented smart account nonce invalidating their entire transaction during the building process.
 
 The account abstraction [roadmap](https://notes.ethereum.org/@yoav/AA-roadmap-May-2024) is chugging along and shared 4337 mempools are coming into [production](https://medium.com/etherspot/decentralized-future-erc-4337-shared-mempool-launches-on-ethereum-b6c860072f41), launched on Ethereum and some L2 testnets, decentralizing 4337 infrastructure. Multiple Bundlers operating on this mempool can create transactions including the same UserOp, increasing the likelihood of reverts due to changed account states, like account nonces. These reverts are too high of a cost for bundlers to operate.
 
@@ -29,7 +29,7 @@ This problem is worked around on L1 through special block builders like Flashbot
 
 ## Verticalize the OP-Stack
 
-Rather than externalize the 4337 mempool, the op-stack could natively offer a UserOp mempool alongside the regular tx mempool. When creating a new block, the sequencer can pull from the two, ensuring the bundled UserOps do not conflict with the latest network state. However, this adds additional complexity to the stack, where the proposer-builder seperation in 4337 nicely keeps these concerns seperate.
+Rather than externalize the 4337 mempool, the op-stack could natively offer a UserOp mempool alongside the regular tx mempool. When creating a new block, the sequencer can pull from the two, ensuring the bundled UserOps do not conflict with the latest network state. However, this adds additional complexity to the stack, where the proposer-builder separation in 4337 nicely keeps these concerns separate.
 
 Verticalization is possible in the proposed solution by configuring the allowlist of the authenticated `eth_sendRawTransactionConditional` endpoint to either a self-managed bundler or that of a partner, achieving the same outcome as native mempool without the complexity of a deeper change in the op-stack.
 

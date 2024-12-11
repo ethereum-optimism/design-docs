@@ -10,7 +10,7 @@ There will be two main changes to the existing `GovernanceDelegation` [contract]
 
 As described in the [advanced delegation](advanced-delegation.md) design document, the `GovernanceToken` contract supports advanced delegation by integrating with the `GovernanceDelegation` contract. However, the `GovernanceDelegation` contract does not support interoperability, which means that when the `GovernanceToken` gets deployed across networks in the Superchain, the total voting supply in OP Mainnet may decrease as the token would be fragmented across other networks.
 
-Therefore, this design document aims to modify the `GovernanceDelegation` contract to support cross-chain delegations of voting power, maximazing user experience and ensuring that relayers have the proper incentives to handle cross-chain messages of delegations.
+Therefore, this design document aims to modify the `GovernanceDelegation` contract to support cross-chain delegations of voting power, maximizing user experience and ensuring that relayers have the proper incentives to handle cross-chain messages of delegations.
 messages.
 
 # Alternatives Considered
@@ -56,5 +56,5 @@ The implementation should maintain the following invariants:
 1. The biggest risk in implementing this change is ensuring that all existing voting power is preserved such that the checkpoints that already exist on the contract is accessible.
 2. Indexers must now accept a delay in updates if wishing to give an accurate voting status for a particular delegate.
 3. Batch ordering of checkpoints across all L2 chains. Mainly with exposing a function that allows the Governor contract to batch process messages being received in the L2Crosschain Inbox.
-4. `GovToken` holders on for each chain will need to submit delegations on that native chain they exist on due to the fact that voting power is now tracked seperately.
+4. `GovToken` holders on for each chain will need to submit delegations on that native chain they exist on due to the fact that voting power is now tracked separately.
 5. Another potential complexity is when conducting a vote that will eventually be reflected on OP main net the block number must be within a certain range/threshold for checkpointing purposes.
