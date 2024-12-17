@@ -68,7 +68,7 @@ The multi-threaded Fault Proof VM is specified [here](https://github.com/ethereu
 
 - **Description:** We only aim to implement syscalls and opcodes that are required by `op-program` so there are some unimplemented. The risk is that there is some previously untested code path that uses an opcode or syscall that we haven't implemented and this code path ends up being exercised by an input condition some time in the future.
 - **Risk Assessment:** High severity, low likelihood.
-- **Mitigations:** We periodically use Cannon to execute the op-program using inputs from op-mainnet and op-sepolia. This periodic cannon runner (vm-runner) runs on oplabs infrastructure.
+- **Mitigations:** We periodically use Cannon to execute the op-program using inputs from op-mainnet and op-sepolia. This periodic cannon runner (vm-runner) runs on oplabs infrastructure. The vm-runner samples game inputs for the latest L2 safe head every 2 hours and uses cannon to execute the op-program using the sampled inputs. Note that this sampling does not include every game created.
 Furthermore, we [sanitize](https://github.com/ethereum-optimism/optimism/blob/eabf70498f68f321f5de003f1d443d3e3c8100b8/cannon/Makefile#L51) the op-program [in CI](https://github.com/ethereum-optimism/optimism/blob/eabf70498f68f321f5de003f1d443d3e3c8100b8/.circleci/config.yml#L928C1-L929C111) for unsupported opcodes.
 - **Detection:** Alerting is setup to notify the proofs team whenever the vm-runner fails to complete a cannon run. And the CI check provides an early warning against unsupported opcodes.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
