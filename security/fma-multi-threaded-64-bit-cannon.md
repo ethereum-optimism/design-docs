@@ -51,7 +51,7 @@
 
 This document covers the conversion of the [Cannon Fault Proof VM](https://docs.optimism.io/stack/protocol/fault-proofs/cannon) to support multi-threading and 64-bit architecture. These changes increase addressable memory and support better memory management by unlocking garbage collection in the op-program. 
 
-The multi-threaded Fault Proof VM is specified [here](https://github.com/ethereum-optimism/specs/blob/3abc17a68727e22c31a7a113be935943f717ee63/specs/experimental/cannon-fault-proof-vm-mt.md).
+The multi-threaded Fault Proof VM is specified [here](https://github.com/ethereum-optimism/specs/blob/3abc17a68727e22c31a7a113be935943f717ee63/specs/experimental/cannon-fault-proof-vm-mt.md). The current version of the MT-Cannon contract can be found [here](https://github.com/ethereum-optimism/optimism/blob/68f77aaa317b9184cbbcd1526bc57bce1722906b/packages/contracts-bedrock/src/cannon/MIPS64.sol).
 
 ## Failure Modes and Recovery Paths
 
@@ -90,9 +90,23 @@ Furthermore, we [sanitize](https://github.com/ethereum-optimism/optimism/blob/ea
 - **Detection:** op-dispute-mon forecasts and alerts on undesirable game resolutions that would result due to honest claims being disputed at the bottom of the game tree.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
-### Failure to run correct VM based on prestate input
+### Unknown Absolute Prestate
 
-- **Description:** The off-chain Cannon [attempts to run the correct VM version based on the prestate input](https://github.com/ethereum-optimism/design-docs/blob/0034943e42b8ab5f9dd9ded2ef2b6b55359c922c/cannon-state-versioning.md). If it doesn't work correctly the on-chain steps would not match.
+This absolute prestate is essentially a hash of the op-program memory loaded by Cannon, including its code.
+As such, the absolute prestate (or simple prestate) encodes the op-program. The MT-Cannon VM loads the op-program differently from single threaded Cannon.
+This warrants a new absolute prestate _hash_ to properly configure the `FaultDisputeGame` implementations for the MT-Cannon VM.
+
+- **Description:** This is when there is not a known prestate (preimage) for a given absolute prestate hash in the dispute game implementations.
+- **Risk Assessment:** High severity, Low likelihood.
+- **Mitigations:** Every absolute prestate is built off of an op-program release tag. The prestate is [build is reproducible](https://github.com/ethereum-optimism/optimism/blob/68f77aaa317b9184cbbcd1526bc57bce1722906b/op-program/Dockerfile.repro) such that the same prestate is emitted regardless of the environment.
+Furthermore, governance and Guardian signers will be instructed to reproduce the prestate build themselves and check that the prestate hash matches the op-program release that will be referenced in the MT-Cannon governance post.
+Lastly, there exists a [CI check in the monorepo](https://github.com/ethereum-optimism/optimism/blob/68f77aaa317b9184cbbcd1526bc57bce1722906b/.circleci/config.yml#L1575) asserting that every op-program github release tag maps to the expected absolute prestate hash. This ensures that op-program releases stay reproducible.
+- **Detection:** The vm-runner is configured to use the on-chain absolute prestate for cannon executions. Any failures in the vm-runner triggers an alert to the proofs team.
+- **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
+
+### Failure to run correct VM based on absolute prestate input
+
+- **Description:** The off-chain Cacurrent version of the nnon [attempts to run the correct VM version based on the absolute prestate input](https://github.com/ethereum-optimism/design-docs/blob/0034943e42b8ab5f9dd9ded2ef2b6b55359c922c/cannon-state-versioning.md). If it doesn't work correctly the on-chain steps would not match.
 - **Risk Assessment:** Medium severity, low likelihood.
 - **Mitigations:** Multicannon mitigates this issue by embedding a variety of cannon STFs into a single binary. This shifts the concern of ensuring the correct VM selection to multicannon. We also run multicannon on oplabs infra via the vm-runner, to assert the multicannon binary was built correctly.
 - **Detection:** This can be detected by manual review. Failing that, it would only be detected when malicious activity occurs and an honest op-challenger fails to generate a fault proof.
@@ -124,6 +138,9 @@ Furthermore, we [sanitize](https://github.com/ethereum-optimism/optimism/blob/ea
 
 ### Invalid `DisputeGameFactory.setImplementation` execution
 
+The `DisputeGameFactory.setImplementation` will be used to upgrade both the `CANNON` and `PERMISSIONED_CANNON` game types. Note that this means this upgrade will not require changing the `respectedGameType` in the `OptimismPortal` as `CANNON` games will continue to be used to finalize outputs, albeit with a different VM.
+As such, there will be a brief moment where there are two sets of `CANNON` games that using singlethreaded and multithreaded VMs.
+
 - Description: This occurs when either the call to the DisputeGameFactory could not be made due to grossly unfavorable base fees on L1, an invalidly approved safe nonce, or a successful execution to a misconfigured dispute game implementation.
 - **Risk Assessment:** Low severity, low likelihood.
   - Low Likelihood: The low likelihood is a result of tenderly simulation testing of safe transactions, code review of the upgrade playbook, and manual review of the dispute game implementations (which are deployed on mainnet and specified in the governance proposal so they may be reviewed).
@@ -138,6 +155,7 @@ Furthermore, we [sanitize](https://github.com/ethereum-optimism/optimism/blob/ea
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [ ] Third-party audit the offchain and onchain VM implementation and specification (Assignee: @inphi)
+- [ ] Add a healthcheck for the vm-runner (Assignee: @pauldowman)
 
 ## Audit requirements
 
