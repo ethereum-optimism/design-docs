@@ -31,6 +31,10 @@ is likely too low level. -->
 <!-- What is the resource usage of the proposed solution?
 Does it consume a large amount of computational resources or time? -->
 
+## Single Point of Failure and Multi Client Considerations
+
+<!-- Details on how this change will impact multiple clients. Do we need to plan for changes to both op-geth and op-reth? -->
+
 # Alternatives Considered
 
 <!-- List out a short summary of each possible solution that was considered.
