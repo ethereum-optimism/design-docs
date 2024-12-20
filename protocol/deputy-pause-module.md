@@ -43,7 +43,7 @@ securely and made accessible to a limited set of security personel.
 We propose having the `DeputyPauseModule` use a single account instead of a mapping of accounts
 that are able to act as the deputy. A single account is easier to keep track of and having multiple
 accounts does not decrease the risk involved with this module, it simply spreads it across more
-private keys. Having multiple keys be able to act as the deputy here might have some slighty
+private keys. Having multiple keys be able to act as the deputy here might have some slight
 benefits but this begins to scope creep beyond the original intention of replacing the pre-signed
 pause functionality.
 
