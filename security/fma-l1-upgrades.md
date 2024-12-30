@@ -24,10 +24,9 @@ _Italics are used to indicate things that need to be replaced._
 | ------------------ | ---------- |
 | Author             | Maurelian  |
 | Created at         | 2024-03-26 |
-| Initial Reviewers  | @blmalone      |
+| Initial Reviewers  | @blmalone  |
 | Need Approval From | [TBD]      |
 | Status             | Draft      |
-
 
 ## Introduction
 
@@ -38,17 +37,12 @@ Below are references for this project:
 - [L1 Upgrades Design Doc](../protocol/l1-upgrades.md)
 - [OPCM spec](https://github.com/ethereum-optimism/specs/blob/opcm/upgrades/specs/experimental/op-contracts-manager.md)
 
-### FM1: Contract Initializers
+### FM1: Failing to reset initialized state
 
 #### **Description:**
 
-During the first step of the upgrade, the contracts will not yet have a shared
-storage location for the `initialized` value. Therefore each contract will require custom storage
-manipulation to properly reset the `initialized` value, without modifying values which may be
-packed into the same slot.
-
-Moreover, contracts could be re-initialized if the initialization state is not properly managed
-during the two-step upgrade process.
+A common and dangerous failure mode of upgradeable contracts is for the `initialize()` function to be called multiple times,
+which can occur if the `initialized` state is not properly managed.
 
 #### **Risk Assessment:**
 
@@ -56,14 +50,11 @@ High impact, Medium likelihood
 
 #### **Mitigations:**
 
-1. In the first step to reset the initializer with varied layouts, a custom, one-time use, contract can be
-   created which hardcodes the exact modifications required for each contract with a unique
-   contracts specific function, such as `resetL1CrossDomainMessenger()`.
-2. Upgrading to use OpenZeppelin's unstructured storage for initialization state reduces the risk
-   of incorrectly reinitializing at the end of the upgrade, as it ensures that the `initializer`
-   modifier can operate on the same slot across contracts.
-3. After calling `OPCM.upgrade()` the `superchain-ops` script can use `vm.load()` and attempt to call `L1CrossDomainMessenger.upgrade()` (for example) to verify the initialized status.
-4. Tenderly simulation should look for unexpected storage changes.
+The spec has been updated to ensure that upgrades do not touch the `initialized` state, and instead rely on
+new state which ensure that the new `upgrade()` function can only be called once.
+
+The upgraded state of the contracts being upgraded should be externally accessible, so that it can be verified
+on-chain by the OPCM, and the upgrade can be reverted if the state is not as expected.
 
 #### **Detection:**
 
@@ -74,6 +65,11 @@ has been deemed too noisy and not useful.
 
 An emergency upgrade would be required.
 
+#### Action items:
+
+- [ ] Expose the upgraded state of the contracts being upgraded.
+- [ ] Add a check to the OPCM to verify the upgraded state of the contracts being upgraded.
+
 ### FM2: Storage Layout Corruption in an OP Chain Contract
 
 #### **Description:**
@@ -82,8 +78,6 @@ During an upgrade, incorrect storage layout modifications could lead to
 corruption of contract state. This could happen if the upgrade process doesn't
 properly account for existing storage slots or if there are conflicts in the
 storage layout between versions.
-
-We disregard issues with the initializer as they are covered in FM1.
 
 #### **Risk Assessment:**
 
@@ -114,6 +108,13 @@ Regardless, strong emphasis should be placed on mitigation here.
 #### **Recovery Path(s)**:
 
 Emergency upgrade to fix the affected storage slots.
+
+#### Action items:
+
+- [ ] Any changes to storage layout lock files must be carefully reviewed.
+- [ ] Implement a fork-based testing strategy, to run the existing foundry test
+      suite against the system after it is upgraded, which should catch any
+      storage layout corruption.
 
 ### FM3: Storage Layout Corruption in the Upgrade Controller Safe
 
@@ -150,6 +151,11 @@ detect. Strong emphasis should be placed on mitigation.
 It may be impossible to recover from this, depending on which storage changes have been made.
 
 Perhaps now is the time to consider adding the Recover Module.
+
+#### Action items:
+
+- [ ] Implement static analysis based checks to ensure that no `SSTORE` operations occur
+      within `OPCM.upgrade()`.
 
 ### FM4: Failure to follow upgrade path
 
@@ -194,7 +200,10 @@ However, such monitoring would likely be difficult to maintain, would only focus
 
 The recovery path is highly dependent on the nature of the failure resulting from an invalid upgrade path, which is very difficult to predict.
 
+#### Action items:
 
+- [ ] Define the correct upgrade path in the `superchain-registry`.
+- [ ] Enforce the correct upgrade path in `op-deployer` which is the official interface for upgrading OP Chains.
 
 ### FM5: Gas Limit Exceeded
 
@@ -219,6 +228,10 @@ This will be detected when an upgrade fails due to OOG. That's fine.
 
 The upgrade will need to be gas optimized or rearchitected to break it up. We can cross that bridge when we get to it.
 
+#### Action items:
+
+- [ ] Create gas benchmarks for upgrading all OP Chains.
+
 ### FM6: Supply Chain Attack Against op-deployer or Contract Artifacts
 
 #### **Description:**
@@ -228,19 +241,21 @@ leading to deployment of malicious contracts.
 
 #### **Risk Assessment:**
 
-TODO
+High impact, Low likelihood
 
 #### **Mitigations:**
 
-TODO
+1. `op-deployer` should include the ability to verify that the deployed contracts can be
+   compiled from the local source code.
+2. `op-deployer` should include etherscan verification of the deployed contracts.
 
 #### **Detection:**
 
-TODO
+Contract verification on should catch any malicious contracts being deployed.
 
 #### **Recovery Path(s):**
 
-TODO
+This would require an emergency upgrade to replace the malicious contracts.
 
 ### Generic items we need to take into account:
 
@@ -252,10 +267,8 @@ See [./fma-generic-hardfork.md](./fma-generic-hardfork.md).
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
-- [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
-- [ ] _Action item 2 (Assignee: tag assignee)_
-- [ ] _Action item 3 (Assignee: tag assignee)_
+- Action items are listed in the relevant failure mode sections above.
 
 ## Audit Requirements
 
-The OPCM will not require an audit, however it will necessitate changes to L1 contracts which will.
+The OPCM will not require an audit, however it necessitates changes to L1 contracts which will.
