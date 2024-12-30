@@ -194,77 +194,7 @@ However, such monitoring would likely be difficult to maintain, would only focus
 
 The recovery path is highly dependent on the nature of the failure resulting from an invalid upgrade path, which is very difficult to predict.
 
-### FM5: Patches result in a complex upgrade path
 
-#### **Description:**
-
-Note: this item is somewhat meta as it describes a complexity arising from a generic failure mode, but
-it felt like it was worth documenting here.
-
-Consider the following sequence of events involving two chains (`OPChainA` and `OPChainB`):
-
-- Both chains are deployed at `v2.0.0`
-- `OPChainA` upgrades to `v2.1.0`
-- `OPChainB` (for whatever reason) is not ready to upgrade and remains on `v2.0.0`
-- A bug is identified which exists in both versions (`v2.0.0` and `v2.1.0`).
-- The bug is patched by deploying two new `OPContractsManager`s:
-  - `OPCM-v2.0.0->v2.0.1` which patches `v2.0.0` to `v2.0.1`
-  - `OPCM-v2.1.0->v2.1.1` which patches `v2.1.0` to `v2.1.1`
-- Both chains undergo the patch upgrade:
-  - `OPChainA` is now on `v2.1.1`
-  - `OPChainB` is now on `v2.0.1`
-- `OPChainB` eventually becomes ready to upgrade to `v2.1.1`
-- Finally, both chains wish to upgrade to `v2.2.0`
-
-Systems could be upgraded incorrectly if the proper upgrade path order is not followed (e.g., skipping from v2.0.0 to v2.2.0 without going through v2.1.0).
-
-```mermaid
-graph LR
-  D[v2.2.0]
-  subgraph OPChainA
-    A1[v2.0.0] -->|"OPCM-v2.1.0"| B1[v2.1.0] -->|"OPCM-PATCH-v2.1.1"| C1[v2.1.1]
-  end
-
-  subgraph OPChainB
-    A2[v2.0.0] -->|"OPCM-PATCH-v2.0.1"| B2[v2.0.1] -->|"OPCM-v2.1.1"| C2[v2.1.1]
-  end
-  C1 -->|"OPCM-v2.2.0"| D
-  C2 -->|"OPCM-v2.2.0"| D
-```
-
-Relative to the happy path from v2.0.0 to v2.2.0, which requires two OPCMs:
-
-1. `OPCM-v2.1.0`
-2. `OPCM-v2.2.0`
-
-This scenario would require two additional PATCH OPCMs, and an additional OCPM for upgrading from the earlier patched version to the newer patched version (ie. `v2.0.1` to `v2.1.1`), for a total of 5 OPCMs:
-
-1. `OPCM-v2.1.0`
-2. `OPCM-PATCH-v2.0.1`
-3. `OPCM-v2.1.1`
-4. `OPCM-PATCH-v2.1.1`
-5. `OPCM-v2.2.0`
-
-This is not necessarily dangerous, but is likely to complicate operations in various ways.
-
-#### **Risk Assessment:**
-
-Low impact, Medium likelihood
-
-#### **Mitigations:**
-
-This is not directly mitigable aside from ongoing efforts to avoid releasing buggy code.
-
-It also underscores the need for a machine readable format which can serve to describe multiple valid
-paths between two versions. That can be done during development however.
-
-#### **Detection:**
-
-This is detected whenever and however it is detected.
-
-#### **Recovery Path(s):**
-
-N/A.
 
 ### FM5: Gas Limit Exceeded
 
