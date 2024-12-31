@@ -14,8 +14,7 @@ This document covers the changes introduced by the addition of the [Shared Lockb
 - **Contracts**:
     - Introduction of the `SharedLockbox`.
     - Updates to the `OptimismPortal` to lock and unlock ETH from the `Sharedlockbox`.
-    - Updates to the `SuperchainConfig` to manage the dependency set.
-    - Updates to the `SystemConfig` to be managed by `SuperchainConfig`.
+    - Updates to the `SuperchainConfig` to manage the dependency, thereby removing this functionality from `SystemConfig`.
     - Introduction of `LiquidityMigrator`, an intermediate contract for moving ETH liquidity into the `SharedLockbox`.
 - **Scripts**:
     - Management of `OptimismPortal` upgrades that include the ETH liquidity migration process.
@@ -38,24 +37,24 @@ Below are references for this project:
 - **Detection:** Monitor `ETHUnlocked` events to verify consistency with authorized portal addresses. Set up alerts for suspected unauthorized activity from non-approved addresses.
 - **Recovery Path(s):** Pause the system through `SuperchainConfig` to halt the `SharedLockbox` upon detection of unauthorized access. Liquidity can be restored by depositing ETH directly in the `SharedLockbox`.
 
-### Unauthorized access to the `addChain` function and `authorizedPortals` mapping
+### Unauthorized access to the `addDependency` function and `authorizedPortals` mapping
 
-- **Description:** The `addChain` function is intended to be callable only by the Upgrader. If bypassed, a malicious actor could register arbitrary addresses as `SystemConfig` and in the `authorizedPortals` mapping, putting the ETH liquidity at risk.
+- **Description:** The `addDependency` function is intended to be callable only by the `dependencyManager`. If bypassed, a malicious actor could register arbitrary addresses in the `dependencySet` within `SuperchainConfig`, and the `authorizedPortals` mapping, putting the ETH liquidity at risk.
 - **Risk Assessment:** High
     - Potential Impact: High. Malicious addresses in `authorizedPortals` could trigger a `finalizeWithdrawalTransaction` function to drain all the ETH liquidity.
-    - Likelihood: Low. The Upgrader is the only entity permitted to update these mappings, but implementation flaws or misconfigurations could occur.
-- **Mitigation:** Verify that access to the `addChain` and `authorizePortal` functions are restricted exclusively to the designated Upgrader.
-- **Detection:** Monitor the `ConfigUpdate` to ensure the correct `upgrader` is set, as this event happens in the `initialize` function of `SuperchainConfig`. Additionally, monitor  `ChainAdded` events to verify that only expected addresses are registered and executed by the Upgrader.
+    - Likelihood: Low. The `dependencyManager` is the only entity permitted to update these mappings, but implementation flaws or misconfigurations could occur.
+- **Mitigation:** Verify that access to the `addDependency` and `authorizePortal` functions are restricted exclusively to the designated `dependencyManager`.
+- **Detection:** Monitor the `ConfigUpdate` to ensure the correct `dependencyManager` address is set, as this event happens in the `initialize` function of `SuperchainConfig`. Additionally, monitor  `DependencyAdded` events to verify that only expected addresses are registered and executed by the `dependencyManager`.
 - **Recovery Path(s):** Pause the system through `SuperchainConfig` to halt the `SharedLockbox` upon detecting unexpected addresses. As removal functions are unavailable, an upgrade directly over the `SuperchainConfig` and `SharedLockbox` to clear storage slots will be required.
 
-### Mismanagement of `addChain` function
+### Mismanagement of `addDependency` function
 
-- **Description:** The Upgrader could accidentally or maliciously add incorrect addresses to the dependency set.
+- **Description:** The `dependencyManager` could accidentally or maliciously add incorrect addresses to the dependency set.
 - **Risk Assessment:** High
     - Potential Impact: High. Similarly to unauthorized access, incorrect addresses could disrupt functionality or put funds at risk.
     - Likelihood: Low. Current security standards are enough to safeguard the process, so is expected to follow best practices.
-- **Mitigation:** Up to the best practices of those in charge of the Upgrader role.
-- **Detection:** Monitor `ChainAdded` events for unauthorized or erroneous additions.
+- **Mitigation:** Up to the best practices of those in charge of the `dependencyManager` role.
+- **Detection:** Monitor `DependencyAdded` events for unauthorized or erroneous additions.
 - **Recovery Path(s):** Pause the system through `SuperchainConfig` to halt the `SharedLockbox` upon detecting unexpected addresses. As removal functions are unavailable, an upgrade directly over the `SuperchainConfig` and `SharedLockbox` to clear storage slots will be required.
 
 ### Re-Entrancy Attacks on `finalizeWithdrawalTransaction` and `unlockETH` functions
@@ -68,15 +67,17 @@ Below are references for this project:
 - **Detection:** Implement scripts that monitor `unlockETH` and `finalizeWithdrawalTransaction` functions. A function called multiple times over any of both in the same transaction that breaks balance invariants should raise an alert.
 - **Recovery Path(s):** Pause the system through SuperchainConfig to halt the `SharedLockbox`.
 
-### `addChain` fails due to exceeding the `maxResourceLimit` in `OptimismPortal`
+### Adding a chain from another cluster in `addDependency`
 
-- **Description**: The `addChain` function in `SuperchainConfig` calls the `addDependency` function in each `SystemConfig` contract stored in the `systemConfigs` mapping, including the one being added. This process takes place during the upgrade batching transaction along with other migration-related calls. If the total gas required exceeds the limit set by any of the `OptimismPortal` via `maxResourceLimit` in `SystemConfig`, the transaction will fail.
-- **Risk Assessment:** Low
-    - Potential Impact: Low. Failure would prevent adding new chains to the op-governed interop set, halting the planned migration process.
-    - Likelihood: Low. Currently, `maxResourceLimit` is set to 20M in each `SystemConfig`. Each `addDependency` call triggers a `setConfig` call, with a hardcoded gas value of 200k to be bought. As the number of chains increases, the limit would theoretically be reached when adding the 101st chain, since the new chain will need to add the 100 chains —that are already part of the cluster— in its dependency set.
-- **Mitigations:** Stay aware of the `maxResourceLimit` and consider increasing it when feasible. During the migration process, it is recommended to send transactions privately to ensure they are prioritized and ordered before any other `depositTransaction` within a given L1 block. Consider allowing the addition of several `chainId` values in one call by modifying the current `addDependency` function or by creating a new function.
-- **Detection:** Keep track of the anticipated gas requirements. Conduct simulations in local or test environments that mimic mainnet conditions.
-- **Recovery Path(s):** Since this is a well-known issue, it is expected to be revisited in the future. As stated in mitigations, consider allowing the addition of several `chainId` values in one call by modifying the current `addDependency` function or by creating a new function to solve the issue and future ones.
+- **Description:** Adding a chain that belongs to another cluster can cause liquidity issues in the `SharedLockbox`, as ETH will remain in the old `SharedLockbox`. This could lead to withdrawal failures in the new one.
+- **Risk Assessment:** High.
+    - Potential Impact: High. The `SharedLockbox` may have less ETH liquidity than expected. ETH withdrawals are at risk to fail for any `OptimismPortal` in the cluster because a portion of the expected ETH was not migrated and remains in the old `SharedLockbox`.
+    - Likelihood: Low. Current security standards are enough to safeguard the process, so is expected to follow best practices.
+- **Mitigation:** Up to the best practices of those in charge of the `dependencyManager` role. This involves verifying if the chain belongs to another cluster, with two scenarios to consider:
+    - **Independent cluster**: The chain is part of its own cluster without extra dependencies. In this case, it must be ensured that its `SharedLockbox` migrates the entire ETH liquidity to the new cluster. Note: Liquidity migration between `SharedLockbox`s is not yet possible in the current code.
+    - **Shared cluster**: The chain is part of a cluster with other dependencies. In this case, the chain cannot be migrated individually; the entire cluster must migrate as a unit. This is because there is no on-chain mechanism to distinguish ETH liquidity for individual chains (although this could be done off-chain, it introduces additional security risks).
+- **Detection:** Monitor `DependencyAdded` events for unauthorized or erroneous additions.  Implement security measures to ensure that chains added do not belong to a previously shared cluster.
+- **Recovery Path(s):** Pause the system through `SuperchainConfig` to halt the `SharedLockbox` upon detecting unexpected addresses. As removal functions are unavailable, an upgrade directly over the `SuperchainConfig` and `SharedLockbox` to clear storage slots will be required.
 
 ### Equivocation in batch execution
 
@@ -84,22 +85,22 @@ Below are references for this project:
 - **Risk Assessment:** Medium.
     - Potential Impact: Low to Medium. Several complications may arise depending on the case (see table at the end).
     - Likelihood: Low. Current security standards and adherence to best practices are expected to minimize the likelihood of incorrect execution.
-- **Mitigations:** The process relies on the best practices followed by those responsible for the `upgrader` role to ensure it is always proposed and executed correctly.
+- **Mitigations:** The process relies on the best practices followed by those responsible for the `dependencyManager` role to ensure it is always proposed and executed correctly.
 - **Detection:** After the upgrade, verify that the `OptimismPortal` does not hold any balance. Also, the `SharedLockbox` must have included the `OptimismPortal` in its allow list. Implement scripts at every step of the process to track all related events and verify their completion.
 - **Recovery Path(s):** The recovery approach depends on the specific scenario. The table below outlines possible outcomes and recovery strategies when a batch transaction maintains the expected order but omits certain calls:
     
     
-    | Case N | Step 1: Allow new chain through `addChain`  | Step 2: Call `upgradeAndCall` from `ProxyAdmin` to upgrade `OptimismPortal` to `LiquidityMigrator` to execute the migration of ETH. | Step 3: Call `upgrade` to update `OptimismPortal` to its final implementation. | Expected result | Recovery path |
+    | Case N | Step 1: Allow new chain through `addDependency`  | Step 2: Call `upgradeAndCall` from `ProxyAdmin` to upgrade `OptimismPortal` to `LiquidityMigrator` to execute the migration of ETH. | Step 3: Call `upgrade` to update `OptimismPortal` to its final implementation. | Expected result | Recovery path |
     | --- | --- | --- | --- | --- | --- |
     | Case 1 | yes | yes | yes | Migration completed | - |
     | Case 2 | yes | no | no | ETH deposits will continue to be made into the `OptimismPortal`, but withdrawals may fail if the contract lacks sufficient funds. This issue can also arise in other `OptimismPortal`contracts within the op-interop set, as ETH flow between chains can cause imbalances, leaving some portals underfunded. | Execute a batch tx with the steps 2 and 3. |
-    | Case 3 | no | yes | no | The transaction will revert because the `OptimismPortal` was not allow-listed since `addChain` was not executed first. | Re-execute the complete batch process. No additional issues are expected. |
+    | Case 3 | no | yes | no | The transaction will revert because the `OptimismPortal` was not allow-listed since `addDependency` was not executed first. | Re-execute the complete batch process. No additional issues are expected. |
     | Case 4 | no | no | yes | Deposits and withdrawals will fail because `SharedLockbox`does not allow `OptimismPortal` to call `lockETH` and `unlockETH` since it was not authorized. Consequently, the existing ETH will remain stuck in `OptimismPortal`. | Re-execute the complete batch process. |
     | Case 5 | yes | yes | no | The `OptimismPortal` proxy implementation will remain incorrect (the latest applied implementation would be the `LiquidityMigrator`). As a result, none of the expected functions of the `OptimismPortal` will work. | Re-execute the step 3 only. |
     | Case 6 | yes |  no | yes | `OptimismPortal` will be able to lock and unlock ETH from the `SharedLockbox`, but it will still store its ETH in the `OptimismPortal`. ETH withdrawals are at risk to fail for any `OptimismPortal` in the cluster because a portion of the expected ETH was not migrated and remains in the latest added chain. | Execute a batch TX with the steps 2 and 3. |
-    | Case 7 | no | yes | yes | Same as Case 3: The transaction will revert because the `OptimismPortal` was not allow-listed since `addChain` was not executed first. | Re-execute the complete batch process. |
+    | Case 7 | no | yes | yes | Same as Case 3: The transaction will revert because the `OptimismPortal` was not allow-listed since `addDependency` was not executed first. | Re-execute the complete batch process. |
     
-    It’s worth noting that the process is designed to revert if the step 2 (`upgradeAndCall`) is executed before the step 1 (`addChain`). Consequently, only a few additional cases can be described when the order is also altered.
+    It’s worth noting that the process is designed to revert if the step 2 (`upgradeAndCall`) is executed before the step 1 (`addDependency`). Consequently, only a few additional cases can be described when the order is also altered.
     
     | Case N | Type | Expected result | Recovery Path |
     | --- | --- | --- | --- |
