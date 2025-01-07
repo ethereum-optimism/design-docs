@@ -136,6 +136,10 @@ Additionally the execution client must be updated, as it reads L1 cost values fr
 first deposit transaction in each block. The 4-byte method signature and calldata
 changes, and the parsing must be updated to support the new format.
 
+The implementation must support both versions `0` and `1` side-by-side. We suggest that
+enforcing version `1` (along with nonces) is implemented in the following hard fork.
+This requires the L1 contract upgrades to be complete.
+
 ## Resource Usage
 
 There are two places where resource usage increases:
