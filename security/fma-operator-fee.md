@@ -25,6 +25,8 @@ This document covers initial deployment of Operator Fee.
 
 The OperatorFee is a new transaction fee that allows new OP chain variants to account for their unique cost structure. For example, the existing fee structure isn't friendly to chains using alt-DA's, since the l1fee only accounts for Ethereum's blobGasFee instead of an alt-DA's fee.
 
+Also, For OP Stack variants that want to utilize ZK proofs, the cost of ZK proving a transaction is a significant resource that is not taken into consideration in the current fee structure.
+
 Below are references for this project:
 
 - [Design Doc](../protocol/operator-fee.md)
@@ -36,9 +38,10 @@ Below are references for this project:
 
 - **Description:** 
   If the operator fee scalars are incorrectly initialized or updated, there is a risk that the transcations fees will be too high. This could lead to a situation where the chain become unusable.
-- **Risk Assessment:** High impact, low likelihood.
+- **Risk Assessment:**
+  High impact, low likelihood.
   **Mitigations:**
-  Every operator fee scalars update should be carefully tested and reviewed before deployment.
+  Every update to the operator fee scalars should be carefully tested and reviewed before deployment.
 - **Detection:** 
   Monitoring gas cost estimation.
 - **Recovery Path(s)**:
