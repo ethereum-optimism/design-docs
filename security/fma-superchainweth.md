@@ -1,4 +1,4 @@
-# [DRAFT] FMA - SuperchainWETH
+# SuperchainWETH: Failure Modes and Recovery Path Analysis
 
 | Author | Joxes, Gotzen, Parti |
 | --- | --- |
