@@ -77,9 +77,9 @@ function _depositTransaction(
 }
 ```
 
-Note these L1 contract changes will be rolled out after the Isthmus hard fork and before
-the Jovian hard fork. The goal is to roll out support for these new event versions as
-part of Isthmus, so we can then upgrade the contracts gradually post fork.
+Note these L1 contract changes will be rolled out after the Jovian hard fork and before
+the Karst hard fork. The goal is to roll out support for these new event versions as
+part of Jovian, so we can then upgrade the contracts gradually post fork.
 
 ## L2 contract changes
 
@@ -92,13 +92,19 @@ these nonces. This has the following advantages:
    is what allows us to skip L1 blocks in the future.
 
 We introduce a new method to `L1Block` for setting the nonce values, called
-`setL1BlockValuesIsthmus`. This is called in the first transaction of every L2 block,
+`setL1BlockValuesJovian`. This is called in the first transaction of every L2 block,
 just like `setL1BlockValuesEcotone` is today. The calldata passed to this method has
 128-bits of additional data, 64-bits for the deposit nonce, and 64-bits for the config
 update nonce. We store these nonces in a single slot in contract storage.
 
+The nonce values passed to this method should correspond to the last deposit and config
+update event in the block. For example, if the previous `depositNonce` value was `45`,
+and  the new block contains `3` deposits, the `setL1BlockValuesJovian` should be called
+with a `depositNonce` value of `48`. Same applies to any config updates applied in the
+block.
+
 ```solidity
-function setL1BlockValuesIsthmus() external {
+function setL1BlockValuesJovian() external {
     address depositor = DEPOSITOR_ACCOUNT();
     assembly {
         // Revert if the caller is not the depositor account.
@@ -120,7 +126,7 @@ function setL1BlockValuesIsthmus() external {
 }
 ```
 
-These L2 contracts are upgraded as part of the Isthmus fork activation block.
+These L2 contracts are upgraded as part of the Jovian fork activation block.
 
 ## Consensus / Execution software changes
 
@@ -137,8 +143,13 @@ first deposit transaction in each block. The 4-byte method signature and calldat
 changes, and the parsing must be updated to support the new format.
 
 The implementation must support both versions `0` and `1` side-by-side. We suggest that
-enforcing version `1` (along with nonces) is implemented in the following hard fork.
+enforcing version `1` (along with nonces) is implemented in the following Karst hard fork.
 This requires the L1 contract upgrades to be complete.
+
+New chains that have these nonces enabled at genesis MUST start derivation from the L1
+block in which the `SystemConfig` contract was `initialize`d, so they don't miss any
+events in which the nonces are incremented. Otherwise the nonces stored on the L2 will
+not match those on the L1, and the contiguous nonce validation will fail.
 
 ## Resource Usage
 
@@ -157,30 +168,31 @@ L1 block references are contiguous.
 
 Both consensus and execution client changes are required, so we'll need to schedule
 changes to all relevant clients. Fortunately the required execution changes are very
-minimal.
+minimal (only the L1 cost function needs to be modified).
 
 # Alternatives Considered
 
 There are a number of alternatives considered in the specs
-[issue](https://github.com/ethereum-optimism/specs/issues/330) that inspired the
+[issue](https://github.com/ethereum-optimism/specs/issues/330) that inspired this
 implementation. In particular, it is suggested there that no L2 contract changes are
 required. However, without L2 changes, we have to find somewhere else to track the nonce
 values ingested by the L2 in order to enforce the values are contiguous. It made sense
 to piggy back on the existing L1 state tracking in the `L1Block` contract.
 
+We also considered not requiring the L2 derivation to start from the `SystemConfig`
+`initialize` call on L1, and instead hard-coding the nonce values in the L2 genesis
+file. This feels less robust than just starting from 0 and ensuring all L1 events are
+processed.
+
 # Risks & Uncertainties
 
-One somewhat confusing aspect of this design is the fact that chains that have Isthmus
-activated at genesis will have a `SystemConfig` nonce that starts at `3` (i.e. the
-first event emitted with have a nonce of `4`). This is because the initializer emits
-3 config updates. This initial value will also increase as more config updates are
-added to the initializer
+The L2 currently processes every L1 block. This means that every L1 block hash appears
+on the L1Block contract at some point in the L2 history. If we decouple L1 and L2 blocks,
+it's likely that some L1 blocks are skipped. This is especially true if a single L2 block
+can process multiple L1 blocks, or for L3s that have a longer block time than the L2 it
+rolls up to.
 
-Also note that setting a custom gas token results in a `TransactionDeposited` event,
-which will cause the `OptimismPortal` nonce to start at `1`. This will also change
-as more configuration settings adopt the new deposit mechanism.
-
-There is a footgun here in that if nonces in the `L1Block` contract state in the L2
-genesis don't match the values in L1 contracts, the consensus client may reject future
-deposits and config updates. Thus we must ensure the L2 genesis generation is correctly
-implemented.
+If there are any contracts that depend on every single L1 block hash being available at
+some point on the L2 (e.g. for proving L1 receipts), these would break if L1 blocks are
+skipped. However we don't know of anything using this particular feature today, so the
+risk seems minimal.
