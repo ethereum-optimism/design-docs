@@ -1,12 +1,15 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+**Table of Contents** *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [**SuperchainERC20 standard-only FMA (Failure Modes and Recovery Path Analysis)**](#superchainerc20-standard-only-fma-failure-modes-and-recovery-path-analysis)
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [Unauthorized Access to `__crosschainMint` & `__crosschainBurn` Functions](#unauthorized-access-to-__crosschainmint--__crosschainburn-functions)
-  - [Different Token Addresses Across Chains](#different-token-addresses-across-chains)
+  - [FM1: Unauthorized Access to `crosschainMint` & `crosschainBurn` Functions](#fm1-unauthorized-access-to-crosschainmint--crosschainburn-functions)
+  - [FM2: Different Token Addresses Across Chains](#fm2-different-token-addresses-across-chains)
+  - [FM3: Same Token Address but Different (or Malicious) Implementations](#fm3-same-token-address-but-different-or-malicious-implementations)
+  - [FM4: Incorrect Interface Reporting `supportsInterface`](#fm4-incorrect-interface-reporting-supportsinterface)
 - [Action Items](#action-items)
 - [Audit Requirements](#audit-requirements)
 - [Additional Notes](#additional-notes)
@@ -24,28 +27,28 @@
 
 ## Introduction
 
-This document is intended to be shared publicly for review and visibility purposes. It covers the introduction of the `SuperchainERC20` standard, including its implementation and interface, the latter extending from `ICrosschainERC20`.
+This document is intended to be shared publicly for review and visibility purposes. It covers the introduction of the `SuperchainERC20` standard, including its implementation and interface, the latter extending from `IERC7802`.
 
 Below are references for this project:
 
 - [Token standard specs](https://github.com/ethereum-optimism/specs/blob/main/specs/interop/token-bridging.md).
-- [Implementation](https://github.com/defi-wonderland/optimism/tree/sc-feat/crosschain-erc20).
+- [Implementation](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/SuperchainERC20.sol).
 
 It does not intend to cover related contracts such as `SuperchainTokenBridge` or those involving migrated liquidity.
 
 ## Failure Modes and Recovery Paths
 
-### Unauthorized Access to `crosschainMint` & `crosschainBurn` Functions
+### FM1: Unauthorized Access to `crosschainMint` & `crosschainBurn` Functions
 
-- **Description:** The `onlySuperchainTokenBridge` modifier only allows `crosschainMint` and `crosschainBurn` to be callable by the `SuperchainTokenBridge`. If the bridge address is badly defined or the modifier bypassed, an entity could mint and burn tokens.
+- **Description:** The `crosschainMint` and `crosschainBurn` functions can only be called by the `SuperchainTokenBridge`,  enforced by the check `msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE`. If the bridge address is badly defined or the modifier bypassed, an entity could mint and burn tokens. 
 - **Risk Assessment**: Medium.
     - Potential impact: High. All tokens based on this implementation could be potentially at risk.
-    - Likelihood: Very Low. `Predeploys.SUPERCHAIN_TOKEN_BRIDGE` are defined via protocol upgrades. The modifiers are sufficiently simple and battle-tested to give confidence in the implementation.
+    - Likelihood: Very Low. `Predeploys.SUPERCHAIN_TOKEN_BRIDGE` is defined via protocol upgrades. The conditional is sufficiently simple and battle-tested to give confidence in the implementation.
 - **Mitigation**: Ensure the `SuperchainTokenBridge` is correctly set during deployment and isn’t subject to unexpected changes.
 - **Detection**: Existing off-chain scripts for token monitoring should be enough to detect any unauthorized mint or burn actions triggered by this method.
-- **Recovery Path(s)**: Equivocation on `SuperchainTokenBridge` would require a protocol upgrade or hard fork. Very unlikely to need it.
+- **Recovery Path(s)**: Equivocation on `SuperchainTokenBridge` address would require a protocol upgrade or hard fork. Very unlikely to need it.
 
-### Different Token Addresses Across Chains
+### FM2: Different Token Addresses Across Chains
 
 - Description: For the `SuperchainTokenBridge` to validate mints and burns correctly, the `SuperchainERC20` must be deployed at the same address across all interoperable chains. If different addresses are used, the bridge will be unable to successfully finalize the cross-chain transfer.
 - Risk Assessment: Medium
@@ -55,14 +58,35 @@ It does not intend to cover related contracts such as `SuperchainTokenBridge` or
 - **Detection**: Verify contract addresses upon deployment.
 - **Recovery Path(s)**: Redeploy token contracts correctly.
 
+### FM3: Same Token Address but Different (or Malicious) Implementations
+
+- **Description**: The bridging logic assumes if an address is the same on multiple chains, it references the expected ERC20 code (in most of the cases is expected to be the same). However, an attacker could deploy different or malicious code at that address on a given chain. The bridging contract, trusting the same address, might erroneously allow cross-chain burns and mints.
+- **Risk Assessment**: Medium
+    - Potential impact: High. If the bridging mechanism recognizes the same address on multiple chains, it assumes they represent the same ERC20 token. A malicious mismatch could allow an attacker to forge bridging events and gain unauthorized minted tokens.
+    - Likelihood: Low. This is possible if the deployer engages in poor practices or lacks opsec. When using custom factories, methods and flows must be carefully reviewed to ensure such cases are not allowed.
+- **Mitigation**: For developers, ensure to employ the appropiate deterministic deployment tools, such as the one at `create2Deployer`. In the case of permissioned deployments, which are common for proxy contracts, ensure to maintain control over those deployments and ownership.
+- **Detection**: Verify deployments at the designated address to check the bytecode and ensure it matches its counterpart on other chains or the intended version.
+- **Recovery Path(s)**: Pause the token contract where possible. Upgrade if feasible, or redeploy if necessary.
+
+### FM4: Incorrect Interface Reporting `supportsInterface`
+
+- **Description**: The `SuperchainTokenBridge`  checks `supportsInterface(type(IERC7802).interfaceId)` to confirm if a `SuperchainERC20` implements `crosschainMint`/`crosschainBurn`. A token might claim support for `IERC7802` but either revert or do something malicious inside those functions. If those calls break or misbehave, bridging invariants will fail.
+- **Risk Assessment**: Medium
+    - Potential impact: High. The most severe case would involve a poorly implemented token causing misaccounting or losses, such as transferring (even maliciously) tokens to another account instead of actually bridging them. In less impactful cases, unexpected reverts could occur.
+    - Likelihood: Very Low. The standard follows ERC165, and the `SuperchainTokenBridge` relies on it. However, any modification could break this assumption of correctness.
+- **Mitigation**: For developers, strictly follow the standard, and any variants being built should carefully accomplish with it. Invariant tests should verify the correctness of this check.
+- **Detection**: Up to the actual token implementation. Reverts in `crosschainMint` or `crosschainBurn` would be a way of do it, and if erraticly emiting sucesfully `SendERC20` or `RelayERC20` events, may depends in the actual flow executed. 
+This depends on the actual token implementation. Reverts in `sendERC20` or `relayERC20` are one way to address it. However, if the token erratically emits `SendERC20` or `RelayERC20` events successfully, the outcome may depend on the specific flow executed.
+- **Recovery Path(s)**: Upgrade or redeploy token contracts correctly.
+
 ## Action Items
 
 Given the small scope, there is no need for relevant actions beyond resolving all comments, and continuing code implementation and testing.
 
 ## Audit Requirements
 
-No audit should be required, as it is simple and isn’t expected to have dependencies or impact on other core OP contracts.
+No audit should be required, as it is simple and isn’t expected to have dependencies or impact on other core OP contracts. In any case, an audit over the whole system is expected, including the `SuperchainERC20` contract.
 
 ## Additional Notes
 
-The proposed implementation of the standard doesn’t prevent a token issuer from using other token standards, such as xERC20, with the `SuperchainTokenBridge` to mint and burn tokens across an [interoperable set of chains](https://specs.optimism.io/interop/overview.html).
+The proposed implementation of the standard doesn’t prevent a token issuer from using other token standards, such as xERC20, with the `SuperchainTokenBridge` to mint and burn tokens across an [interoperable set of chains](https://specs.optimism.io/interop/overview.html). More about this is explained in [xERC20-ERC7802 compatilibility](https://defi-wonderland.notion.site/xERC20-ERC7802-compatibility-14c9a4c092c780ca94a8cb81e980d813).
