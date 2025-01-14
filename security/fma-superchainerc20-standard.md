@@ -34,7 +34,7 @@ Below are references for this project:
 - [Token standard specs](https://github.com/ethereum-optimism/specs/blob/main/specs/interop/token-bridging.md).
 - [Implementation](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/SuperchainERC20.sol).
 
-It does not intend to cover related contracts such as `SuperchainTokenBridge` or those involving migrated liquidity.
+This document is specially of importance for projects token deployers building on Superchain, as they are the main beneficiaries of this standard. It does not intend to cover related contracts such as `SuperchainTokenBridge` or those involving migrated liquidity.
 
 ## Failure Modes and Recovery Paths
 
@@ -60,11 +60,13 @@ It does not intend to cover related contracts such as `SuperchainTokenBridge` or
 
 ### FM3: Same Token Address but Different (or Malicious) Implementations
 
-- **Description**: The bridging logic assumes if an address is the same on multiple chains, it references the expected ERC20 code (in most of the cases is expected to be the same). However, an attacker could deploy different or malicious code at that address on a given chain. The bridging contract, trusting the same address, might erroneously allow cross-chain burns and mints.
+- **Description**: The bridging logic is designed to assume that ERC20 addresses are the same across multiple chains and refer to the expected ERC20 code (which, in most cases, is expected to be identical). However, an entity could deploy different or malicious code at the same address on a given chain. If the same address property is maintained but the actual implementation differs, the bridging contract, trusting the address, might inadvertently allow cross-chain burns and mints to proceed, resulting in erratic or malicious outcomes.
 - **Risk Assessment**: Medium
-    - Potential impact: High. If the bridging mechanism recognizes the same address on multiple chains, it assumes they represent the same ERC20 token. A malicious mismatch could allow an attacker to forge bridging events and gain unauthorized minted tokens.
-    - Likelihood: Low. This is possible if the deployer engages in poor practices or lacks opsec. When using custom factories, methods and flows must be carefully reviewed to ensure such cases are not allowed.
-- **Mitigation**: For developers, ensure to employ the appropiate deterministic deployment tools, such as the one at `create2Deployer`. In the case of permissioned deployments, which are common for proxy contracts, ensure to maintain control over those deployments and ownership.
+    - Potential impact: High. As the bridging mechanism assumes the same address on multiple chains, it assumes they represent the same ERC20 token. A malicious mismatch could allow an attacker to forge bridging events and gain unauthorized minted tokens.
+    - Likelihood: Low. This is possible if the deployer engages in poor practices or lacks opsec. Two examples of this are:
+        - The use of custom factories that utilize CREATE and share the same address, where tokens are deployed using the same bytecode and nonce.
+        - Proxy contracts where the admin is compromised.
+- **Mitigation**: For developers, ensure the use of appropriate deterministic deployment tools, such as `create2Deployer`. In the case of proxy contracts, ensure proper control over their deployments and ownership.
 - **Detection**: Verify deployments at the designated address to check the bytecode and ensure it matches its counterpart on other chains or the intended version.
 - **Recovery Path(s)**: Pause the token contract where possible. Upgrade if feasible, or redeploy if necessary.
 
