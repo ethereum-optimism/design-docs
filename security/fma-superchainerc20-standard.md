@@ -9,7 +9,6 @@
   - [FM1: Unauthorized Access to `crosschainMint` & `crosschainBurn` Functions](#fm1-unauthorized-access-to-crosschainmint--crosschainburn-functions)
   - [FM2: Different Token Addresses Across Chains](#fm2-different-token-addresses-across-chains)
   - [FM3: Same Token Address but Different (or Malicious) Implementations](#fm3-same-token-address-but-different-or-malicious-implementations)
-  - [FM4: Incorrect Interface Reporting `supportsInterface`](#fm4-incorrect-interface-reporting-supportsinterface)
 - [Action Items](#action-items)
 - [Audit Requirements](#audit-requirements)
 - [Additional Notes](#additional-notes)
