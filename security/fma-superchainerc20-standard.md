@@ -70,17 +70,6 @@ This document is specially of importance for projects token deployers building o
 - **Detection**: Verify deployments at the designated address to check the bytecode and ensure it matches its counterpart on other chains or the intended version.
 - **Recovery Path(s)**: Pause the token contract where possible. Upgrade if feasible, or redeploy if necessary.
 
-### FM4: Incorrect Interface Reporting `supportsInterface`
-
-- **Description**: The `SuperchainTokenBridge`  checks `supportsInterface(type(IERC7802).interfaceId)` to confirm if a `SuperchainERC20` implements `crosschainMint`/`crosschainBurn`. A token might claim support for `IERC7802` but either revert or do something malicious inside those functions. If those calls break or misbehave, bridging invariants will fail.
-- **Risk Assessment**: Medium
-    - Potential impact: High. The most severe case would involve a poorly implemented token causing misaccounting or losses, such as transferring (even maliciously) tokens to another account instead of actually bridging them. In less impactful cases, unexpected reverts could occur.
-    - Likelihood: Very Low. The standard follows ERC165, and the `SuperchainTokenBridge` relies on it. However, any modification could break this assumption of correctness.
-- **Mitigation**: For developers, strictly follow the standard, and any variants being built should carefully accomplish with it. Invariant tests should verify the correctness of this check.
-- **Detection**: Up to the actual token implementation. Reverts in `crosschainMint` or `crosschainBurn` would be a way of do it, and if erraticly emiting sucesfully `SendERC20` or `RelayERC20` events, may depends in the actual flow executed. 
-This depends on the actual token implementation. Reverts in `sendERC20` or `relayERC20` are one way to address it. However, if the token erratically emits `SendERC20` or `RelayERC20` events successfully, the outcome may depend on the specific flow executed.
-- **Recovery Path(s)**: Upgrade or redeploy token contracts correctly.
-
 ## Action Items
 
 Given the small scope, there is no need for relevant actions beyond resolving all comments, and continuing code implementation and testing.
