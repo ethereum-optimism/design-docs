@@ -20,8 +20,8 @@
 | Author | Ng, Joxes |
 | --- | --- |
 | Created at | 2024-10-02 |
-| Needs Approval From | Mark Tyneway, Matt Solomon, and 0age |
-| Other Reviewers | - |
+| Needs Approval From | Mark Tyneway, Matt Solomon |
+| Other Reviewers | Michael Amadi |
 | Status | Review |
 
 ## Introduction
