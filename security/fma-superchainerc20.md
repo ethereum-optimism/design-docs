@@ -45,7 +45,7 @@ Similar to ERC20, implementations SuperchainERC20 should be considered untrusted
 - **Risk Assessment**: Medium.
     - Potential impact: High. All tokens based on this implementation could be potentially at risk.
     - Likelihood: Very Low. `Predeploys.SUPERCHAIN_TOKEN_BRIDGE` is defined via protocol upgrades. The conditional is sufficiently simple and battle-tested to give confidence in the implementation.
-- **Mitigation**: Ensure the `SuperchainTokenBridge` is correctly set during deployment and isn’t subject to unexpected changes.
+- **Mitigation**: There are tests for this authorization check, and tests that the `SuperchainTokenBridge` predeploy is correctly set during the interop fork upgrade, and isn’t subject to unexpected changes. Additionally, users should check that the `SuperchainTokenBridge` predeploy is correctly deployed and configured before trusting it to mint and burn their token.
 - **Detection**: Existing off-chain scripts for token monitoring should be enough to detect any unauthorized mint or burn actions triggered by this method.
 - **Recovery Path(s)**: Equivocation on `SuperchainTokenBridge` address would require a protocol upgrade or hard fork. Very unlikely to need it.
 
