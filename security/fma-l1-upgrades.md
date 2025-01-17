@@ -20,13 +20,13 @@
 
 _Italics are used to indicate things that need to be replaced._
 
-|                    |            |
-| ------------------ | ---------- |
-| Author             | Maurelian  |
-| Created at         | 2024-03-26 |
-| Initial Reviewers  | @blmalone  |
-| Need Approval From | [TBD]      |
-| Status             | In Review  |
+|                    |                      |
+| ------------------ | -------------------- |
+| Author             | Maurelian            |
+| Created at         | 2024-03-26           |
+| Initial Reviewers  | @blmalone            |
+| Need Approval From | @blmalone            |
+| Status             | Implementing Actions |
 
 ## Introduction
 
@@ -67,8 +67,8 @@ An emergency upgrade would be required.
 
 #### Action items:
 
-- [ ] Expose the upgraded state of the contracts being upgraded.
-- [ ] Add a check to the OPCM to verify the upgraded state of the contracts being upgraded.
+- [x] Expose the upgraded state of the contracts being upgraded. ([Closed as wontfix in this upgrade](https://github.com/ethereum-optimism/optimism/issues/13071#issuecomment-2593061777))
+- [x] Add a check to the OPCM to verify the upgraded state of the contracts being upgraded. ([Issue](https://github.com/ethereum-optimism/optimism/issues/13836))
 
 ### FM2: Storage Layout Corruption in an OP Chain Contract
 
@@ -111,10 +111,10 @@ Emergency upgrade to fix the affected storage slots.
 
 #### Action items:
 
-- [ ] Any changes to storage layout lock files must be carefully reviewed.
-- [ ] Implement a fork-based testing strategy, to run the existing foundry test
+- [x] Any changes to storage layout lock files must be carefully reviewed. (We do this already)
+- [x] Implement a fork-based testing strategy, to run the existing foundry test
       suite against the system after it is upgraded, which should catch any
-      storage layout corruption.
+      storage layout corruption. ([Issue](https://github.com/ethereum-optimism/optimism/issues/13079))
 
 ### FM3: Storage Layout Corruption in the Upgrade Controller Safe
 
@@ -155,7 +155,7 @@ Perhaps now is the time to consider adding the Recover Module.
 #### Action items:
 
 - [ ] Implement static analysis based checks to ensure that no `SSTORE` operations occur
-      within `OPCM.upgrade()`.
+      within `OPCM.upgrade()`. ([Issue](https://github.com/ethereum-optimism/optimism/issues/13839))
 
 ### FM4: Failure to follow upgrade path
 
@@ -202,8 +202,8 @@ The recovery path is highly dependent on the nature of the failure resulting fro
 
 #### Action items:
 
-- [ ] Define the correct upgrade path in the `superchain-registry`.
-- [ ] Enforce the correct upgrade path in `op-deployer` which is the official interface for upgrading OP Chains.
+- [ ] Define the correct upgrade path in the `superchain-registry`. ([Issue](https://github.com/ethereum-optimism/optimism/issues/13082))
+- [ ] Enforce the correct upgrade path in `op-deployer` which is the official interface for upgrading OP Chains. ([Issue](https://github.com/ethereum-optimism/optimism/issues/13268))
 
 ### FM5: Gas Limit Exceeded
 
@@ -230,7 +230,7 @@ The upgrade will need to be gas optimized or rearchitected to break it up. We ca
 
 #### Action items:
 
-- [ ] Create gas benchmarks for upgrading all OP Chains.
+- [ ] Create gas benchmarks for upgrading all OP Chains. ([Issue](https://github.com/ethereum-optimism/optimism/issues/13835))
 
 ### FM6: Supply Chain Attack Against op-deployer or Contract Artifacts
 
