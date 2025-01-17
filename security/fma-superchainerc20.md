@@ -20,8 +20,8 @@
 | Author | Ng, Joxes |
 | --- | --- |
 | Created at | 2024-10-02 |
-| Needs Approval From | Mark Tyneway, Matt Solomon, and 0age |
-| Other Reviewers | - |
+| Needs Approval From | Mark Tyneway, Matt Solomon |
+| Other Reviewers | Michael Amadi |
 | Status | Review |
 
 ## Introduction
@@ -35,17 +35,19 @@ Below are references for this project:
 
 This document is specially of importance for projects token deployers building on Superchain, as they are the main beneficiaries of this standard. It does not intend to cover related contracts such as `SuperchainTokenBridge` or those involving migrated liquidity.
 
+Similar to ERC20, implementations SuperchainERC20 should be considered untrusted by default, as the implementations of `crosschainMint` and `crosschainBurn` methods are not constrained by IERC7802 or the SuperchainERC20 implementation. As a result, failure modes resulting from malicious implementations of SuperchainERC20 are not considered here.
+
 ## Failure Modes and Recovery Paths
 
 ### FM1: Unauthorized Access to `crosschainMint` & `crosschainBurn` Functions
 
-- **Description:** The `crosschainMint` and `crosschainBurn` functions can only be called by the `SuperchainTokenBridge`,  enforced by the check `msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE`. If the bridge address is badly defined or the modifier bypassed, an entity could mint and burn tokens. 
+- **Description:** The `crosschainMint` and `crosschainBurn` functions can only be called by the `SuperchainTokenBridge`,  enforced by the check `msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE`. If the bridge address is badly defined or the modifier bypassed, an entity could mint and burn tokens.
 - **Risk Assessment**: Medium.
     - Potential impact: High. All tokens based on this implementation could be potentially at risk.
     - Likelihood: Very Low. `Predeploys.SUPERCHAIN_TOKEN_BRIDGE` is defined via protocol upgrades. The conditional is sufficiently simple and battle-tested to give confidence in the implementation.
-- **Mitigation**: Ensure the `SuperchainTokenBridge` is correctly set during deployment and isn’t subject to unexpected changes.
+- **Mitigation**: There are tests for this authorization check, and tests that the `SuperchainTokenBridge` predeploy is correctly set during the interop fork upgrade, and isn’t subject to unexpected changes. Additionally, users should check that the `SuperchainTokenBridge` predeploy is correctly deployed and configured before trusting it to mint and burn their token.
 - **Detection**: Existing off-chain scripts for token monitoring should be enough to detect any unauthorized mint or burn actions triggered by this method.
-- **Recovery Path(s)**: Equivocation on `SuperchainTokenBridge` address would require a protocol upgrade or hard fork. Very unlikely to need it.
+- **Recovery Path(s)**: Equivocation (i.e. another implementation being set) on the `SuperchainTokenBridge` address would require a protocol upgrade or hard fork to restore the expected code.
 
 ### FM2: Different Token Addresses Across Chains
 
