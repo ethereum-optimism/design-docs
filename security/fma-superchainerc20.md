@@ -35,6 +35,8 @@ Below are references for this project:
 
 This document is specially of importance for projects token deployers building on Superchain, as they are the main beneficiaries of this standard. It does not intend to cover related contracts such as `SuperchainTokenBridge` or those involving migrated liquidity.
 
+Similar to ERC20, implementations SuperchainERC20 should be considered untrusted by default, as the implementations of `crosschainMint` and `crosschainBurn` methods are not constrained by IERC7802 or the SuperchainERC20 implementation. As a result, failure modes resulting from malicious implementations of SuperchainERC20 are not considered here.
+
 ## Failure Modes and Recovery Paths
 
 ### FM1: Unauthorized Access to `crosschainMint` & `crosschainBurn` Functions
