@@ -98,5 +98,4 @@ We suggest the modifications for banning deposit triggering `ExecutingMessage` e
 
 ## Additional Notes
 
-Something worth noticing is that implementing the ban deposit closes the door for intended `ExecutingMessage` emissions from deposits. This feature could be desirable to force valid cross-chain messages from L1 and bypass sequencer censorship.
-We could consider developing a new type of deposit that can prove the initiating message's validity and trigger the `ExecutingMessage` event at some point in the future.
+Something worth noticing is that implementing the ban deposit closes the door for intended `ExecutingMessage` emissions from deposits. This feature could be desirable to force valid cross-chain messages from L1 and bypass sequencer censorship. There is an active exploration to ensure that the censorship-resistance property, with the introduction of [preregistrations](https://github.com/ethereum-optimism/specs/issues/520).
