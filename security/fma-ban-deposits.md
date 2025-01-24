@@ -4,7 +4,7 @@
 | --- | --- |
 | Created at | 2025-01-10 |
 | Initial Reviewers | Pending |
-| Needs Approval From | Pending |
+| Needs Approval From | Kelvin Fichter |
 | Status | In Review |
 
 ## Introduction
@@ -24,7 +24,8 @@ Below are references for this project:
 - Both Contract and Client updates are documented in the following specs:
     - [interop: Specify deposit handling #258](https://github.com/ethereum-optimism/specs/pull/258).
 - Reference implementation and tests can be found in the following PR:
-    - [feat: ban deposits interop #11712](https://github.com/ethereum-optimism/optimism/pull/11712)
+    - `CrossL2Inbox`: https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/CrossL2Inbox.sol
+    - `L1BlockInterop`: https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/L1BlockInterop.sol
 
 Note that this FMA doesn’t intend to cover the main features of core interop contracts for message passing. 
 
@@ -43,12 +44,12 @@ Note that this FMA doesn’t intend to cover the main features of core interop c
         - Releasing all ETH from the `ETHLiquidity` contract.
         - Relaying an ERC20 with a custom amount never burned on the source chain.
         
-        In the worst-case scenario, the chain could produce unsafe blocks that are subsequently rejected, leading to a reorg, which would effectively brick the chain afterwards. This occurs because the chain cannot progress with a deposit transaction containing an invalid execution. Services such as relay-based bridges could also face significant consequences if they fail to detect the situation promptly. If the `op-supervisor` can stop such deposits, the chain can continue, at the impact of halting deposits, until [sequencing windows](https://specs.optimism.io/glossary.html?highlight=sequencing%20window#sequencing-window) end.
+        In the worst-case scenario, the chain could produce unsafe blocks that are subsequently rejected, leading to a reorg, which would effectively brick the chain afterwards. This occurs because the chain cannot progress with a deposit transaction containing an invalid execution. Services such as relay-based bridges could also face significant consequences if they fail to detect the situation promptly.
         
     - Likelihood: Low. This could only happen with a bugged implementation of the `CrossL2Inbox` check. Even if the current implementation is bug-free, future upgrades can introduce these bugs.
     Something important to notice is that most chains within the same cluster will probably share implementations, so a bug might affect all chains.
-- **Mitigations:** The security team should be aware of this issue and check for it in every protocol version upgrade.
-- **Detection:** The `op-supervisor` should detect such a situation within the invariants checks. If `op-supervisor` simulations are properly implemented before including new deposits, it would allow the sequencer to delay the deposit’s inclusion until the sequencing window ends. This delay would provide a time buffer to fix the issue.
+- **Mitigations:** Our current codebase includes tests to check that the `CrossL2Inbox` contract validate messages only when `isDeposit` is `false` ([test](https://github.com/ethereum-optimism/optimism/blob/ef6ef6fd45fc2b7ccd4bc06dc7e24f75c0dda362/packages/contracts-bedrock/test/L2/CrossL2Inbox.t.sol#L139)) and revert when it is `true` ([test](https://github.com/ethereum-optimism/optimism/blob/ef6ef6fd45fc2b7ccd4bc06dc7e24f75c0dda362/packages/contracts-bedrock/test/L2/CrossL2Inbox.t.sol#L166)). The `L1BlockInterop` contract also includes test to check this property ([test](https://github.com/ethereum-optimism/optimism/blob/ef6ef6fd45fc2b7ccd4bc06dc7e24f75c0dda362/packages/contracts-bedrock/test/L2/L1BlockInterop.t.sol#L205)).  The security team should be aware of this issue and check for it in every protocol version upgrade. There should be a way to prevent to process such deposits (through `op-supervisor` or other), so the chain can continue, at the impact of halting deposits, until [sequencing windows](https://specs.optimism.io/glossary.html?highlight=sequencing%20window#sequencing-window) end.
+- **Detection:** The `op-supervisor` could detect such a situation within the invariants checks. If `op-supervisor` simulations (or if there are tools for local sequencers to simulate deposits) are properly implemented before including new deposits, it would allow the sequencer to delay the deposit’s inclusion until the sequencing window ends. This delay would provide a time buffer to fix the issue.
 - **Recovery Path(s):** Stop processing deposits and stay aware of the sequencing window. A chain halt followed by a fix and a reorg would be necessary.
 
 ### FM2: `isDeposit` is not turned on before deposit transactions
@@ -57,7 +58,7 @@ Note that this FMA doesn’t intend to cover the main features of core interop c
 - **Risk Assessment:** Medium.
     - Potential Impact: High. All the consequences from FM1 would apply.
     - Likelihood: Low. This would also correspond to a bugged implementation in the `L1Block` contract or client-triggered calls to it.
-- **Mitigations:** The security team should know this issue and check for it in every protocol version.
+- **Mitigations:** Our current codebase include tests to check `L1BlockInterop` set `isDeposit` as `true` during the deposit context ([reference](https://github.com/ethereum-optimism/optimism/blob/ef6ef6fd45fc2b7ccd4bc06dc7e24f75c0dda362/packages/contracts-bedrock/test/L2/L1BlockInterop.t.sol#L239)). The security team should know this issue and check for it in every protocol version.
 - **Detection:** Same as FM1. Off-chain services can detect flag misbehavior by checking every block's first transaction.
 - **Recovery Path(s):** Stop processing deposits and stay aware of the sequencing window. A chain halt followed by a fix would be necessary. A reorg can also be considered if invariant breaking messages were created.
 
@@ -67,7 +68,7 @@ Note that this FMA doesn’t intend to cover the main features of core interop c
 - **Risk Assessment:** Low.
     - Potential Impact: Medium. Genuine cross-chain messages will not be able to execute. This should not be a major issue, as users can re-execute after the fix.
     - Likelihood: Low. This could happen if the `depositComplete()` implementation is bugged or the sequencer is not triggering the call to the function. The latter could occur due to a client bug or an out-of-gas error, which is unlikely.
-- **Mitigations:** The security team should know this issue and check for it in every protocol version.
+- **Mitigations:** Our current codebase includes tests to check `L1BlockInterop` set `isDeposit` as `false` after the deposit context ends ([test](https://github.com/ethereum-optimism/optimism/blob/ef6ef6fd45fc2b7ccd4bc06dc7e24f75c0dda362/packages/contracts-bedrock/test/L2/L1BlockInterop.t.sol#L292)). The security team should know this issue and check for it in every protocol version.
 - **Detection:** Offchain services should be aware of this possibility for `validateMessage` reverts.
 - **Recovery Path(s):** Execute the proper fixes depending on whether it was a sequencer or contract error. Valid reverted messages can be re executed on destination, or resent if expired.
 
@@ -75,7 +76,7 @@ Note that this FMA doesn’t intend to cover the main features of core interop c
 
 - **Description:** The `isDeposit` bool is set off before the upgrade transactions, which are force-included. This implies that, if an upgrade transaction includes a call to `validateMessage`, the sequencer will be forced to include it, even if it doesn't point to an existing identifier.
 - **Risk Assessment:** Low to Medium.
-    - Potential Impact: High. It could impact the same way described in the first failure (TODO: add link).
+    - Potential Impact: High. It could impact the same way described in FM1.
     - Likelihood: Low. An upgrade transaction should not call `validateMessage()` unless it is somehow intended to (and therefore not malicious). What's more, every upgrade transaction should bypass many security checks.
 - **Mitigations:** Every upgrade transaction should be simulated. An invalid Superchain state would be caught by the `op-supervisor` in simulations.
 - **Detection:** Upgrades are heavily monitored transactions, making it very unlikely to go unnoticed.
@@ -89,8 +90,7 @@ Note that this FMA doesn’t intend to cover the main features of core interop c
 ## Action Items
 
 - [ ]  Resolve all the comments.
-- [ ]  Moving into testing of all the components.
-- [ ]  Make sure `op-supervisor`, and relevant off-chain components are properly put in place to monitor and cover all the cases, being ready before to this implementation goes to production.
+- [ ]  FM1, FM2, FM3: Make sure `op-supervisor`, deposit simulations and other relevant off-chain components are properly put in place (TO BE DECIDED) to monitor and cover all the cases, being ready before to this implementation goes to production.
 
 ## Audit Requirements
 
