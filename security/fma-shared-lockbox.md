@@ -103,17 +103,7 @@ Note that the inclusion of the dependency set in the fault-proof mechanism is re
 - **Detection:** A simple periodic check of `dependencySetSize` in both `DependencyManager` and `SuperchainConfigInterop` should be sufficient to ensure the limit is not approaching. Reverts on calls to `addDependency` would indicate this issue.
 - **Recovery Path(s):** An upgrade over `SuperchainConfigInterop` and `DependencyManager` is needed to support a larger capacity.
 
-### FM8: `addDependency` completed in L2 but `SharedLockbox` not activated, causing withdrawal failures
-
-- **Description:** After an L2 call to `addDependency`, the message must be proven and finalized on L1 to “activate” the chain’s membership in the `SuperchainConfigInterop` and trigger `migrateLiquidity`. If users are allowed to send ETH to the new chain through interop and perform a withdrawal before the liquidity migration is complete, they might see reverts.
-- **Risk Assessment:** Low.
-    - Potential Impact: Low. ETH withdrawals may fail if they are executed before the migration is completed.
-    - Likelihood: Very Low. Withdrawals should be able to finalize in order, so the chance of an ETH withdrawal request being finalized before the migration is executed is quite minimal.
-- **Mitigations:** Migration procedures should ensure monitoring, proving, and finalizing the withdrawal transaction once it is possible to do so. Alternatively, chains may choose to delay finalizing cross-chain transfers until the migration is completed.
-- **Detection:** Up to the upgrade procedures.
-- **Recovery Path(s):** Prove and finalize the withdrawal that executes the migration.
-
-### FM9: `ETHMigrated` flag remains `false` in the `OptimismPortalInterop` after migration
+### FM8: `ETHMigrated` flag remains `false` in the `OptimismPortalInterop` after migration
 
 - **Description:** During the `migrateLiquidity` call, the `OptimismPortalInterop` sets an internal `migrated = true` flag. If that flag is never set, the portal incorrectly tries to handle ETH locally (even though liquidity is already in the `SharedLockbox`).
 - **Risk Assessment:** Low.
@@ -122,6 +112,16 @@ Note that the inclusion of the dependency set in the fault-proof mechanism is re
 - **Mitigations:** There should be tests for `migrateLiquidity` to set as `true`.
 - **Detection:** Check whether the `migrated` function is marked as `false` after `ETHMigrated` event is emitted. Watch for unexpected reverts on user withdrawals.
 - **Recovery Path(s):** Perform an upgrade to set the flag correctly.
+
+### FM9: `addDependency` completed in L2 but `SharedLockbox` not activated, causing withdrawal failures
+
+- **Description:** After an L2 call to `addDependency`, the message must be proven and finalized on L1 to “activate” the chain’s membership in the `SuperchainConfigInterop` and trigger `migrateLiquidity`. If users are allowed to send ETH to the new chain through interop and perform a withdrawal before the liquidity migration is complete, they might see reverts.
+- **Risk Assessment:** Low.
+    - Potential Impact: Low. ETH withdrawals may fail if they are executed before the migration is completed.
+    - Likelihood: Very Low. Withdrawals should be able to finalize in order, so the chance of an ETH withdrawal request being finalized before the migration is executed is quite minimal.
+- **Mitigations:** Migration procedures should ensure monitoring, proving, and finalizing the withdrawal transaction once it is possible to do so. Alternatively, chains may choose to delay finalizing cross-chain transfers until the migration is completed.
+- **Detection:** Up to the upgrade procedures.
+- **Recovery Path(s):** Prove and finalize the withdrawal that executes the migration.
 
 ### Generic items we need to take into account:
 
@@ -139,7 +139,7 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 - [ ]  FM3: Provide tests.
 - [ ]  FM6: Provide tests.
 - [ ]  FM6: Provide monitoring solutions.
-- [ ]  FM9: Provide tests.
+- [ ]  FM8: Provide tests.
 - [ ]  Confirm the interop fault proofs are consistent with the Shared Lockbox and dependency set management implementation so that FM discussed are aligned with it and new ones aren’t expected.
 
 ## Audit Requirements
