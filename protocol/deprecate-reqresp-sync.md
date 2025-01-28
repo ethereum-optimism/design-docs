@@ -5,6 +5,9 @@
 Deprecate CL-sync (request-response reverse-blocks sync, not block gossip)
 in favor of EL-sync, with improved sync-target reliability.
 
+This does not change the L1-sync (also a form of "consensus-layer sync").
+This only aims to remove the unsafe-block sync via P2P request-response syncing. 
+
 This simplifies the op-node configuration, removes complicated sync-code,
 and makes the op-node more robust against P2P-network interruption.
 
@@ -30,6 +33,9 @@ Since block-signatures are not stored, blocks can only be authenticated by their
 This means that the op-node has to fetch blocks in reverse order: the blocks cannot immediately be processed.
 Parallelizing the fetching of these unauthenticated blocks, and then resolving the canonical chain, is complicated.
 And sync-depth is limited, due to memory limitations (the idea was to not introduce a database just for syncing).
+
+The request-response sync issues are documented further here in
+[monorepo issue 11779](https://github.com/ethereum-optimism/optimism/issues/11779).
 
 ### Introduction of Snap-sync
 
@@ -97,8 +103,9 @@ To roll out, we need:
   and clarify in op-node metrics/logs what the sync-state is.
 - Make EL-sync the default. We can keep CL-sync, but e.g. add a deprecation warning.
 - Sync-test that we can rely solely on EL-sync.
-- Update specs to deprecate the request-response block sync.
-- Update docs to remove CL/EL-sync differentiation.
+- Update specs to deprecate the P2P unsafe-chain request-response block sync.
+- Update docs to remove CL/EL-sync differentiation for the unsafe-chain retrieved via P2P.
+  Note that syncing from L1 stays the same.
 
 To polish, we can:
 - Improve the tx-pool, to not be a yes/no filter, but allow e.g. filter by network IP and/or nodeID.
