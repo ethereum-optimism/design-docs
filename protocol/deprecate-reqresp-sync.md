@@ -29,7 +29,7 @@ using the `request-response` protocol functionality of LibP2P.
 Since block-signatures are not stored, blocks can only be authenticated by their block-header parent-hash relation.
 This means that the op-node has to fetch blocks in reverse order: the blocks cannot immediately be processed.
 Parallelizing the fetching of these unauthenticated blocks, and then resolving the canonical chain, is complicated.
-And sync-depth is limited, due to memory limitations (the idea was to not introduce a database for just for syncing).
+And sync-depth is limited, due to memory limitations (the idea was to not introduce a database just for syncing).
 
 ### Introduction of Snap-sync
 
