@@ -61,7 +61,7 @@ Similar to ERC20, SuperchainERC20 implementations should be considered untrusted
 - **Risk Assessment**: Medium
     - Potential impact: Medium. Users can lose access to their tokens temporarily or permanently if the deployer (in the case of permissioned tokens) doesn’t deploy the token afterwards.
     - Likelihood: Medium. A deployer may choose not to deploy the token on all chains.
-- **Mitigation**: Trusted bridge interfaces should prevent users from sending tokens to a chain where the token doesn’t exist. Double check other trusted sources (such as Superchain Token List) for greater confidence.
+- **Mitigation**: Trusted bridge frontends should prevent users from sending tokens to a chain where the token doesn’t exist. Double check other trusted sources (such as Superchain Token List) for greater confidence.
 - **Detection**: Support tickets filed by users reporting the issue.
 - **Recovery Path(s)**: Deploy the token.
 
