@@ -85,7 +85,7 @@ Similar to ERC20, SuperchainERC20 implementations should be considered untrusted
         - Proxy contracts where the admin is compromised or the proxy address front-runned.
 - **Mitigation**: For developers, employ the appropriate deterministic deployment tools, such as the one at `create2Deployer`. In the case of permissioned deployments, common for proxy contracts, ensure to maintain control over those deployments and ownership.
 - **Detection**: Support tickets filed by users reporting such issues.
-- **Recovery Path(s)**: Pause the token contract where possible and proceed to redeploy.
+- **Recovery Path(s)**: Pause the token contract where possible and proceed to redeploy and migrate userbase if it is needed.
 
 ## Action Items
 
