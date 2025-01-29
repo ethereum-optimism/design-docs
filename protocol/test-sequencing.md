@@ -68,7 +68,7 @@ Building the testing functionality consists of:
 - Connect to geth node, via debug RPC, for remote state-access:
     - We can seal the block with a `stateRoot` this way.
 - Reuse code from op-node to connect to op-signer, to sign blocks.
-- Add some RPC method to op-node to publish payloads to gossip, with a sequencer signature.
+- Add a RPC method to op-node to insert the block into the canonical chain, and publish it to gossip, with a sequencer signature.
   Related problem: the existing op-node `admin_postUnsafePayload` (used by op-conductor) method doesn't
   include the block signature, so it cannot relay the block via gossip to other nodes.
 - Host new endpoints:
@@ -98,11 +98,14 @@ Another way might be to intercept the engine-API `engine_forkchoiceUpdated(fcSta
 which can then queue the block-building work and complete it when there is a matching test block-building job.
 This is similar to the sidecar design in OP-Stack.
 However, this then makes the op-node lead, and prevents reorgs from being initiated by the test tool.
+The "mock" L1 mode will thus be prioritized.
 
 #### Compared to op-wheel
 
-`op-wheel` may be time to deprecate.
-It consists of `db` (patch geth DB contents) and `engine` utils.
+`op-wheel` may be time to deprecate. Full deprecation is out of scope for this design doc,
+but decision is made to not add additional things to `op-wheel`.
+
+The `op-wheel` CLI consists of `db` (patch geth DB contents) and `engine` utils.
 
 The forkchoice / reorg CLI tools are still used,
 but may be possible to move to op-node or op-geth.
@@ -138,6 +141,9 @@ The following integration work is needed:
 
 To not only build blocks locally, we can make the service connect to a regular engine-API endpoint,
 and use that to build the blocks.
+
+To keep the op-node in sync, forkchoice updates will need to be directed at a new op-node RPC,
+to keep the op-node forkchoice in sync, while passing through the calls to the actual engine API.
 
 This won't support the test capabilities, but does enable migration away from op-node sequencing.
 
@@ -192,12 +198,19 @@ The `op-wheel` service set up as a CLI tool, not as a service.
 `op-wheel` has a range of functions that can be deprecated.
 Expanding the tool now takes on debt of the tool, and makes it more difficult to deprecate parts.
 
-## Extending op-node
+## Extending op-node sequencer internals
 
 The op-node only has access to the building of the initial block template,
 and the start/stop timing of block building jobs.
 It does not have tx-pool access, ability to order transactions, or EVM or state access.
 The sequencer code-path in op-node is a critical-path, and must not break due to test changes.
+
+## Direct engine-API vs op-node RPC
+
+The service needs to connect to the op-node to apply forkchoice updates,
+since it otherwise can conflict with the verifier work.
+
+This means that the "engine mode" cannot use the engine-API directly, if there is a live op-node.
 
 ## As sidecar between op-node and op-geth
 
