@@ -5,6 +5,7 @@
 
 - [**SuperchainERC20 standard-only FMA (Failure Modes and Recovery Path Analysis)**](#superchainerc20-standard-only-fma-failure-modes-and-recovery-path-analysis)
 - [Introduction](#introduction)
+  - [Audit Requirements](#audit-requirements)
   - [Security Considerations](#security-considerations)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
   - [FM1: Unauthorized Access to `crosschainMint` & `crosschainBurn` Functions](#fm1-unauthorized-access-to-crosschainmint--crosschainburn-functions)
@@ -12,7 +13,6 @@
   - [FM3: Token Deployer is Lost, or Unable to Deploy to Expected Address](#fm3-token-deployer-is-lost-or-unable-to-deploy-to-expected-address)
   - [FM4: Compromised Deployment Method](#fm4-compromised-deployment-method)
 - [Action Items](#action-items)
-- [Audit Requirements](#audit-requirements)
 
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -38,6 +38,10 @@ Below are references for this project:
 
 - [Token standard specs](https://github.com/ethereum-optimism/specs/blob/main/specs/interop/token-bridging.md).
 - [Implementation](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/SuperchainERC20.sol).
+
+### Audit Requirements
+
+An audit of interop contracts, including the `SuperchainERC20` contract, is expected. However, developers may use `SuperchainERC20` before the interop fork is live.
 
 ### Security Considerations
 
@@ -97,7 +101,3 @@ The following action items need to be done:
 - [ ]  Decide whether to use off-chain scripts or rely on a user-support system for FM1.
 - [ ] Ensure docs for SuperchainERC20 developers explain the need for deterministic deployment and how to achieve it (FM3, FM4)
 - [ ]  Ensure the support team is aware of these failure modes and prepared to respond.
-
-## Audit Requirements
-
-An audit of interop contracts, including the `SuperchainERC20` contract, is expected. However, developers may use `SuperchainERC20` before the interop fork is live.
