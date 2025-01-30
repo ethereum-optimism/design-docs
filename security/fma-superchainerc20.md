@@ -59,7 +59,7 @@ Similar to ERC20, SuperchainERC20 implementations should be considered untrusted
 - **Detection**: Ideally, run an off-chain agent to monitor every `crosschainMint` and `crosschainBurn` event in real-time, perhaps it could be resource-intensive given the permissionless usage of `SuperchainERC20` and the expected large number of deployments. If that’s not feasible, rely on user-filed support tickets to flag unusual mint/burn activity, which the TBD team (see corresponding action item) can investigate for suspected unauthorized access.
 - **Recovery Path(s)**: Equivocation (i.e. another implementation being set) on the `SuperchainTokenBridge` address would require a protocol upgrade or hard fork to restore the expected code.
 
-### FM2: Destination Chain Token Contract Missing — Relay Fails Until Deployed (But Deployment Is Permissioned)
+### FM2: Token Contract Missing in Destination Chain — Relay Fails Until Deployed (But Deployment Is Permissioned)
 
 - **Description**: The token on the destination chain is not yet deployed, which prevents the cross-chain transfer from finalizing (`relayERC20` fails). However, the token's deployment is permissioned, meaning it is solely up to the deployer to make the token available on the destination chain
 - **Risk Assessment**: High.
@@ -71,7 +71,7 @@ Similar to ERC20, SuperchainERC20 implementations should be considered untrusted
 - **Detection**: Support tickets filed by users reporting the issue.
 - **Recovery Path(s)**: Communicate with the token owner and request deployment of the token on the missing chain.
 
-### FM3: Destination Chain Token Contract Missing — Relay Fails Until Deployed (But Deployment Is Permissionless)
+### FM3: Token Contract Missing in Destination Chain — Relay Fails Until Deployed (But Deployment Is Permissionless)
 
 - **Description**: The token on the destination chain is not yet deployed, which prevents the cross-chain transfer from finalizing (`relayERC20` fails). However, the token is permissionless to deploy, meaning anyone can deploy it.
 - **Risk Assessment**: Medium
@@ -82,11 +82,11 @@ Similar to ERC20, SuperchainERC20 implementations should be considered untrusted
 - **Recovery Path(s)**: Deploy the token.
 
 
-### FM4: Token Deployer is Lost, or Unable to Deploy to Expected Address
+### FM4: Token Contract Missing in Destination Chain — Token Deployer is Lost, or Unable to Deploy to Expected Address
 
 - **Description**: For the `SuperchainTokenBridge` to validate cross-chain mints and burns correctly, the `SuperchainERC20` must appear at one consistent address on each chain when deployed. If a developer fails to deterministically deploy the token at the same address, the bridging logic cannot unify the token references across chains, leading to failed or incorrect cross-chain transfers.
 - **Risk Assessment**: Medium
-    - Potential impact: High. Without a consistent address, interoperability for the token is effectively disabled.
+    - Potential impact: High. Without a consistent address, interoperability for the token is effectively disabled and `relayERC20` are likely to fail, causing a lost.
     - Likelihood: Very Low. The interoperable set of chains follows the same opcode behavior and ensures identical availability of deployer contracts, such as `create2Deployer`.
 - **Mitigation**: For developers, employ the appropriate deterministic deployment tools, such as the one at `create2Deployer`.
 - **Detection**: Deployers should test the deployment method used and verify contract addresses after a mainnet deployment.
