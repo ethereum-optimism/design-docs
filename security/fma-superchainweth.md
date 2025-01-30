@@ -3,8 +3,8 @@
 | Author | Joxes, Gotzen, Parti |
 | --- | --- |
 | Created at | 2025-01-10 |
-| Initial Reviewers | Pending |
-| Needs Approval From | Pending |
+| Initial Reviewers | Kelvin Fichter, Michael Amadi |
+| Needs Approval From | Kelvin Fichter |
 | Status | In Review |
 
 ## Introduction
