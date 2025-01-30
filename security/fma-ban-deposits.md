@@ -23,7 +23,7 @@ This document is intended to be shared publicly for reviews and visibility purpo
 Below are references for this project:
 - Both Contract and Client updates are documented in the following specs:
     - [interop: Specify deposit handling #258](https://github.com/ethereum-optimism/specs/pull/258).
-- Reference implementation and tests can be found in the following PR:
+- Reference implementation can be found below:
     - `CrossL2Inbox`: https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/CrossL2Inbox.sol
     - `L1BlockInterop`: https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/L1BlockInterop.sol
 
