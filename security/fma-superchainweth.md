@@ -42,7 +42,7 @@ Below are references for this project:
     - Potential Impact: Medium. Not having enough ETH balance in `ETHLiquidity` prevents relaying ETH or mint SuperchainWETH through `crosschainMint`, which would degrade the user experience.
     - Likelihood: Very low. `ETHLiquidity` starts with a maximum balance (`type(uint248).max`).
 - **Mitigations:** Our current codebase includes tests to check if the `mint` request exceeds the contract’s balance ([test](https://github.com/ethereum-optimism/optimism/blob/dd37e6192c37ed4c5b18df0269f065f378c495cc/packages/contracts-bedrock/test/L2/ETHLiquidity.t.sol#L103)). Initial ETH supply in `ETHLiquidity` is `type(uint248).max` ([test](https://github.com/ethereum-optimism/optimism/blob/dd37e6192c37ed4c5b18df0269f065f378c495cc/packages/contracts-bedrock/test/L2/ETHLiquidity.t.sol#L29)) and equally set in all chains.
-- **Detection:** Ideally, off-chain scripts should detect if multiple `mint` calls revert. Additionally, check the current `ETHLiquidity` balance. If that’s not feasible, user-filed support tickets may flag this issue, since funds are not at risk of loss due to this failure.
+- **Detection:** Perform checks on the `ETHLiquidity` balance as a preventive monitoring measure. User-filed support tickets may flag this issue in case of failure.
 - **Recovery Path(s):** Coordinate an L2 hard fork to replenish the `ETHLiquidity` contract. Investigate the causes of the depletion to determine if other factors are involved.
 
 ### FM2: Overflow during `burn` in `ETHLiquidity` due to max Balance
@@ -52,7 +52,7 @@ Below are references for this project:
     - Potential Impact: Medium. Reverts during `sendETH` calls are expected when the requested amount exceeds the maximum value representable by a `uint256`.
     - Likelihood: Very low. `ETHLiquidity` starts with a maximum balance (`type(uint248).max`) which is still far from `uint256` limit.
 - **Mitigations:** Initial ETH supply in `ETHLiquidity` is `type(uint248).max` properly is checked ([test](https://github.com/ethereum-optimism/optimism/blob/dd37e6192c37ed4c5b18df0269f065f378c495cc/packages/contracts-bedrock/test/L2/ETHLiquidity.t.sol#L29)).
-- **Detection:** Given the unlikely nature and potential impact of this case, user-filed support tickets should be sufficient to flag this issue since funds are not at risk of loss due to this failure.
+- **Detection:** Perform checks on the `ETHLiquidity` balance as a preventive monitoring measure. User-filed support tickets may flag this issue in case of failure.
 - **Recovery Path(s):** Coordinate an L2 hard fork to adjust the `ETHLiquidity` contract’s state. Investigate the causes of this failure to determine if other factors are involved.
 
 ### Generic items we need to take into account:
@@ -67,8 +67,8 @@ See [relevant FMAs to SuperchainWETH, To Do]
 
 ## Action Items
 
-- [ ]  Resolve all the comments.
-- [ ]  FM1: Decide whether to use off-chain scripts or rely on a user-support system for detection.
+- [x]  Resolve all the comments.
+- [ ]  FM1, FM2: Establish a balance monitoring measure in `ETHLiquidity` (optional).
 - [ ]  Ensure the support team is aware of these failure modes and prepared to respond.
 - [ ]  **Ensure that the actions items specified in each FMAs on which SuperchainWETH depends are completed.**
 
