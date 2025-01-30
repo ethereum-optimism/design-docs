@@ -38,12 +38,12 @@ Below are references for this project:
 ### FM1: Insufficient ETH in `ETHLiquidity`
 
 - **Description:** If `ETHLiquidity` lacks sufficient ETH, mint calls will revert when the contract attempts to forward funds using `SafeSend`. This breaks bridging flows dependent on `relayETH`  and `crosschainMint`.
-- **Risk Assessment:** Low.
-    - Potential Impact: Medium. Not having enough ETH balance in `ETHLiquidity` prevents relaying ETH or mint SuperchainWETH through `crosschainMint`, which would degrade the user experience.
+- **Risk Assessment:** Medium.
+    - Potential Impact: High. Not having enough ETH balance in `ETHLiquidity` prevents relaying ETH or mint SuperchainWETH through `crosschainMint`, which would greatly degrade the user experience, as they would be temporarily stuck.
     - Likelihood: Very low. `ETHLiquidity` starts with a maximum balance (`type(uint248).max`).
 - **Mitigations:** Our current codebase includes tests to check if the `mint` request exceeds the contract’s balance ([test](https://github.com/ethereum-optimism/optimism/blob/dd37e6192c37ed4c5b18df0269f065f378c495cc/packages/contracts-bedrock/test/L2/ETHLiquidity.t.sol#L103)). Initial ETH supply in `ETHLiquidity` is `type(uint248).max` ([test](https://github.com/ethereum-optimism/optimism/blob/dd37e6192c37ed4c5b18df0269f065f378c495cc/packages/contracts-bedrock/test/L2/ETHLiquidity.t.sol#L29)) and equally set in all chains.
 - **Detection:** Perform checks on the `ETHLiquidity` balance as a preventive monitoring measure. User-filed support tickets may flag this issue in case of failure.
-- **Recovery Path(s):** Coordinate an L2 hard fork to replenish the `ETHLiquidity` contract. Investigate the causes of the depletion to determine if other factors are involved.
+- **Recovery Path(s):** Coordinate an L2 hard fork to replenish the `ETHLiquidity` contract. Investigate the causes of the depletion to determine if other factors are involved. Messages will need to be retried for relaying; otherwise, use the `expireMessage` feature if it is available and integrated into `SuperchainWETH`.
 
 ### FM2: Overflow during `burn` in `ETHLiquidity` due to max Balance
 
