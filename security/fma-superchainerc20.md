@@ -88,11 +88,11 @@ Similar to ERC20, SuperchainERC20 implementations should be considered untrusted
 - **Risk Assessment**: Medium
     - Potential impact: High. Without a consistent address, interoperability for the token is effectively disabled and `relayERC20` are likely to fail, causing a lost.
     - Likelihood: Very Low. The interoperable set of chains follows the same opcode behavior and ensures identical availability of deployer contracts, such as `create2Deployer`.
-- **Mitigation**: For developers, employ the appropriate deterministic deployment tools, such as the one at `create2Deployer`.
+- **Mitigation**: For developers, employ the appropriate deterministic deployment tools, such as the one at `create2Deployer`. For users, refers to FM2 and FM3.
 - **Detection**: Deployers should test the deployment method used and verify contract addresses after a mainnet deployment.
 - **Recovery Path(s)**: Redeploy token contracts on a new address across chains and migrate userbase if it is needed.
 
-### FM4: Compromised Deployment Method
+### FM5: Compromised Deployment Method
 
 - **Description**: The bridging logic assumes that if a `SuperchainERC20` contract address is identical across multiple chains, it refers to the expected code. However, if a deployer uses flawed or deployment methods that get compromised, a non-desired implementation may be deployed at the same address on one chain.
 - **Risk Assessment**: Medium
@@ -109,8 +109,8 @@ Similar to ERC20, SuperchainERC20 implementations should be considered untrusted
 The following action items need to be done:
 
 - [ ]  Resolve all the comments.
-- [ ] Communicate to bridge frontends to ensure they prevent users from sending tokens to a chain where the token doesn’t exist (FM2)
-- [ ]  Implement tests for `SuperchainTokenBridge` predeploy. Currently, the L2 Genesis project is under development and it should take care of these tests (FM1)
-- [ ]  Decide whether to use off-chain scripts or rely on a user-support system for FM1.
-- [ ] Ensure docs for SuperchainERC20 developers explain the need for deterministic deployment and how to achieve it (FM3, FM4)
+- [ ]  FM1: Implement tests for `SuperchainTokenBridge` predeploy. Currently, the L2 Genesis project is under development and it should take care of these tests.
+- [ ]  FM1: Run off-chain scripts and monitoring measurements (OP Labs).
+- [ ]  FM2, FM3, FM4: Communicate to bridge frontends to ensure they prevent users from sending tokens to a chain where the token doesn’t exist.
+- [ ]  FM4, FM5: Ensure that the documentation for SuperchainERC20 developers explains the need for deterministic deployment and how to achieve it.
 - [ ]  Ensure the support team is aware of these failure modes and prepared to respond.
