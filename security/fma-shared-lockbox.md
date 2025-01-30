@@ -3,8 +3,8 @@
 | Author | Joxes, Agusduha |
 | --- | --- |
 | Created at | 2025-01-28 |
-| Initial Reviewers | Pending |
-| Needs Approval From | Pending |
+| Initial Reviewers | Josep Bove |
+| Needs Approval From | Matt Solomon, Kelvin Fichter |
 | Status | In Review |
 
 ## Introduction
