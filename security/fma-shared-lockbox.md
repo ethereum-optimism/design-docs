@@ -91,7 +91,7 @@ Note that the inclusion of the dependency set in the fault-proof mechanism is re
     - Likelihood: Low. The `DEPOSITOR_ACCOUNT` is typically used by the derivation pipeline or otherwise restricted. Previously, there were specific deposit calls that used this account, but those are no longer in use. If the `DEPOSITOR_ACCOUNT` becomes callable in other ways under future upgrades, the attack surface would increase.
 - **Mitigations:** There should be tests that ensure `DEPOSITOR_ACCOUNT` only can be called as part of a coordinated upgrade. Review `DEPOSITOR_ACCOUNT` privileges if it is used for other features in the future. Ensure interop fault proof is properly set to reject states that add a non-expected chain.
 - **Detection:** Monitor `DependencyAdded` events to catch unexpected additions. Do periodical checks to `dependencySet` to review the existing dependency set recorded in the chain.
-- **Recovery Path(s):** Because removing a chain from the dependency set is currently irreversible, a hard fork will be the only way to revert an unauthorized addition. Patch any potential issue around `DEPOSITOR_ACCOUNT`.
+- **Recovery Path(s):** Because removing a chain from the dependency set is currently unsupported, a hard fork will be the only way to revert an unauthorized addition. Patch any potential issue around `DEPOSITOR_ACCOUNT`.
 
 ### FM7: Unable to add new Chains by Reaching the `uint8` limit in `addDependency`
 
