@@ -49,7 +49,7 @@ Note that the inclusion of the dependency set in the fault-proof mechanism is re
 - **Risk Assessment:** High.
     - Potential Impact: Critical. A malicious addition to the dependency set could allow an attacker to `unlockETH` from the `SharedLockbox`.
     - Likelihood: Low. The `clusterManager` should be a highly secured role (e.g., a multi-sig or governance key).
-- **Mitigations:** Strictly secure the `clusterManager` key.
+- **Mitigations:** Tests to ensure `addDependency` cannot be called by unauthorized accounts. Strictly secure the `clusterManager` key.
 - **Detection:** Track the `DependencyAdded` event for calls from `clusterManager`. Compare newly added chain IDs to an approved list.
 - **Recovery Path(s):** Pause the system through `SuperchainConfig`. Since removal functions are unavailable, an upgrade directly over **`SuperchainConfigInterop`** to clear storage slots will be required.
 
