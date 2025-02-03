@@ -9,7 +9,6 @@
   - [FM2: Broken Fee Estimation (Wallets)](#fm2-broken-fee-estimation-wallets)
   - [FM3: Bug in Receipt Hydrating Logic](#fm3-bug-in-receipt-hydrating-logic)
   - [FM4: Database Growth Impact on Nodes](#fm4-database-growth-impact-on-nodes)
-  - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
 - [Action Items](#action-items)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -90,13 +89,6 @@ Below are references for this project:
 - **Recovery Path(s):**
   - Use archive nodes to maintain historical data.
   - Consider implementing receipt compression retroactively if needed.
-
-
-### Generic items we need to take into account:
-
-See [./fma-generic-hardfork.md](./fma-generic-hardfork.md).
-
-- [X] Check this box to confirm that these items have been considered and updated if necessary.
 
 ## Action Items
 
