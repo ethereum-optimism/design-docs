@@ -47,6 +47,48 @@ Below are references for this project:
 - **Recovery Path(s)**:
   If the operator fee parameters are set to unreasonable values, the rollup operator should update the `operatorFeeScalar` and `operatorFeeConstant` to reasonable values as soon as possible.
 
+### FM2: Broken Fee Estimation (Wallets)
+
+- **Description:** 
+  If wallets fail to update their fee estimation logic, users will no longer be shown the accurate costs of a transaction.
+- **Risk Assessment:**
+  Medium impact, medium likelihood.
+  **Mitigations:**
+  Coordinate with wallet providers to update their fee estimation logic. This includes MetaMask, Coinbase Wallet, and others.
+- **Detection:** 
+  Confirm that wallets are using the correct fee estimation logic post-launch. This can be done manually on chains that have added an operator fee.
+- **Recovery Path(s)**:
+  Notify wallets of the new fee structure and ask them to update their fee estimation logic if the operator fee is enabled.
+
+### FM3: Bug in Receipt Hydrating Logic
+
+- **Description:**
+  If there is a bug in the receipt hydrating logic, the operator fee may not be correctly reflected in transaction receipts, leading to incorrect fee reporting and potential accounting issues.
+- **Risk Assessment:**
+  Medium impact, low likelihood.
+- **Mitigations:**
+  Extensive testing of receipt hydration with various transaction types and fee configurations. Ensure backwards compatibility with existing receipt formats.
+- **Detection:**
+  Monitor transaction receipts and compare reported fees with expected calculations. Watch for discrepancies in accounting systems.
+- **Recovery Path(s):**
+  Deploy fix for receipt hydration logic. Historical receipts will remain incorrect but can be recalculated using on-chain data if needed.
+
+### FM4: Database Growth Impact on Nodes
+
+- **Description:**
+  The addition of operator fee fields increases the size of transaction receipts, leading to faster database growth. This could accelerate the need for solutions like EIP-4444 or other history expiry mechanisms.
+- **Risk Assessment:**
+  Medium impact, high likelihood.
+- **Mitigations:**
+  - Implement history expiry solutions like EIP-4444 when available.
+- **Detection:**
+  - Monitor database growth rate compared to pre operator fee baseline.
+  - Track disk usage metrics across internal nodes.
+- **Recovery Path(s):**
+  - Use archive nodes to maintain historical data.
+  - Consider implementing receipt compression retroactively if needed.
+
+
 ### Generic items we need to take into account:
 
 See [./fma-generic-hardfork.md](./fma-generic-hardfork.md).
