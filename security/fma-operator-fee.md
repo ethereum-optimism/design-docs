@@ -6,6 +6,9 @@
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
   - [FM1: Operator Fee scalars are set to incorrect values](#fm1-operator-fee-scalars-are-set-to-incorrect-values)
+  - [FM2: Broken Fee Estimation (Wallets)](#fm2-broken-fee-estimation-wallets)
+  - [FM3: Bug in Receipt Hydrating Logic](#fm3-bug-in-receipt-hydrating-logic)
+  - [FM4: Database Growth Impact on Nodes](#fm4-database-growth-impact-on-nodes)
   - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
 - [Action Items](#action-items)
 
