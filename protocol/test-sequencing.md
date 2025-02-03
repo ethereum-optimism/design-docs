@@ -40,9 +40,11 @@ For testing and experiments, the service should build blocks manually, with full
 For regular operation, and rbuilder-backed flashblocks,
 we can make the service fall back to only run the block-proposing part of sequencing: see "engine mode" section.
 
-## Increments
+## Milestones
 
-### Testing scope
+Note: milestones 1-4 are nice-to-have extensions. Milestone 0 has priority.
+
+### Milestone 0: Testing scope
 
 Test-functionality: Build the block without the engine API.
 
@@ -71,7 +73,7 @@ Building the testing functionality consists of:
 - Add a RPC method to op-node to insert the block into the canonical chain, and publish it to gossip, with a sequencer signature.
   Related problem: the existing op-node `admin_postUnsafePayload` (used by op-conductor) method doesn't
   include the block signature, so it cannot relay the block via gossip to other nodes.
-- Host new endpoints:
+- Host new endpoints (for usage in Kurtosis / e2e tests):
     - `test_open(opts: {l2Parent, l1Origin}) -> jobid`: start building a block
     - `test_includeBest(jobid)`: include best next tx from the tx-pool
     - `test_includeFirst(jobid, address)`: include best next tx from specific address from tx-pool
@@ -86,7 +88,17 @@ These RPC calls can then be used by tests to include the transactions in the des
 to create the right test scenario. E.g. coordinating a cyclic transaction dependency,
 or including an otherwise invalid transaction (invalid executing message).
 
-#### L1 mode
+Milestone 0 sub-tasks:
+- 0.0: core service definition
+- 0.1: basic empty block building, with signing, and op-node endpoints to apply block.
+- 0.2: implement essential RPC endpoints (`test_open`, `test_includeRaw`, `test_cancel`, `test_seal`)
+- 0.3: attach tx-pool
+- 0.4: implement remaining RPC endpoints
+
+Note: an RPC interface is chosen over a CLI tool, to make it more readily available in a devnet setting,
+and have a single source of truth and collected logs of block-building (test) actions.
+
+#### Milestone 1: L1 mode
 
 L1-block building shares a lot of code with L2, and can be done for testing as well.
 No system-transactions or formatted extra attributes like the Holocene `extraData` need to be inserted.
@@ -117,7 +129,7 @@ There is an `engine auto` command for automatic block-building of L1 blocks (no 
 on an interval using the engine-API.
 And it provides none of the testing or production sequencer functionality.
 
-### Production
+### Milestone 2: Production
 
 What if we want to make the test sequencer a production sequencer?
 
@@ -137,7 +149,7 @@ The following integration work is needed:
 - Support the DA-throttling RPC.
   Or better, implement proper multi-block DA congestion safe-guards.
 
-### Engine mode
+### Milestone 3: Engine mode
 
 To not only build blocks locally, we can make the service connect to a regular engine-API endpoint,
 and use that to build the blocks.
@@ -153,7 +165,7 @@ The service essentially becomes an interface for the op-conductor setup to work 
 [Flashblocks utilizes a sidecar design](https://github.com/ethereum-optimism/design-docs/pull/86),
 called rollup-boost, that enables flash-blocks to be flexibly attached between the services.
 
-### Interop experimentation
+### Milestone 4: Interop experimentation
 
 With some communication between the build processes, we can coordinate transaction-inclusion across chains.
 E.g.:
