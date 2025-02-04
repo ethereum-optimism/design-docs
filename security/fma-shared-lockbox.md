@@ -68,8 +68,8 @@ Note that the inclusion of the dependency set in the fault-proof mechanism is re
 - **Risk Assessment:** High.
     - Potential Impact: Critical. If the Solidity compiler generates incorrect or exploitable bytecode, it could introduce a hidden attack vector.
     - Likelihood: Low. The Solidity compiler is widely used and battle-tested, but compiler bugs have occurred in the past.
-- **Mitigations:** Use a widely audited Solidity version. Compare the Keccak-256 hash of the compiled bytecode against an expected reference. Track Solidity compiler CVEs to be aware of past and ongoing issues.
-- **Detection:** Verify deployed bytecode against expected hash values before proxy to target the implementation contract.
+- **Mitigations:** Use a Solidity version that has been in production for at least 6 months per the [Solidity Upgrades guidelines](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/meta/SOLIDITY_UPGRADES.md). Actively track Solidity compiler CVEs and from existing resources such as [Solidity Security Alerts](https://soliditylang.org/blog/category/security-alerts/) and [Solidity Bugs Viewer](https://00xsev.github.io/solidityBugsByVersion/) to ensure the chosen compiler version remains robust and secure.
+- **Detection:** Monitor for new vulnerabilities in the compiler and for emerging Solidity bugs.
 - **Recovery Path(s):** Pause the system if a Solidity compiler bug is identified.
 
 ### FM5: Buggy upgrade over the `SharedLockbox`
@@ -117,6 +117,7 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 - [ ]  FM2: Provide monitoring solutions.
 - [ ]  FM3: Provide tests.
 - [ ]  FM3: Implement OPCM scripts that verify `superchainConfig`.
+- [ ]  FM4: Ensure that the security team is aware of how sensitive `SharedLockbox` is to potential compiler bugs.
 - [ ]  FM7: Provide tests.
 - [ ]  Confirm the interop fault proofs are consistent with the Shared Lockbox and dependency set management implementation so that FM discussed are aligned with it and new ones aren’t expected.
 
