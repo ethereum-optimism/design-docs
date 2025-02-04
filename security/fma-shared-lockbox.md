@@ -59,7 +59,7 @@ Note that the inclusion of the dependency set in the fault-proof mechanism is re
     - Potential Impact: Critical. Since the entire access-control scheme depends on `SuperchainConfig`, all funds could potentially be extracted from the `OptimismPortal`.
     - Likelihood: Low. Storage slots and values are carefully set during protocol upgrades.
 - **Mitigations:** There should be tests for the initialization step, and ensuring that `superchainConfig` is only set once.
-- **Detection:** Verify the final `superchainConfig` address in newly deployed or upgraded contracts.
+- **Detection:** Implement a verification step in the OPCM scripts to check that the final `superchainConfig` address in newly deployed or upgraded contracts matches the expected address.
 - **Recovery Path(s):** Pause the system, to upgrade the contract to set `superchainConfig` correctly.
 
 ### FM4: Solidity Compiler generates an exploitable Bytecode
@@ -116,6 +116,7 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 - [ ]  FM2: Provide tests.
 - [ ]  FM2: Provide monitoring solutions.
 - [ ]  FM3: Provide tests.
+- [ ]  FM3: Implement OPCM scripts that verify `superchainConfig`.
 - [ ]  FM7: Provide tests.
 - [ ]  Confirm the interop fault proofs are consistent with the Shared Lockbox and dependency set management implementation so that FM discussed are aligned with it and new ones aren’t expected.
 
