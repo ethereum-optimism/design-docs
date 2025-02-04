@@ -79,7 +79,7 @@ Note that the inclusion of the dependency set in the fault-proof mechanism is re
     - Potential Impact: Critical. If an upgrade introduces a bug or an exploitable backdoor, all ETH stored in the `SharedLockbox` could be drained.
     - Likelihood: Low to Medium. Upgrades are controlled by Security Council, after governance approval. However, upgrade mistakes or compromised keys remain a risk.
 - **Mitigations:** Any new implementation must go through the audit and testing. Upgrades should not be regular in this contract and it should maintain minimal code. Upgrade procedures and keys must follows the proper security practices.
-- **Detection:** Verify proxy and implementation contracts
+- **Detection:** Verify proxy and implementation contracts through automated checks in the superchain-ops task
 - **Recovery Path(s):** Pause the system through `SuperchainConfig` to halt the `SharedLockbox`.
 
 ### FM6: Unable to add new Chains by Reaching the `uint8` limit in `addDependency`
