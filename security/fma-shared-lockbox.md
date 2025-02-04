@@ -20,7 +20,7 @@ This document covers the changes introduced by the addition of the Shared Lockbo
 Below are references for this project:
 
 - Specs PR: https://github.com/ethereum-optimism/specs/pull/465
-- Implementation: Refer to this branch https://github.com/defi-wonderland/optimism/tree/sc-feat/add-shared-lockbox (this reference is subject to change)
+- Implementation PR: https://github.com/ethereum-optimism/optimism/pull/13144
 
 Note that the inclusion of the dependency set in the fault-proof mechanism is relevant for the `SharedLockbox`, and it must function prior to the migration process of the contracts (analyzed here) to secure state transitions and thus withdrawals when a chain is added to any dependency set. The discussion around its design and implementation is still ongoing.
 
