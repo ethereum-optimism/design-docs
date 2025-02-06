@@ -55,7 +55,7 @@ Similar to the L1 MCP project, we move all of the network specific configuration
 individual contracts themselves and instead place all of it in a single place. Rather than using
 `sload` to read the values, the contracts will make a `CALL` to the L1Block contract. These values
 will be sourced from L1 via deposit transactions that come from the `SystemConfig.initialize` call.
-We need to make sure that the max deposit gas limit is at least able to fullfill these deposit
+We need to make sure that the max deposit gas limit is at least able to fulfill these deposit
 transactions.
 
 The general flow is as follows:
