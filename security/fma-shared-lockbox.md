@@ -119,6 +119,7 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 - [ ]  FM3: Implement OPCM scripts that verify `superchainConfig`.
 - [ ]  FM3: Ensure that the security team checks the storage slots before any upgrades.
 - [ ]  FM4: Ensure that the security team is aware of how sensitive `SharedLockbox` is to potential compiler bugs.
+- [ ]  FM1, FM2, FM3, FM4, FM5: Consider potential options for implementing automated pause mechanisms for the `SharedLockbox`, given the impact of these failures modes. 
 - [ ]  FM7: Provide tests.
 - [ ]  Confirm the interop fault proofs are consistent with the Shared Lockbox and dependency set management implementation so that FM discussed are aligned with it and new ones aren’t expected.
 
