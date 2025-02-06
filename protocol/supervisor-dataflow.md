@@ -28,7 +28,7 @@ Leading up to this document were two documents and a meeting:
 
 # Proposed Solution(s)
 
-This document contains a colleciton of moderate sized refactoring tasks for the OP Node and OP Supervisor which seek to make our abstractions and patterns better suited to the goals of Interop.
+This document contains a collection of moderate sized refactoring tasks for the OP Node and OP Supervisor which seek to make our abstractions and patterns better suited to the goals of Interop.
 
 ## Distinguishing Node Relationships
 First, we should define two different modes of association an OP Node can have with an OP Supervisor:
