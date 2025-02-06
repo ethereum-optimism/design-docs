@@ -61,16 +61,16 @@ The multi-threaded Fault Proof VM is specified [here](https://github.com/ethereu
 - **Risk Assessment:** High severity, Low likelihood.
 - **Mitigations:** Comprehensive testing. This includes full test coverage of every supported MIPS instruction, threading semantics, and verifying op-program execution on live chain data.
   This includes [unit and fuzz](https://github.com/ethereum-optimism/optimism/tree/eabf70498f68f321f5de003f1d443d3e3c8100b8/cannon/mipsevm/tests) testing of MIPS instructions and Linux syscalls. It also includes [testing](https://github.com/ethereum-optimism/optimism/blob/eabf70498f68f321f5de003f1d443d3e3c8100b8/cannon/mipsevm/multithreaded/state_test.go) of multithreaded specific functionality.
-- **Detection:** op-dispute-mon forecasts and alerts on undesirable game resolutions.
+- **Detection:** [op-dispute-mon](https://github.com/ethereum-optimism/optimism/tree/develop/op-dispute-mon#readme) forecasts and alerts on undesirable game resolutions.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
 ### Unimplemented syscalls or opcodes needed by `op-program`
 
-- **Description:** We only aim to implement syscalls and opcodes that are required by `op-program` so there are some unimplemented. The risk is that there is some previously untested code path that uses an opcode or syscall that we haven't implemented and this code path ends up being exercised by an input condition some time in the future.
+- **Description:** We only aim to implement syscalls and opcodes that are required by `op-program` so there are some unimplemented. It's not feasible with the time and resources available to implement an entirely general purpose VM and Linux, and this would result in a lot of additional risk due to the added complexity and unused code paths. The risk is that there is some previously untested code path that uses an opcode or syscall that we haven't implemented and this code path ends up being exercised by an input condition some time in the future.
 - **Risk Assessment:** High severity, low likelihood.
-- **Mitigations:** We periodically use Cannon to execute the op-program using inputs from op-mainnet and op-sepolia. This periodic cannon runner (vm-runner) runs on oplabs infrastructure. The vm-runner samples game inputs for the latest L2 safe head every 2 hours and uses cannon to execute the op-program using the sampled inputs. Note that this sampling does not include every game created.
+- **Mitigations:** We periodically use Cannon to execute the op-program using inputs from op-mainnet and op-sepolia. This periodic cannon runner ([vm-runner](https://github.com/ethereum-optimism/optimism/tree/develop/op-challenger/runner)) runs on oplabs infrastructure. The vm-runner samples game inputs for the latest L2 safe head every 2 hours and uses cannon to execute the op-program using the sampled inputs. Note that this sampling does not include every game created.
 Furthermore, we [sanitize](https://github.com/ethereum-optimism/optimism/blob/eabf70498f68f321f5de003f1d443d3e3c8100b8/cannon/Makefile#L51) the op-program [in CI](https://github.com/ethereum-optimism/optimism/blob/eabf70498f68f321f5de003f1d443d3e3c8100b8/.circleci/config.yml#L928C1-L929C111) for unsupported opcodes.
-- **Detection:** Alerting is setup to notify the proofs team whenever the vm-runner fails to complete a cannon run. And the CI check provides an early warning against unsupported opcodes.
+- **Detection:** [Alerting](https://github.com/ethereum-optimism/k8s/blob/master/grafana-cloud/rules/challenger.yaml#L90-L110) is setup to notify the proofs team whenever the vm-runner fails to complete a cannon run. And the CI check provides an early warning against unsupported opcodes.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
 ### Insufficient memory in the program
@@ -78,7 +78,7 @@ Furthermore, we [sanitize](https://github.com/ethereum-optimism/optimism/blob/ea
 - **Description:** The op-program may run out of memory, causing it to crash.
 - **Risk Assessment:** High severity, low likelihood.
 - **Mitigations:** The 64-bit address space virtually eliminates memory exhaustion risks. Go's concurrent garbage collector automatically manages memory through scheduled background goroutines.
-- **Detection:** op-dispute-mon forecasts and alerts on undesirable game resolutions that would result due to a program crash.
+- **Detection:** [op-dispute-mon](https://github.com/ethereum-optimism/optimism/tree/develop/op-dispute-mon#readme) forecasts and alerts on undesirable game resolutions that would result due to a program crash.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
 ### Compromised Control Flow in the program
@@ -86,8 +86,8 @@ Furthermore, we [sanitize](https://github.com/ethereum-optimism/optimism/blob/ea
 - **Description:** This could theoretically occur when the op-program runs out of memory in a way that lets the attacker reuse code to subvert execution.
 - **Risk Assessment:** High severity, low likelihood.
   - Low likelihood: This requires an attacker to craft inputs that not only induce high memory usage, but also corrupt or spray the heap in a way that either produces invalid fault proofs or prevents valid fault proofs from being generated.
-- **Mitigations:** As with [Insufficient memory in the program](#insufficient-memory-in-the-program), the 64-bit address space effectively prevents this from occurring. Furthermore, the Go runtime checks memory allocations against heap corruption. However, such memory protections may not hold due to bugs in the Go runtime.
-- **Detection:** op-dispute-mon forecasts and alerts on undesirable game resolutions that would result due to honest claims being disputed at the bottom of the game tree.
+- **Mitigations:** As with [Insufficient memory in the program](#insufficient-memory-in-the-program), the 64-bit address space effectively prevents this from occurring. Furthermore, the Go runtime checks memory allocations against heap corruption. However, such memory protections may not hold due to bugs in the Go runtime. Using the `unsafe` package in go can lead to unexpected behavior and we don't use it in op-program.
+- **Detection:** [op-dispute-mon](https://github.com/ethereum-optimism/optimism/tree/develop/op-dispute-mon#readme) forecasts and alerts on undesirable game resolutions that would result due to honest claims being disputed at the bottom of the game tree.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
 ### Unknown Absolute Prestate
@@ -106,7 +106,7 @@ Lastly, there exists a [CI check in the monorepo](https://github.com/ethereum-op
 
 ### Failure to run correct VM based on absolute prestate input
 
-- **Description:** The off-chain Cacurrent version of the nnon [attempts to run the correct VM version based on the absolute prestate input](https://github.com/ethereum-optimism/design-docs/blob/0034943e42b8ab5f9dd9ded2ef2b6b55359c922c/cannon-state-versioning.md). If it doesn't work correctly the on-chain steps would not match.
+- **Description:** The off-chain version of Cannon [attempts to run the correct VM version based on the absolute prestate input](https://github.com/ethereum-optimism/design-docs/blob/0034943e42b8ab5f9dd9ded2ef2b6b55359c922c/cannon-state-versioning.md). If it doesn't work correctly the on-chain steps would not match.
 - **Risk Assessment:** Medium severity, low likelihood.
 - **Mitigations:** Multicannon mitigates this issue by embedding a variety of cannon STFs into a single binary. This shifts the concern of ensuring the correct VM selection to multicannon. We also run multicannon on oplabs infra via the vm-runner, to assert the multicannon binary was built correctly.
 - **Detection:** This can be detected by manual review. Failing that, it would only be detected when malicious activity occurs and an honest op-challenger fails to generate a fault proof.
@@ -118,13 +118,13 @@ Lastly, there exists a [CI check in the monorepo](https://github.com/ethereum-op
 - **Risk Assessment:** High severity, low likelihood.
 - **Mitigations:** [Diffeerential testing](https://github.com/ethereum-optimism/optimism/tree/eabf70498f68f321f5de003f1d443d3e3c8100b8/cannon/mipsevm/tests) asserts identical on-chain and off-chain execution.
 - **Detection:** An op-challenger fails to fault prove an invalid claim using a witness generated offchain.
-- **Recovery Path(s)**: Depends on the specifics. If the onchain VM implementation is "more correct", then fixing this can be done solely offchain. Otherwise, a governance vote will be needed. As usual, the [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f) provides the best guidance on this.
+- **Recovery Path(s)**: Depends on the specifics. If the off-chain version is changed to match the onchain VM implementation, then fixing this can be done solely offchain. In the opposite case (changing the onchain version to match the off-chain version) a governance vote will be needed. As usual, the [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f) provides the best guidance on this.
 
 ### Livelocks in the fault proof
 
 - **Description:** A livelocked execution prevents an honest challenger from generating a fault proof.
 - **Risk Assessment:** High severity, low likelihood.
-- **Mitigations:** Manual review of the op-program and a quick review of Go runtime internals. The op-program uses 3 threads, and only one of those threads is used by the mutator main function. This makes livelocks very unlikely. This [issue](https://github.com/ethereum-optimism/optimism/issues/11979) looks into the livelock problem with possible solutions. The proposed solutions are deferred for future work as the risk of a livelock is considered too low to be addressed immediately.
+- **Mitigations:** Manual review of the op-program and a quick review of Go runtime internals. The op-program uses 3 threads, and only one of those threads is used by the mutator main function. This makes livelocks very unlikely. We looked into the livelock problem and there are possible solutions but they're deferred for future work as the risk of a livelock is considered too low to be addressed immediately.
 - **Detection:** This would manifest as an execution that runs forever. Eventually, but well before the dispute period ends, op-dispute-mon will indicate that a game is forecasted to resolve incorrectly.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
@@ -155,7 +155,7 @@ As such, there will be a brief moment where there are two sets of `CANNON` games
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [ ] Third-party audit the offchain and onchain VM implementation and specification (Assignee: @inphi)
-- [ ] Add a healthcheck for the vm-runner (Assignee: @pauldowman)
+- [ ] [Add a healthcheck for the vm-runner (Assignee: @pauldowman)](https://github.com/ethereum-optimism/k8s/pull/5424)
 
 ## Audit requirements
 
