@@ -79,7 +79,8 @@ Below are references for this project:
 
 ### Generic items we need to take into account:
 
-See [./fma-generic-hardfork.md](./fma-generic-hardfork.md).
+See [generic hardfork failure modes](./fma-generic-hardfork.md) and [generic smart contract failure modes](./fma-generic-contracts.md).
+Incorporate any applicable failure modes with FMA-specific mitigations and detections directly into this document.
 
 - [ ] Check this box to confirm that these items have been considered and updated if necessary.
 
