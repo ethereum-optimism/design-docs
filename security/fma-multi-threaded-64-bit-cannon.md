@@ -154,11 +154,11 @@ As such, there will be a brief moment where there are two sets of `CANNON` games
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
-- [ ] Third-party audit the offchain and onchain VM implementation and specification (Assignee: @inphi)
+- [x] Third-party audit the offchain and onchain VM implementation and specification (Assignee: @inphi)
 - [ ] [Add a healthcheck for the vm-runner (Assignee: @pauldowman)](https://github.com/ethereum-optimism/k8s/pull/5424)
 
 ## Audit requirements
 
 An audit of the multithreaded VM is not required per the [OP Labs Audit Framework](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864).
 A failure in the new Cannon VM and thus dispute games is mitigated by an airgap in finalized withdrawals. Furthermore, there's a window whereby the Security Council can override the results of invalid games.
-Nonetheless, we will be auditing the new VM.
+Nonetheless, out of an abundance of caution, it has been [audited by Spearbit](https://github.com/ethereum-optimism/optimism/pull/14218/files) and internally by Base.
