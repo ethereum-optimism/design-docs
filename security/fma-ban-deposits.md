@@ -57,6 +57,16 @@ Note that this FMA doesn’t intend to cover the main features of core interop c
 - **Detection:** It is possible to monitor new incoming deposits and simulate them before to include in L2. This also would allow the sequencer to delay the deposit’s inclusion until the sequencing window ends, in order to have a delay a a time buffer to fix the issue. Otherwise, chain will face a halt after deposit is tried to be included, which is easily detected.
 - **Recovery Path(s):** A chain halt followed by a fix and a reorg would be necessary.
 
+### FM2: `upgradeTxs` include an invalid `ExecutingMessage`
+
+- **Description:** The `isDeposit` bool is set off before the upgrade transactions, which are force-included. This implies that, if an upgrade transaction includes a call to `validateMessage`, the sequencer will be forced to include it, even if it doesn't point to an existing identifier.
+- **Risk Assessment:** Medium.
+    - Potential Impact: High. It could impact the same way described in FM1.
+    - Likelihood: Low. An upgrade transaction should not call `validateMessage()` unless it is somehow intended to (and therefore not malicious). What's more, every upgrade transaction should bypass many security checks.
+- **Mitigations:** Ideally, `upgradeTxs` should be enforced to be part of the deposit context, but since such upgrades have sudo privileges by nature—including the ability to turn off/remove the `isDeposit` flag—protocol changes would be required to actually enforce this rule. With the current implementation, during operations, every upgrade transaction should be simulated. An invalid Superchain state would be caught by the `op-supervisor` in simulations.
+- **Detection:** Upgrades are heavily monitored transactions, making it very unlikely to go unnoticed.
+- **Recovery Path(s):** Recovery would be similar to other bugged upgrades. See [Generic Hardfork FMA](https://github.com/ethereum-optimism/design-docs/blob/main/security/fma-generic-hardfork.md) for more details.
+
 ### FM2: `isDeposit` is not turned off after deposit transactions
 
 - **Description:** If the `depositComplete` call within `L1BlockInterop` fails or is never initiated, the `isDeposit` flag might remain on. This would imply that every call to `validateMessage` will be seen as a deposit and therefore revert.
@@ -66,16 +76,6 @@ Note that this FMA doesn’t intend to cover the main features of core interop c
 - **Mitigations:** Our current codebase includes tests to check `L1BlockInterop` set `isDeposit` as `false` after the deposit context ends ([test](https://github.com/ethereum-optimism/optimism/blob/ef6ef6fd45fc2b7ccd4bc06dc7e24f75c0dda362/packages/contracts-bedrock/test/L2/L1BlockInterop.t.sol#L292)). The security team should know this issue and check for it in every protocol version.
 - **Detection:** Offchain services should be aware of this possibility for `validateMessage` reverts.
 - **Recovery Path(s):** Execute the proper fixes depending on whether it was a sequencer or contract error. Valid reverted messages can be re executed on destination, or resent if expired.
-
-### FM3: `upgradeTxs` include an invalid `ExecutingMessage`
-
-- **Description:** The `isDeposit` bool is set off before the upgrade transactions, which are force-included. This implies that, if an upgrade transaction includes a call to `validateMessage`, the sequencer will be forced to include it, even if it doesn't point to an existing identifier.
-- **Risk Assessment:** Low to Medium.
-    - Potential Impact: High. It could impact the same way described in FM1.
-    - Likelihood: Low. An upgrade transaction should not call `validateMessage()` unless it is somehow intended to (and therefore not malicious). What's more, every upgrade transaction should bypass many security checks.
-- **Mitigations:** Every upgrade transaction should be simulated. An invalid Superchain state would be caught by the `op-supervisor` in simulations.
-- **Detection:** Upgrades are heavily monitored transactions, making it very unlikely to go unnoticed.
-- **Recovery Path(s):** Recovery would be similar to other bugged upgrades. See [Generic Hardfork FMA](https://github.com/ethereum-optimism/design-docs/blob/main/security/fma-generic-hardfork.md) for more details.
 
 ### Generic items we need to take into account:
 
@@ -87,6 +87,7 @@ Note that this FMA doesn’t intend to cover the main features of core interop c
 - [ ]  Resolve all the comments.
 - [ ]  FM1: Confirm whether the suggested changes to `op-geth` are considered (and implemented) or if other options are chosen.
 - [ ]  FM1: Confirm whether deposit simulations and procedures are feasible or if alternative monitoring methods are being considered (as action items).
+- [ ]  FM2: Confirm that the security team is aware of the lack of restrictions over upgradeTxs and closely monitor any future upgrade to ensure it does not call `validateMessage`.
 
 ## Audit Requirements
 
