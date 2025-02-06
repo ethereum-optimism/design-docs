@@ -87,7 +87,7 @@ Note that this FMA doesn’t intend to cover the main features of core interop c
 - [ ]  Resolve all the comments.
 - [ ]  FM1: Confirm whether the suggested changes to `op-geth` are considered (and implemented) or if other options are chosen.
 - [ ]  FM1: Confirm whether deposit simulations and procedures are feasible or if alternative monitoring methods are being considered (as action items).
-- [ ]  FM2: Confirm that the security team is aware of the lack of restrictions over upgradeTxs and closely monitor any future upgrade to ensure it does not call `validateMessage`.
+- [ ]  FM2: Confirm that the security team is aware of the lack of restrictions over upgradeTxs and closely monitor any future upgrade to ensure it does not call `validateMessage`. Ideally, we would like to have strong restrictions for `upgradeTxs`.
 
 ## Audit Requirements
 
