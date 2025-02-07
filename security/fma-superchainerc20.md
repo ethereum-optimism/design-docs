@@ -111,6 +111,7 @@ The following action items need to be done:
 - [ ]  Resolve all the comments.
 - [ ]  FM1: Implement tests for `SuperchainTokenBridge` predeploy. Currently, the L2 Genesis project is under development and it should take care of these tests.
 - [ ]  FM1: Run an off-chain script to monitor `crosschainMint` and `crosschainBurn` events for parity and consistency with the expected `msg.sender` (`SuperchainTokenBridge`). (Owned by OP Labs)
+- [ ]  FM1: Communicate with the team responsible for responding to alerts about the need to define how issues will be raised to the security team.
 - [ ]  FM2, FM3, FM4: Communicate to bridge frontends to ensure they prevent users from sending tokens to a chain where the token doesn’t exist.
 - [ ]  FM4, FM5: Ensure that the documentation for SuperchainERC20 developers explains the need for deterministic deployment and how to achieve it, including that constructor args affect the resulting address, requiring consistency across chains.
-- [ ]  Ensure the support team is aware of these failure modes and prepared to respond.
+- [ ]  FM1, FM2, FM3, FM5: Communicate with the team in charge of responding to user-submitted support tickets about the need to create runbooks and define how issues are escalated to the security team or returned to the user when security involvement is not required.
