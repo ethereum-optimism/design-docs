@@ -111,13 +111,13 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 ## Action Items
 
 - [ ]  Resolve all the comments.
-- [ ]  FM1: Provide tests.
+- [ ]  FM1: Provide tests. (Wonderland)
 - [ ]  FM1: Provide monitoring solutions.
-- [ ]  FM2: Provide tests.
+- [ ]  FM2: Provide tests. (Wonderland)
 - [ ]  FM2: Provide monitoring solutions.
-- [ ]  FM3: Provide tests.
+- [ ]  FM3: Provide tests. (Wonderland)
 - [ ]  FM3: Implement OPCM scripts that verify `superchainConfig`.
-- [ ]  FM3: Ensure that the security team checks the storage slots before any upgrades.
+- [ ]  FM3: Ensure that the security team has a procedure in place to check storage slots before performing any upgrades.
 - [ ]  FM4: Ensure that the security team is aware of how sensitive `SharedLockbox` is to potential compiler bugs.
 - [ ]  FM1, FM2, FM3, FM4, FM5: Consider potential options for implementing automated pause mechanisms for the `SharedLockbox`, given the impact of these failures modes. 
 - [ ]  FM7: Provide tests.
