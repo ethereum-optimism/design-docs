@@ -33,6 +33,37 @@ Below are references for this project:
 - [Specs clarification (Logs)](https://specs.optimism.io/protocol/derivation.html#on-future-proof-transaction-log-derivation)
 - [Specs clarification (L1 Retrieval)](https://specs.optimism.io/protocol/derivation.html#l1-retrieval)
 
+## Failure Modes and Recovery Paths
+
+### FM1: Incidental breaking changes from upstream geth
+
+- **Description:** Incidental changes from merging upstream geth cause unexpected problems. Example: database schema change can break op-geth nodes on rollout.
+- **Risk Assessment:** Medium severity, Medium Likelihood
+- **Mitigations:**:
+  1. Our usual staggered rollout and baking processes should catch most problems early.
+  2. Prepare appropriate runbook(s) detailing how nodes may need to be carefully migrated.
+- **Detection:** Alerts from our own infrastructure and/or that of partners'.
+- **Recovery Path(s)**: Follow the above runbook.
+
+### FM2: Consensus bug specific to Pectra upgrade on L1 (client software)
+
+- **Description:** L2 EL/CL clients are not able to parse and/or validate blocks when Pectra goes live on L1, those nodes may halt.
+- **Risk Assessment:** High severity, Low Likelihood
+- **Mitigations:**:
+  1. We will rely on unit tests, end-to-end tests and cross-client devnet acceptance tests to ensure no client halts when L1 activates Pectra.
+  2. If upstream work does not yet allow for appropriate end-to-end tests, we can patch our L1 clients in the testing environment(s) so we can still run the tests.
+- **Detection:** Manual or (preferably) automated/scheduled testing.
+- **Recovery Path(s)**: The affected clients would need to be patched as soon as possible and new releases cut. 
+
+### FM3: Consensus bug specific to Pectra upgrade on L1 (proof system)
+
+- **Description:** If any fault proof program is unable parse and/or validate blocks when Pectra goes live on L1, it may be impossible to prove correct blocks and defend against malicious challenges.
+- **Risk Assessment:** High severity, Low Likelihood
+- **Mitigations:**:
+  1. Our end-to-end tests include coverage for `op-program` (this runs in CI) as well as `kona` (this has been run manually and passes).
+  2. If upstream work does not yet allow for appropriate end-to-end tests, we can patch our L1 clients in the testing environment(s) so we can still run the tests.
+- **Detection:** Manual or (preferably) automated/scheduled testing.
+- **Recovery Path(s)**: The affected programs would need to be patched as soon as possible and new releases cut. 
 
 ## Generic Items
 
