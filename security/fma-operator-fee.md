@@ -19,7 +19,7 @@
 | Created at         | 2025-01-08                                         |
 | Initial Reviewers  |                                                    |
 | Need Approval From | maurelian                                          |
-| Status             | Draft                                              |
+| Status             | In Review                                          |
 
 ## Introduction
 
@@ -43,9 +43,9 @@ Below are references for this project:
 - **Risk Assessment:**
   High impact, low likelihood.
   **Mitigations:**
-  Every update to the operator fee scalars should be carefully tested and reviewed before deployment.
+  Before setting or updating the operator fee params, the operator should carefully read the [corresponding specs](https://specs.optimism.io/protocol/isthmus/exec-engine.html#operator-fee) and simulate the impact of operator fee on the whole transaction cost.
 - **Detection:** 
-  Monitoring gas cost estimation.
+  Monitor the transaction costs and alert if it's above a threshold.
 - **Recovery Path(s)**:
   If the operator fee parameters are set to unreasonable values, the rollup operator should update the `operatorFeeScalar` and `operatorFeeConstant` to reasonable values as soon as possible.
 
@@ -69,9 +69,13 @@ Below are references for this project:
 - **Risk Assessment:**
   Medium impact, low likelihood.
 - **Mitigations:**
-  Extensive testing of receipt hydration with various transaction types and fee configurations. Ensure backwards compatibility with existing receipt formats.
+  Action and E2E tests covering the receipt hydration logic has been added.
+
+  * [Fee E2E test](https://github.com/ethereum-optimism/optimism/blob/develop/op-e2e/system/fees/fees_test.go)
+  * [Operator Fee Constistency action test](https://github.com/ethereum-optimism/optimism/blob/develop/op-e2e/actions/proofs/operator_fee_test.go)
+
 - **Detection:**
-  Monitor transaction receipts and compare reported fees with expected calculations. Watch for discrepancies in accounting systems.
+  The action or E2E tests or local testing may pick up an issue.
 - **Recovery Path(s):**
   Deploy fix for receipt hydration logic. Historical receipts will remain incorrect but can be recalculated using on-chain data if needed.
 
@@ -90,10 +94,22 @@ Below are references for this project:
   - Use archive nodes to maintain historical data.
   - Consider implementing receipt compression retroactively if needed.
 
+### Generic items we need to take into account: `L1Block` badly hydrated
+
+- **Description:** At each hardfork, new data can be add to the `L1Block` contract, and the method called to hydrate it change (for instance
+    `setL1BlockValuesEcotone` to `setL1BlockValuesIsthmus`). If there is a bug in a future method ending up to operator fee params no
+    longer being updated in the `L1Block` contract, the operator fee will no longer be taken into account in transactions fee.
+- **Risk Assessment:** medium severity / low likelihood
+- **Mitigations:** 
+    The [Operator Fee Constistency](https://github.com/ethereum-optimism/optimism/blob/develop/op-e2e/actions/proofs/operator_fee_test.go ) action test runs with all known hardforks activated at genesis, and checks that operator fee parameters are correctly reported to the `L1Block` contract.
+- **Detection:** 
+    The action or E2E tests or local testing may pick up an issue.
+- **Recovery Path(s):**
+    - If the bug is located in op-node, a new version must be deployed.
+    - If the bug is located in the `L1Block` contract, the contract must be upgraded to fix the bug.
+
 ## Action Items
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
-- [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
-- [ ] _Action item 2 (Assignee: tag assignee)_
-- [ ] _Action item 3 (Assignee: tag assignee)_
+- [ ] Coordinate with wallet providers to update their fee estimation logic
