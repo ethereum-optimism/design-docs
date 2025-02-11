@@ -17,8 +17,8 @@
 | ------------------ | -------------------------------------------------- |
 | Author             | leruaa                                             |
 | Created at         | 2025-01-08                                         |
-| Initial Reviewers  |                                                    |
-| Need Approval From | maurelian                                          |
+| Initial Reviewers  |  Mark Tyneway                                      |
+| Need Approval From | Blaine Malone                                      |
 | Status             | In Review                                          |
 
 ## Introduction
@@ -45,7 +45,9 @@ Below are references for this project:
   **Mitigations:**
   Before setting or updating the operator fee params, the operator should carefully read the [corresponding specs](https://specs.optimism.io/protocol/isthmus/exec-engine.html#operator-fee) and simulate the impact of operator fee on the whole transaction cost.
 - **Detection:** 
-  Monitor the transaction costs and alert if it's above a threshold.
+  By default, the operator fee parameters are set to 0 and the feature is disabled. There are [E2E tests](https://github.com/ethereum-optimism/optimism/blob/develop/op-e2e/system/fees/fees_test.go) that ensure there is no impact on the transaction cost when the operator fee is disabled.
+
+  On chains that enable operator fee, the operator should monitor the transaction cost and ensure that the operator fee is not too high.
 - **Recovery Path(s)**:
   If the operator fee parameters are set to unreasonable values, the rollup operator should update the `operatorFeeScalar` and `operatorFeeConstant` to reasonable values as soon as possible.
 
@@ -54,11 +56,12 @@ Below are references for this project:
 - **Description:** 
   If wallets fail to update their fee estimation logic, users will no longer be shown the accurate costs of a transaction.
 - **Risk Assessment:**
+  This failure mode can only happen on chains that enable the operator fee feature.
   Medium impact, medium likelihood.
   **Mitigations:**
   Coordinate with wallet providers to update their fee estimation logic. This includes MetaMask, Coinbase Wallet, and others.
 - **Detection:** 
-  Confirm that wallets are using the correct fee estimation logic post-launch. This can be done manually on chains that have added an operator fee.
+  Using a given waalet, compare the estimated transaction cost with the actual transaction cost, and check if the difference relates to the operator fee, using the formula.
 - **Recovery Path(s)**:
   Notify wallets of the new fee structure and ask them to update their fee estimation logic if the operator fee is enabled.
 
@@ -77,7 +80,7 @@ Below are references for this project:
 - **Detection:**
   The action or E2E tests or local testing may pick up an issue.
 - **Recovery Path(s):**
-  Deploy fix for receipt hydration logic. Historical receipts will remain incorrect but can be recalculated using on-chain data if needed.
+  Deploy fix for receipt hydration logic. Historical receipts will remain incorrect but can be recalculated using on-chain data if needed. The fix will not require a hardfork.
 
 ### FM4: Database Growth Impact on Nodes
 
