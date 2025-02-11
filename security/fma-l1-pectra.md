@@ -63,7 +63,16 @@ Below are references for this project:
   1. Our end-to-end tests include coverage for `op-program` (this runs in CI) as well as `kona` (this has been run manually and passes).
   2. If upstream work does not yet allow for appropriate end-to-end tests, we can patch our L1 clients in the testing environment(s) so we can still run the tests.
 - **Detection:** Manual or (preferably) automated/scheduled testing.
-- **Recovery Path(s)**: The affected programs would need to be patched as soon as possible and new releases cut. 
+- **Recovery Path(s)**: The affected programs would need to be patched as soon as possible and new releases cut
+
+### FM4: Bug in OP Contracts Manager
+
+- **Description:** The changes to L1 contracts which are required for this upgrade are being executed by a new path. Any bug could cause a failure of the fault proofs system (see FM3). 
+- **Risk Assessment:** High severity, Medium Likelihood
+- **Mitigations:**:
+TODO
+- **Detection:** 
+- **Recovery Path(s)**: Any bugs would need to be patched as soon as possible. We can fallback to the old upgrade path using superchain-ops tasks with manually prepared calldata. 
 
 ## Generic Items
 
