@@ -45,7 +45,7 @@ Below are references for this project:
 - **Detection:** Alerts from our own infrastructure and/or that of partners'.
 - **Recovery Path(s)**: Follow the above runbook.
 
-### FM2: Consensus bug specific to Pectra upgrade on L1 (client software)
+### FM2: Consensus bug (client software)
 
 - **Description:** L2 EL/CL clients are not able to parse and/or validate blocks when Pectra goes live on L1, those nodes may halt. This could happen a) if operators do not update their nodes to a suitable release or release candidate before Pectra activates on L1 or b) no such release is available in time or c) there is a bug in such releases.
 - **Risk Assessment:** High severity, Low Likelihood
@@ -55,7 +55,7 @@ Below are references for this project:
 - **Detection:** Manual or (preferably) automated/scheduled testing.
 - **Recovery Path(s)**: The affected clients would need to be patched as soon as possible and new releases cut. 
 
-### FM3: Consensus bug specific to Pectra upgrade on L1 (proof system)
+### FM3: Consensus bug (proof system)
 
 - **Description:** If any fault proof program is unable parse and/or validate blocks when Pectra goes live on L1, it may be impossible to prove correct blocks and defend against malicious challenges. See FM2 for various scenarios which trigger this failure mode. 
 - **Risk Assessment:** High severity, Low Likelihood
