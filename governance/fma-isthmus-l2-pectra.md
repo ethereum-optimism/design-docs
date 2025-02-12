@@ -19,16 +19,16 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-_Italics are used to indicate things that need to be replaced._
+<!-- _Italics are used to indicate things that need to be replaced._ -->
 
 |                    |                                                    |
 | ------------------ | -------------------------------------------------- |
 | Author             | Julian Meyer                                       |
 | Created at         | 2025-02-10                                         |
-| Initial Reviewers  | refcell                 |
-| Need Approval From |                            |
-| Status             | Draft |
-
+| Initial Reviewers  | refcell                                            |
+| Need Approval From |                                                    |
+| Status             | In Review 🔎                                       |
+<!-- 
 > [!NOTE]
 > 📢 Remember:
 >
@@ -47,7 +47,7 @@ _Italics are used to indicate things that need to be replaced._
 > - Include both implementation and operational failure modes
 > - Provide references to support the reviewer.
 > - The size of the document will likely be proportional to the project's complexity.
-> - The ultimate goal of this document is to identify action items to improve the security of the project. The FMA review process can be accelerated by proactively identifying action items during the writing process.
+> - The ultimate goal of this document is to identify action items to improve the security of the project. The FMA review process can be accelerated by proactively identifying action items during the writing process. -->
 
 ## Introduction
 
