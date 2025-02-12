@@ -39,7 +39,7 @@ Below are references for this project:
 ### FM1: Operator Fee scalars are set to incorrect values
 
 - **Description:** 
-  If the operator fee scalars are incorrectly initialized or updated, there is a risk that the transcations fees will be too high. This could lead to a situation where the chain become unusable.
+  If the operator fee scalars are incorrectly initialized or updated, there is a risk that the transactions fees will be too high. This could lead to a situation where the chain becomes unusable.
 - **Risk Assessment:**
   High impact, low likelihood.
   **Mitigations:**
@@ -51,6 +51,8 @@ Below are references for this project:
 - **Recovery Path(s)**:
   If the operator fee parameters are set to unreasonable values, the rollup operator should update the `operatorFeeScalar` and `operatorFeeConstant` to reasonable values as soon as possible.
 
+  With cast it can be done like this: `cast send <l1_system_config_address> "setOperatorFeeScalars(uint32, uint64)" <operator_fee_scalar> <operator_fee_constant>`
+
 ### FM2: Broken Fee Estimation (Wallets)
 
 - **Description:** 
@@ -61,7 +63,7 @@ Below are references for this project:
   **Mitigations:**
   Coordinate with wallet providers to update their fee estimation logic. This includes MetaMask, Coinbase Wallet, and others.
 - **Detection:** 
-  Using a given waalet, compare the estimated transaction cost with the actual transaction cost, and check if the difference relates to the operator fee, using the formula.
+  Using a given wallet, compare the estimated transaction cost with the actual transaction cost, and check if the difference relates to the operator fee, using the formula.
 - **Recovery Path(s)**:
   Notify wallets of the new fee structure and ask them to update their fee estimation logic if the operator fee is enabled.
 
@@ -75,12 +77,12 @@ Below are references for this project:
   Action and E2E tests covering the receipt hydration logic has been added.
 
   * [Fee E2E test](https://github.com/ethereum-optimism/optimism/blob/develop/op-e2e/system/fees/fees_test.go)
-  * [Operator Fee Constistency action test](https://github.com/ethereum-optimism/optimism/blob/develop/op-e2e/actions/proofs/operator_fee_test.go)
+  * [Operator Fee Consistency action test](https://github.com/ethereum-optimism/optimism/blob/develop/op-e2e/actions/proofs/operator_fee_test.go)
 
 - **Detection:**
   The action or E2E tests or local testing may pick up an issue.
 - **Recovery Path(s):**
-  Deploy fix for receipt hydration logic. Historical receipts will remain incorrect but can be recalculated using on-chain data if needed. The fix will not require a hardfork.
+  Deploy fix for receipt hydration logic. Historical receipts will remain incorrect but can be recalculated using on-chain data if needed. The fix would be on the execution layer and will not require a hardfork.
 
 ### FM4: Database Growth Impact on Nodes
 
