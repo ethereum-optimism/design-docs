@@ -78,7 +78,8 @@ Furthermore, we [sanitize](https://github.com/ethereum-optimism/optimism/blob/ea
 - **Description:** The op-program may run out of memory, causing it to crash.
 - **Risk Assessment:** High severity, low likelihood.
 - **Mitigations:** The 64-bit address space virtually eliminates memory exhaustion risks. Go's concurrent garbage collector automatically manages memory through scheduled background goroutines.
-- **Detection:** [op-dispute-mon](https://github.com/ethereum-optimism/optimism/tree/develop/op-dispute-mon#readme) forecasts and alerts on undesirable game resolutions that would result due to a program crash.
+- **Detection:** - [op-dispute-mon](https://github.com/ethereum-optimism/optimism/tree/develop/op-dispute-mon#readme) forecasts and alerts on undesirable game resolutions that would result due to a program crash.
+- Also in case of high memory usage or potential OOM the proof team oncall would be alerted.
 - **Recovery Path(s)**: See [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f).
 
 ### Compromised Control Flow in the program
