@@ -173,7 +173,7 @@ Below is what needs to be done before launch to reduce the chances of the above 
 <!-- 
 _Given the failure modes and action items, will this project require an audit? See [OP Labs Audit Framework: When to get external security review and how to prepare for it](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864) for a reference decision making framework. Please explain your reasoning._ -->
 
-**No.**
+**This project should not require an audit.**
 
 - The security concerns in this project affect liveness more than safety.
   - None of these failures would cause a loss of user funds.
