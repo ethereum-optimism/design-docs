@@ -22,7 +22,7 @@
 
 This document is intended to be shared in a public space for reviews and visibility purposes. It covers Upgrade 12, which involves the following changes:
 
-- (Consensus Layer) Ability to parse and validate blocks and receipts with EIP-7702 transactions, as well as blocks with a non-nil EIP-7685 requestsHash field. 
+- (Consensus Layer) Ability to parse and validate blocks and receipts with EIP-7702 transactions, as well as blocks with a non-nil EIP-7685 requestsHash field.
 - (Smart Contracts) For chains using Fault Proofs, L1 contracts updates which reference an updated absolute prestate hash
 
 Each change has its own section below with a list of Failure Modes.
@@ -53,11 +53,11 @@ Below are references for this project:
   1. We will rely on unit tests, end-to-end tests and cross-client devnet acceptance tests to ensure no client halts when L1 activates Pectra.
   2. If upstream work does not yet allow for appropriate end-to-end tests, we can patch our L1 clients in the testing environment(s) so we can still run the tests.
 - **Detection:** Manual or (preferably) automated/scheduled testing.
-- **Recovery Path(s)**: The affected clients would need to be patched as soon as possible and new releases cut. 
+- **Recovery Path(s)**: The affected clients would need to be patched as soon as possible and new releases cut.
 
 ### FM3: Consensus bug (proof system)
 
-- **Description:** If any fault proof program is unable parse and/or validate blocks when Pectra goes live on L1, it may be impossible to prove correct blocks and defend against malicious challenges. See FM2 for various scenarios which trigger this failure mode. 
+- **Description:** If any fault proof program is unable parse and/or validate blocks when Pectra goes live on L1, it may be impossible to prove correct blocks and defend against malicious challenges. See FM2 for various scenarios which trigger this failure mode.
 - **Risk Assessment:** High severity, Low Likelihood
 - **Mitigations:**:
   1. Our end-to-end tests include coverage for `op-program` (this runs in CI) as well as `kona` (this has been run manually and passes).
@@ -67,16 +67,18 @@ Below are references for this project:
 
 ### FM4: Bug in OP Contracts Manager
 
-- **Description:** The changes to L1 contracts which are required for this upgrade are being executed by a new path. Any bug could cause a failure of the fault proofs system (see FM3). 
+- **Description:** The changes to L1 contracts which are required for this upgrade are being executed by a new path. Any bug could cause a failure of the fault proofs system (see FM3).
 - **Risk Assessment:** High severity, Medium Likelihood
 - **Mitigations:**:
-TODO
-- **Detection:** 
-- **Recovery Path(s)**: Any bugs would need to be patched as soon as possible. We can fallback to the old upgrade path using superchain-ops tasks with manually prepared calldata. 
+  - The superchain-ops tasks will include both manual checking (in Validations.md) and automated checking (in NestedSignFromJson.s.sol). Thus although the manner of executing the upgrade is changing, we are maintaining the
+    pre-existing methods of fully validating the resulting system.
+- **Detection:**
+  - If a system is misconfigured despite the mitigations, we would not have a predictable method of detecting such issues.
+- **Recovery Path(s)**: Any bugs would need to be patched as soon as possible. We can fallback to the old upgrade path using superchain-ops tasks with manually prepared calldata.
 
 ## Generic Items
 
-Although this upgrade is technically a soft fork (it does not need to be coordinated across nodes other than being applied before Pectra activates on L1) many of the items in [./fma-generic-hardfork.md](./fma-generic-hardfork.md) apply. In particular: 
+Although this upgrade is technically a soft fork (it does not need to be coordinated across nodes other than being applied before Pectra activates on L1) many of the items in [./fma-generic-hardfork.md](./fma-generic-hardfork.md) apply. In particular:
 - Chain Halt at activation
 - Activation failure (node software)
 - Invalid `DisputeGameFactory.setImplementation` execution.
