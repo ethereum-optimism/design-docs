@@ -40,13 +40,13 @@
 
 _Italics are used to indicate things that need to be replaced._
 
-|                    |                |
-| ------------------ | -------------- |
-| Author             | wildmolasses   |
-| Created at         | 2025-01-22     |
-| Initial Reviewers  | smartcontracts |
-| Need Approval From |                |
-| Status             | Draft          |
+|                    |                          |
+| ------------------ | ------------------------ |
+| Author             | wildmolasses             |
+| Created at         | 2025-01-22               |
+| Initial Reviewers  | smartcontracts           |
+| Need Approval From | Matt Solomon, Josep Bové |
+| Status             | In Review                |
 
 ## Introduction
 
@@ -65,10 +65,10 @@ Below are references for this project:
   - [FDG Refund Mode](https://github.com/ethereum-optimism/design-docs/blob/b807dc5880f48a3631222e7f519c02a7668f2493/protocol/proofs/fdg-refund-mode.md)
   - [Withdrawal Invalidation Mitigation](https://github.com/ethereum-optimism/design-docs/blob/b807dc5880f48a3631222e7f519c02a7668f2493/protocol/proofs/withdrawal-invalidation-mitigation.md)
 - Specifications
-  - [Fault Dispute Game/Bond Incentives - DRAFT](https://github.com/ethereum-optimism/specs/pull/524/files)
-  - [Portal - DRAFT](https://github.com/ethereum-optimism/specs/pull/519/files)
-  - [AnchorStateRegistry - DRAFT](https://github.com/ethereum-optimism/specs/pull/517/files)
-  - [DelayedWETH - DRAFT](https://github.com/ethereum-optimism/specs/blob/a0c94920a3c3b6b3527e4f9c3f07b787cd9fe2ad/specs/fault-proof/stage-one/bond-incentives.md#delayedweth)
+  - [Fault Dispute Game/Bond Incentives](https://github.com/ethereum-optimism/specs/pull/560/files)
+  - [Portal](https://github.com/ethereum-optimism/specs/blob/ab35e8181f34614503a03e18a282cce69ea634fe/specs/fault-proof/stage-one/optimism-portal.md)
+  - [AnchorStateRegistry](https://github.com/ethereum-optimism/specs/blob/7706b68c6f8f4172f9396c03175e6c8cb299bfbc/specs/fault-proof/stage-one/anchor-state-registry.md)
+  - [DelayedWETH](https://github.com/ethereum-optimism/specs/blob/a0c94920a3c3b6b3527e4f9c3f07b787cd9fe2ad/specs/fault-proof/stage-one/bond-incentives.md#delayedweth)
 
 ## FM1: Contract deployment and/or initialization failures
 
