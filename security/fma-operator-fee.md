@@ -118,3 +118,4 @@ Below are references for this project:
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [ ] Coordinate with wallet providers to update their fee estimation logic
+- [ ] Implement automated monitoring on dabase growth rate
