@@ -35,15 +35,14 @@ Below are references for this project:
 
 ## Failure Modes and Recovery Paths
 
-### FM1: Incidental breaking changes from upstream geth
+### FM1: Incidental breaking changes from upstream geth 
 
-- **Description:** Incidental changes from merging upstream geth cause unexpected problems. Example: database schema change can break op-geth nodes on rollout.
+- **Description:** Incidental changes from merging upstream geth can cause op-geth full nodes to undergo state corruption. 
 - **Risk Assessment:** Medium severity, Medium Likelihood
 - **Mitigations:**:
-  1. Our usual staggered rollout and baking processes should catch most problems early.
-  2. Prepare appropriate runbook(s) detailing how nodes may need to be carefully migrated.
+  1. We have prepared and documented an upgrade path for such full nodes which avoids the problem: https://github.com/ethereum-optimism/op-geth/releases/tag/v1.101411.8
 - **Detection:** Alerts from our own infrastructure and/or that of partners'.
-- **Recovery Path(s)**: Follow the above runbook.
+- **Recovery Path(s)**: Follow the above linked instructions.
 
 ### FM2: Consensus bug (client software)
 
