@@ -52,10 +52,18 @@ _Italics are used to indicate things that need to be replaced._
 
 This document covers the fault dispute game incident response improvements project. The project makes modifications to several key contracts to improve incident response capabilities:
 
-1. DelayedWETH: Simplified hold functionality for emergency response
-2. OptimismPortal: Improved game type management and withdrawal validation
-3. AnchorStateRegistry: Unified anchor state and improved validation
-4. FaultDisputeGame: Added bond refunding for invalidated games
+ - **FaultDisputeGame**: Has changes but almost any failure mode here is equivalent to a bug in the dispute game which we already have runbooks for. The main new consideration is potential accounting issues in the new bond refund functionality (documented in [FM4](#fm4-errors-in-bond-distribution)).
+
+- **DelayedWETH**: Contract is basically unchanged and the diff is so minor there's really no genuine concern for any sort of failure.
+
+- **AnchorStateRegistry**: Since this change doesn't actually make the ASR a critical dependency yet (except for `isGameRespected`), the only real failure modes are:
+  - The anchor state not being updated correctly (documented in [FM3](#fm3-anchor-state-fails-to-progress-within-a-time-bound))
+  - Incorrect anchor state being set
+  - (We're already planning to add monitoring for anchor state getting too old and we can easily add monitoring for anchor state being invalid)
+
+- **OptimismPortal**: Very minor changes, with two main failure modes:
+  - The new incident response functionality being misused (documented in [FM2](#fm2-legacy-runbookresponse-confusion))
+  - A critical issue that allows a game that isn't respected to be used (either a bug in the changes or a bug in `ASR.isGameRespected`)
 
 Below are references for this project:
 
