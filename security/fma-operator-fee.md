@@ -91,10 +91,19 @@ Below are references for this project:
 - **Risk Assessment:**
   Medium impact, high likelihood.
 - **Mitigations:**
-  - Implement history expiry solutions like EIP-4444 when available.
+  Implement history expiry solutions like EIP-4444 when available.
 - **Detection:**
   - Monitor database growth rate compared to pre operator fee baseline.
   - Track disk usage metrics across internal nodes.
+
+  The following simulation can give a view of the impact of operator fee on the node storage: Operator fee adds 12 bytes per L2 block (4 for operator fee scalar, 8 for operator fee constant). It also add 12 bytes
+  per transaction (in the transaction receipt) So, with the arbitrary number of 20 txs per block we have:
+
+  ```
+  (12 bytes + 240 bytes / 2 seconds) x 365 days × 24 hours × 60 minutes × 60 seconds = 3,973,536,000 bytes in 1 year.
+  ```
+
+  So, about 3,7 GB for 1 year.
 - **Recovery Path(s):**
   - Use archive nodes to maintain historical data.
   - Consider implementing receipt compression retroactively if needed.
