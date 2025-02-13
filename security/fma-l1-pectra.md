@@ -51,6 +51,7 @@ Below are references for this project:
 - **Risk Assessment:** High severity, Low Likelihood
 - **Mitigations:**:
   1. We will rely on unit tests, [end-to-end tests](https://github.com/ethereum-optimism/optimism/pull/14006) and cross-client devnet acceptance tests to ensure no client halts when L1 activates Pectra. In particular, we performed [manual Kurtosis testing](https://github.com/ethereum-optimism/optimism/pull/14046) with an L1 that has Pectra activated, and sent EIP-7702 transactions to the L1.
+  2. Pectra will activate on Sepolia before L1 mainnet. This will provide another test (in production) of the node software changed. If the sepolia superchain continues to progress its safe chains, this will give us high confidence that the mainnet superchain will also.
 - **Detection:** Manual or (preferably) automated/scheduled testing.
 - **Recovery Path(s)**: The affected clients would need to be patched as soon as possible and new releases cut.
 
