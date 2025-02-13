@@ -37,12 +37,13 @@ Below are references for this project:
 
 ### FM1: Incidental breaking changes from upstream geth 
 
-- **Description:** Incidental changes from merging upstream geth can cause op-geth full nodes to undergo state corruption. 
+- **Description:** Incidental changes from merging upstream geth can cause op-geth full nodes to undergo state corruption or otherwise halt. 
 - **Risk Assessment:** Medium severity, Medium Likelihood
 - **Mitigations:**:
   1. We have prepared and documented an upgrade path for such full nodes which avoids the problem: https://github.com/ethereum-optimism/op-geth/releases/tag/v1.101411.8
+  2. We ran a sync-test from Genesis on an op-sepolia node, which adds confidence that the upstream merge results in a stable version of op-geth.
 - **Detection:** Alerts from our own infrastructure and/or that of partners'.
-- **Recovery Path(s)**: Follow the above linked instructions.
+- **Recovery Path(s)**: Follow the above linked instruction to upgrade safely if necessary, or recover the node manually by usual methods (e.g. snapshot restoration).
 
 ### FM2: Consensus bug (client software)
 
