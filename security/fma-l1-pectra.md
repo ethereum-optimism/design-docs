@@ -62,7 +62,7 @@ Below are references for this project:
 - **Mitigations:**:
   1. Our [end-to-end tests](https://github.com/ethereum-optimism/optimism/pull/14006) include coverage for `op-program` (this runs in CI) as well as `kona` (this has been run manually and passes).
   2. If upstream work does not yet allow for appropriate end-to-end tests, we can patch our L1 clients in the testing environment(s) so we can still run the tests.
-- **Detection:** Manual or (preferably) automated/scheduled testing.
+- **Detection:** Automatic proofs monitoring systems would alert on-call engineers quickly in this instance. 
   3. We run the op-challenger (with the new absolute prestate) on our production networks already, so we this part of the system will benefit from several weeks of battle-testing.
 - **Recovery Path(s)**: The affected programs would need to be patched as soon as possible and new releases cut. In the meantime, the recovery paths in the [generic FMA document](./fma-generic-hardfork.md#invalid-disputegamefactorysetimplementation-execution
 ) all apply.
