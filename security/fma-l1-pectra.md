@@ -85,7 +85,7 @@ Below is what needs to be done before launch to reduce the chances of the above 
 
 - [ ] (BLOCKING): Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
 - [x] (BLOCKING): Action tests will be added which are run on op-node and Kona https://github.com/ethereum-optimism/optimism/issues/13967. Ideally they run against the usual mainline version of op-geth -- if this is not possible the tests can run against a patched version until op-geth is ready to support such tests.
-- [ ] (BLOCKING): The changes will be deployed to a local multi-client kurtosis devnet with both geth and reth running as well as Pectra activated on L1.
+- [x] (BLOCKING): The changes will be deployed to a local multi-client kurtosis devnet with both op-geth and op-reth running as well as Pectra activated on L1. https://github.com/ethereum-optimism/optimism/pull/14046
 - [x] (BLOCKING): we will modify the batcher to cope with the change in calldata which activates with Pectra https://github.com/ethereum-optimism/optimism/releases/tag/op-batcher%2Fv1.11.0 so that it can continue to switch DA mode (between blobs and calldata) appropriately.
 - [ ] (non-BLOCKING) The changes will be deployed to a devnet which targets a public, Pectra-enabled L1 devnet.
 - [x] (non-BLOCKING): We will update the op-sepolia and op-mainnet vm-runners to use the new absolute prestate. The vm-runner runs the op-program in the MIPS FPVM using inputs sampled from a live chain.
