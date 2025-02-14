@@ -117,7 +117,7 @@ Lastly, there exists a [CI check in the monorepo](https://github.com/ethereum-op
 
 - **Description:** There could be bugs in the implementation of either the Solidity or Go versions that make them incompatible with each other.
 - **Risk Assessment:** High severity, low likelihood.
-- **Mitigations:** [Diffeerential testing](https://github.com/ethereum-optimism/optimism/tree/eabf70498f68f321f5de003f1d443d3e3c8100b8/cannon/mipsevm/tests) asserts identical on-chain and off-chain execution.
+- **Mitigations:** [Differential testing](https://github.com/ethereum-optimism/optimism/tree/eabf70498f68f321f5de003f1d443d3e3c8100b8/cannon/mipsevm/tests) asserts identical on-chain and off-chain execution.
 - **Detection:** An op-challenger fails to fault prove an invalid claim using a witness generated offchain.
 - **Recovery Path(s)**: Depends on the specifics. If the off-chain version is changed to match the onchain VM implementation, then fixing this can be done solely offchain. In the opposite case (changing the onchain version to match the off-chain version) a governance vote will be needed. As usual, the [Fault Proof Recovery](https://www.notion.so/oplabs/RB-000-Fault-Proofs-Recovery-Runbook-8dad0f1e6d4644c281b0e946c89f345f) provides the best guidance on this.
 
