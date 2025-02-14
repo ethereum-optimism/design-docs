@@ -146,7 +146,7 @@ As such, there will be a brief moment where there are two sets of `CANNON` games
 - **Risk Assessment:** Low severity, low likelihood.
   - Low Likelihood: The low likelihood is a result of tenderly simulation testing of safe transactions, code review of the upgrade playbook, and manual review of the dispute game implementations (which are deployed on mainnet and specified in the governance proposal so they may be reviewed).
   - Low severity: Fault Proofs continues to use the existing single-threaded FPVM. This carries a reputational risk, but it doesn't diminish the security of the system. Withdrawals will continue to work against outputs secured by the single-threaded FPVM.
-- **Mitigations:** No immediate action is needed other than to retry the safe transaction. This may require another signing ceremony. Note that the op-challenger does not need to be rolled back, as multicannon is backwards compatible with older FPVM state transition functions.
+- **Mitigations:** No immediate action is needed other than to retry the safe transaction. This may require another signing ceremony. Note that the op-challenger does not need to be rolled back, as multicannon is backwards compatible with older FPVM state transition functions, since this is not a real hardfork. Thus the impact is classified as **low impact** compare to [invalid `DisputeGameFactory.setImplementation` execution during hardfork](https://github.com/ethereum-optimism/design-docs/blob/main/security/fma-generic-hardfork.md#invalid-disputegamefactorysetimplementation-execution). 
 - **Detection:** An un-executed safe transaction is easily detectable.
 - **Recovery Path(s)**: Reschedule upgrade, possibly releasing new binary though without immediate urgency.
 
