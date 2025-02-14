@@ -10,13 +10,13 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-|                     |                      |
-| ------------------- | -------------------- |
-| Author              | George Knee          |
-| Created at          | 5th February 2025    |
-| Needs Approval From |                      |
-| Other Reviewers     |                      |
-| Status              | Draft                |
+|                     |                   |
+| ------------------- | ----------------- |
+| Author              | George Knee       |
+| Created at          | 5th February 2025 |
+| Needs Approval From |                   |
+| Other Reviewers     |                   |
+| Status              | Draft             |
 
 ## Introduction
 
@@ -35,17 +35,7 @@ Below are references for this project:
 
 ## Failure Modes and Recovery Paths
 
-### FM1: Incidental breaking changes from upstream geth 
-
-- **Description:** Incidental changes from merging upstream geth can cause op-geth full nodes to undergo state corruption or otherwise halt. 
-- **Risk Assessment:** Medium severity, Medium Likelihood
-- **Mitigations:**:
-  1. We have prepared and documented an upgrade path for such full nodes which avoids the problem: https://github.com/ethereum-optimism/op-geth/releases/tag/v1.101411.8
-  2. We ran a sync-test from Genesis on an op-sepolia node, which adds confidence that the upstream merge results in a stable version of op-geth.
-- **Detection:** Alerts from our own infrastructure and/or that of partners'.
-- **Recovery Path(s)**: Follow the above linked instruction to upgrade safely if necessary, or recover the node manually by usual methods (e.g. snapshot restoration).
-
-### FM2: Consensus bug (client software)
+### FM1: Consensus bug (client software)
 
 - **Description:** L2 EL/CL clients are not able to parse and/or validate blocks when Pectra goes live on L1, those nodes may halt. This could happen a) if operators do not update their nodes to a suitable release or release candidate before Pectra activates on L1 or b) no such release is available in time or c) there is a bug in such releases.
 - **Risk Assessment:** High severity, Low Likelihood
@@ -55,21 +45,19 @@ Below are references for this project:
 - **Detection:** Manual or (preferably) automated/scheduled testing.
 - **Recovery Path(s)**: The affected clients would need to be patched as soon as possible and new releases cut.
 
-### FM3: Consensus bug (proof system)
+### FM2: Consensus bug (proof system)
 
-- **Description:** If any fault proof program is unable parse and/or validate blocks when Pectra goes live on L1, it may be impossible to prove correct blocks and defend against malicious challenges. See FM2 for various scenarios which trigger this failure mode.
+- **Description:** If any fault proof program is unable parse and/or validate blocks when Pectra goes live on L1, it may be impossible to prove correct blocks and defend against malicious challenges. See FM1 for various scenarios which trigger this failure mode.
 - **Risk Assessment:** High severity, Low Likelihood
 - **Mitigations:**:
   1. Our [end-to-end tests](https://github.com/ethereum-optimism/optimism/pull/14006) include coverage for `op-program` (this runs in CI) as well as `kona` (this has been run manually and passes).
   2. If upstream work does not yet allow for appropriate end-to-end tests, we can patch our L1 clients in the testing environment(s) so we can still run the tests.
-- **Detection:** Automatic proofs monitoring systems would alert on-call engineers quickly in this instance. 
-  3. We run the op-challenger (with the new absolute prestate) on our production networks already, so we this part of the system will benefit from several weeks of battle-testing.
-- **Recovery Path(s)**: The affected programs would need to be patched as soon as possible and new releases cut. In the meantime, the recovery paths in the [generic FMA document](./fma-generic-hardfork.md#invalid-disputegamefactorysetimplementation-execution
-) all apply.
+- **Detection:** Automatic proofs monitoring systems would alert on-call engineers quickly in this instance. 3. We run the op-challenger (with the new absolute prestate) on our production networks already, so we this part of the system will benefit from several weeks of battle-testing.
+- **Recovery Path(s)**: The affected programs would need to be patched as soon as possible and new releases cut. In the meantime, the recovery paths in the [generic FMA document](./fma-generic-hardfork.md#invalid-disputegamefactorysetimplementation-execution) all apply.
 
-### FM4: Bug in OP Contracts Manager
+### FM3: Bug in OP Contracts Manager
 
-- **Description:** The changes to L1 contracts which are required for this upgrade are being executed by a new path. Any bug could cause a failure of the fault proofs system (see FM3).
+- **Description:** The changes to L1 contracts which are required for this upgrade are being executed by a new path. Any bug could cause a failure of the fault proofs system (see FM2).
 - **Risk Assessment:** High severity, Medium Likelihood
 - **Mitigations:**:
   - The superchain-ops tasks will include both manual checking (in Validations.md) and automated checking (in NestedSignFromJson.s.sol). Thus although the manner of executing the upgrade is changing, we are maintaining the
@@ -81,6 +69,7 @@ Below are references for this project:
 ## Generic Items
 
 Although this upgrade is technically a soft fork (it does not need to be coordinated across nodes other than being applied before Pectra activates on L1) many of the items in [./fma-generic-hardfork.md](./fma-generic-hardfork.md) apply. In particular:
+
 - Chain Halt at activation
 - Activation failure (node software)
 - Invalid `DisputeGameFactory.setImplementation` execution.
@@ -90,8 +79,8 @@ Although this upgrade is technically a soft fork (it does not need to be coordin
 
 ## Audit Requirements
 
-
 ## Action Items
+
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [ ] (BLOCKING): Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
@@ -99,8 +88,8 @@ Below is what needs to be done before launch to reduce the chances of the above 
 - [ ] (BLOCKING): The changes will be deployed to a local multi-client kurtosis devnet with both geth and reth running as well as Pectra activated on L1.
 - [x] (BLOCKING): we will modify the batcher to cope with the change in calldata which activates with Pectra https://github.com/ethereum-optimism/optimism/releases/tag/op-batcher%2Fv1.11.0 so that it can continue to switch DA mode (between blobs and calldata) appropriately.
 - [ ] (non-BLOCKING) The changes will be deployed to a devnet which targets a public, Pectra-enabled L1 devnet.
-- [x] (non-BLOCKING): We will update the op-sepolia and op-mainnet vm-runners to use the new absolute prestate. The vm-runner runs the op-program in the MIPS FPVM using inputs sampled from a live chain. 
+- [x] (non-BLOCKING): We will update the op-sepolia and op-mainnet vm-runners to use the new absolute prestate. The vm-runner runs the op-program in the MIPS FPVM using inputs sampled from a live chain.
 
 Additional action items are copied here from the [generic hardfork FMA](./fma-generic-hardfork.md) doc:
-- [ ] (non-BLOCKING): The superchain-ops task to upgrade any contract should check if the semantic versions and bytecodes after the upgrade are as expected. 
 
+- [ ] (non-BLOCKING): The superchain-ops task to upgrade any contract should check if the semantic versions and bytecodes after the upgrade are as expected.
