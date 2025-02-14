@@ -156,7 +156,7 @@ As such, there will be a brief moment where there are two sets of `CANNON` games
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [x] Third-party audit the offchain and onchain VM implementation and specification (Assignee: @inphi)
-- [ ] [Add a healthcheck for the vm-runner (Assignee: @pauldowman)](https://github.com/ethereum-optimism/k8s/pull/5424)
+- [x] [Add a healthcheck for the vm-runner (Assignee: @pauldowman)](https://github.com/ethereum-optimism/k8s/pull/5424)
 
 ## Audit requirements
 
