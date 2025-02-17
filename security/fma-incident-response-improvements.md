@@ -25,15 +25,28 @@
       - [Detection](#detection-2)
       - [Recovery Path(s)](#recovery-paths-2)
       - [Action items:](#action-items-1)
-  - [FM4: Errors in bond distribution](#fm4-errors-in-bond-distribution)
+  - [FM4: Invalid anchor state](#fm4-invalid-anchor-state)
     - [Description](#description-3)
     - [Risk Assessment](#risk-assessment-3)
     - [Mitigations](#mitigations-3)
     - [Detection](#detection-3)
     - [Recovery Path(s)](#recovery-paths-3)
     - [Action items](#action-items-2)
+  - [FM5: Bug in `FaultDisputeGame.wasRespectedGameTypeWhenCreated()` or Portal logic allows game that wasn't respected to be used for withdrawals](#fm5-bug-in-faultdisputegamewasrespectedgametypewhencreated-or-portal-logic-allows-game-that-wasnt-respected-to-be-used-for-withdrawals)
+    - [Description](#description-4)
+    - [Risk Assessment](#risk-assessment-4)
+    - [Mitigations](#mitigations-4)
+    - [Detection](#detection-4)
+    - [Recovery Path(s)](#recovery-paths-4)
+  - [FM6: Errors in bond distribution](#fm6-errors-in-bond-distribution)
+    - [Description](#description-5)
+    - [Risk Assessment](#risk-assessment-5)
+    - [Mitigations](#mitigations-5)
+    - [Detection](#detection-5)
+    - [Recovery Path(s)](#recovery-paths-5)
+    - [Action items](#action-items-3)
     - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
-  - [Action Items](#action-items-3)
+  - [Action Items](#action-items-4)
   - [Audit Requirements](#audit-requirements)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -46,24 +59,25 @@ _Italics are used to indicate things that need to be replaced._
 | Created at         | 2025-01-22               |
 | Initial Reviewers  | smartcontracts           |
 | Need Approval From | Matt Solomon, Josep Bové |
-| Status             | In Review                |
+| Status             | Implementing Actions     |
 
 ## Introduction
 
 This document covers the fault dispute game incident response improvements project. The project makes modifications to several key contracts to improve incident response capabilities:
 
- - **FaultDisputeGame**: Has changes but almost any failure mode here is equivalent to a bug in the dispute game which we already have runbooks for. The main new consideration is potential accounting issues in the new bond refund functionality (documented in [FM4](#fm4-errors-in-bond-distribution)).
+- **FaultDisputeGame**: Has changes but almost any failure mode here is equivalent to a bug in the dispute game which we already have runbooks for. The main new consideration is potential accounting issues in the new bond refund functionality (documented in [FM4](#fm4-errors-in-bond-distribution)).
 
 - **DelayedWETH**: Contract is basically unchanged and the diff is so minor there's really no genuine concern for any sort of failure.
 
-- **AnchorStateRegistry**: Since this change doesn't actually make the ASR a critical dependency yet (except for `isGameRespected`), the only real failure modes are:
+- **AnchorStateRegistry**: Since this change doesn't actually make the ASR a critical dependency yet, the only real failure modes are:
+
   - The anchor state not being updated correctly (documented in [FM3](#fm3-anchor-state-fails-to-progress-within-a-time-bound))
-  - Incorrect anchor state being set
+  - Incorrect anchor state being set (documented in [FM4](#fm4-invalid-anchor-state))
   - (We're already planning to add monitoring for anchor state getting too old and we can easily add monitoring for anchor state being invalid)
 
 - **OptimismPortal**: Very minor changes, with two main failure modes:
   - The new incident response functionality being misused (documented in [FM2](#fm2-legacy-runbookresponse-confusion))
-  - A critical issue that allows a game that isn't respected to be used (either a bug in the changes or a bug in `ASR.isGameRespected`)
+  - A critical issue that allows a game that isn't respected to be used (either a bug in the changes or a bug in `FDG.wasRespectedGameTypeWhenCreated`) (documented in [FM5](#fm5-bug-in-faultdisputegamewasrespectedgametypewhencreated-or-portal-logic-allows-game-that-wasnt-respected-to-be-used-for-withdrawals))
 
 Below are references for this project:
 
@@ -138,7 +152,7 @@ This risk is heightened during emergency situations when quick action is require
 
 ### Detection
 
-Dedicated detection apparatus not recommended. Very low likelihood of occuring in practice and OP Labs would almost certainly be made aware of any instance where these incident response capabilities are being used.
+Dedicated detection apparatus not recommended. Very low likelihood of occurring in practice and OP Labs would almost certainly be made aware of any instance where these incident response capabilities are being used.
 
 ### Recovery Path(s)
 
@@ -178,13 +192,68 @@ The anchor state held within the `AnchorStateRegistry` could fail to progress an
 
 #### Recovery Path(s)
 
-- Manual intervention to refresh the anchor state
+- Manual intervention to refresh the anchor state: a newer valid anchor state can be permissionlessly set via `AnchorStateRegistry.setAnchorState(game)`.
 
 #### Action items:
 
 - [ ] Implement anchor state age monitoring
 
-## FM4: Errors in bond distribution
+## FM4: Invalid anchor state
+
+### Description
+
+An anchor state could be invalid if some assumption in [specs/fault-proof/stage-one/anchor-state-registry.md](https://github.com/ethereum-optimism/specs/blob/7706b68c6f8f4172f9396c03175e6c8cb299bfbc/specs/fault-proof/stage-one/anchor-state-registry.md) is violated, or if there's some bug in the `AnchorStateRegistry`. This implies a possibility of FaultDisputeGames that erroneously resolve, with invalid withdrawal finalization as a result.
+
+### Risk Assessment
+
+- Impact: CRITICAL
+  - Reasoning: An invalid anchor state could result in an invalid finalized withdrawal.
+- Likelihood: LOW
+  - Reasoning: A bug in the `AnchorStateRegistry` is unlikely, and its assumptions are well-documented.
+
+### Mitigations
+
+- Unit/integration tests
+- 3rd party audits
+- Anchor state monitoring
+
+### Detection
+
+- Monitor for invalid anchor states
+
+### Recovery Path(s)
+
+- Manual intervention to refresh the anchor state
+
+### Action items
+
+- [ ] Runbook for handling this situation
+
+## FM5: Bug in `FaultDisputeGame.wasRespectedGameTypeWhenCreated()` or Portal logic allows game that wasn't respected to be used for withdrawals
+
+### Description
+
+The `FaultDisputeGame.wasRespectedGameTypeWhenCreated()` function is now a critical dependency to Portal withdrawals. If there's a bug in the `wasRespectedGameTypeWhenCreated()` function or the code that calls it, it could allow withdrawals to be proven and finalized using a game that wasn't respected.
+
+### Risk Assessment
+
+- Impact: CRITICAL
+  - Reasoning: A game that was not respected when it was created could be used to finalize an invalid withdrawal.
+- Likelihood: LOW
+  - Reasoning: The `FaultDisputeGame` has been extensively audited, and the setter logic around `wasRespectedGameTypeWhenCreated()` has been audited and is not complex, and the Portal logic is also well-audited.
+
+### Mitigations
+
+- Unit/integration tests
+- 3rd party audits
+
+### Detection
+
+- Monitor for
+
+### Recovery Path(s)
+
+## FM6: Errors in bond distribution
 
 ### Description
 
@@ -229,7 +298,7 @@ The bond distribution system could fail in multiple ways:
 
 ### Generic items we need to take into account:
 
-See [./fma-generic-hardfork.md](./fma-generic-hardfork.md).
+See [./fma-generic-contracts.md](./fma-generic-contracts.md).
 
 - [x] Check this box to confirm that these items have been considered and updated if necessary.
 
