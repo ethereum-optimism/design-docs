@@ -17,6 +17,8 @@ Token issuers face two main challenges:
 
 # **Proposed Solutions**
 
+If the asset issuer wants to make their token cross-chain interoperable today or wants their token to be available inside/outside the Superchain interop cluster, there are three approaches the asset issuer could take to make their token xSuperERC20 ready.
+
 ## **A. Non-deployed or upgradable tokens**
 
 For tokens that have not yet been deployed, or can be upgraded, we recommend implementing xSuperchainERC20 - a token that combines both ERC-7281 (xERC20) and ERC-7802 standards. This solution is ideal when:
