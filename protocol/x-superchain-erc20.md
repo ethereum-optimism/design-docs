@@ -1,5 +1,3 @@
-# xSuperchainERC20 - Design Doc
-
 # **Purpose**
 
 This design document aims to provide a clear implementation path for token issuers who want to make their tokens interoperable across both the Superchain and other ecosystems, while maintaining compatibility with existing bridge infrastructure.
