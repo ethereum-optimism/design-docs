@@ -60,7 +60,7 @@ Raw Example:
 function crosschainMint(address _to, uint256 _amount) external {
     if (msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE) revert Unauthorized();
 
-		// Instead of internally calling the _mint() function it calls the xERC20 mint().
+    // Instead of internally calling the _mint() function it calls the xERC20 mint().
     IXERC20(XERC20_ADDRESS).mint(_to, _amount);
 
     emit CrosschainMint(_to, _amount, msg.sender);
