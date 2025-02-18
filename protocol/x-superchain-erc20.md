@@ -29,10 +29,6 @@ This approach provides maximum flexibility as:
 1. Within the Superchain: Uses the SuperchainTokenBridge for fast (1-block) and secure transfers
 2. Outside the Superchain: Allows configuration of any EVM-compatible third-party bridge through xERC20's mint/burn permissions
 
-**Implementation details:**
-
-`crosschainMint` and `crosschainBurn` uses `_mintWithCaller` and `_burnWithCaller` internal functions from the xERC20 contract. Contract Owner has to grant mint/burn permissions to the SuperchainTokenBridge.
-
 ## **B. Deployed, non-upgradable tokens (Non-xERC20)**
 
 For tokens that are already deployed and cannot be upgraded, we propose using a Lockbox mechanism:
@@ -139,9 +135,6 @@ The Factory contract serves as a central deployment mechanism for all the compon
 1. Deploy new xSuperchainERC20 tokens and grant mint/burn permissions to the SuperchainTokenBridge
 2. Deploy Lockboxes for existing tokens that support ERC20 interfaces
 3. Deploy Adapters for existing xERC20 tokens
-
-**Implementation details:**
-This contract extends the [`XERC20Factory`](https://github.com/defi-wonderland/xERC20/blob/main/solidity/contracts/XERC20Factory.sol) contract, adding the ability to deploy xERC20 tokens too.
 
 **Key Features:**
 
