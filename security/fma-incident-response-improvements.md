@@ -196,7 +196,7 @@ The anchor state held within the `AnchorStateRegistry` could fail to progress an
 
 #### Action items:
 
-- [ ] Implement anchor state age monitoring
+- [x] Implement anchor state age monitoring (Monitoring in hexagate)
 
 ## FM4: Invalid anchor state
 
@@ -213,9 +213,11 @@ An anchor state could be invalid if some assumption in [specs/fault-proof/stage-
 
 ### Mitigations
 
-- Unit/integration tests
-- 3rd party audits
-- Anchor state monitoring
+- Unit/integration tests -
+  [link](https://github.com/ethereum-optimism/optimism/blob/1d5770cd93a19797c7af2c0e9981265c3a3df847/packages/contracts-bedrock/test/dispute/AnchorStateRegistry.t.sol#L516-L804)
+- 3rd party audits - [Offbeat Security](https://hackmd.io/@offbeatsecurity/optimism-incident-response-updates),
+  [Spearbit](https://github.com/spearbit-audits/OP-Upgrade-13-review-200125)
+- Anchor state monitoring - Monitored in hexagate
 
 ### Detection
 
@@ -227,7 +229,7 @@ An anchor state could be invalid if some assumption in [specs/fault-proof/stage-
 
 ### Action items
 
-- [ ] Runbook for handling this situation
+- [x] Runbook for handling this situation
 
 ## FM5: Bug in `FaultDisputeGame.wasRespectedGameTypeWhenCreated()` or Portal logic allows game that wasn't respected to be used for withdrawals
 
@@ -244,12 +246,11 @@ The `FaultDisputeGame.wasRespectedGameTypeWhenCreated()` function is now a criti
 
 ### Mitigations
 
-- Unit/integration tests
-- 3rd party audits
+- Unit/integration tests - [link](https://github.com/ethereum-optimism/optimism/blob/20c221e87dedcd1ac4e446d0264ea7f4c46d9003/packages/contracts-bedrock/test/L1/OptimismPortal2.t.sol#L606-L616), [link](https://github.com/ethereum-optimism/optimism/blob/20c221e87dedcd1ac4e446d0264ea7f4c46d9003/packages/contracts-bedrock/test/L1/OptimismPortal2.t.sol#L1334-L1416), [link](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/test/dispute/AnchorStateRegistry.t.sol#L195-L212)
+- 3rd party audits - [Offbeat Security](https://hackmd.io/@offbeatsecurity/optimism-incident-response-updates),
+  [Spearbit](https://github.com/spearbit-audits/OP-Upgrade-13-review-200125)
 
 ### Detection
-
-- Monitor for
 
 ### Recovery Path(s)
 
@@ -277,15 +278,16 @@ The bond distribution system could fail in multiple ways:
 
 ### Mitigations
 
-- Unit/integration tests
-- 3rd party audits
-- DelayedWETH `hold` functionality
-- Clear documentation of distribution rules
+- Unit/integration tests - [link](https://github.com/ethereum-optimism/optimism/blob/0072e29c5ac3efd31f5cf89d284e47bf5e0a4076/packages/contracts-bedrock/test/dispute/FaultDisputeGame.t.sol#L1903-L2100), [link](https://github.com/ethereum-optimism/optimism/blob/0072e29c5ac3efd31f5cf89d284e47bf5e0a4076/packages/contracts-bedrock/test/dispute/FaultDisputeGame.t.sol#L2393-L2475)
+- 3rd party audits - [Offbeat Security](https://hackmd.io/@offbeatsecurity/optimism-incident-response-updates),
+  [Spearbit](https://github.com/spearbit-audits/OP-Upgrade-13-review-200125)
+- DelayedWETH `hold` functionality - [link](https://github.com/ethereum-optimism/optimism/blob/20c221e87dedcd1ac4e446d0264ea7f4c46d9003/packages/contracts-bedrock/src/dispute/DelayedWETH.sol#L105-L119)
+- Clear documentation of distribution rules - [link](https://github.com/ethereum-optimism/specs/blob/5e1b5c44d46ff9848eb916d7cc10babf832f4226/specs/fault-proof/stage-one/bond-incentives.md#game-finalization)
 - 30-minute training calls with chain operators
 
 ### Detection
 
-- Existing monitoring of bonds within `op-dispute-mon`
+- Existing monitoring of bonds within `op-dispute-mon` - [link]
 
 ### Recovery Path(s)
 
