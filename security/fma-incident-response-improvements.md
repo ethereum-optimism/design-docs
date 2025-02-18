@@ -296,7 +296,8 @@ The bond distribution system could fail in multiple ways:
 
 ### Action items
 
-- [ ] Runbook for handling this situation
+- [x] Runbook for handling this situation
+- [ ] 30-minute training calls with chain operators
 
 ### Generic items we need to take into account:
 
