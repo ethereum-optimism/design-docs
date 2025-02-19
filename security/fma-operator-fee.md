@@ -128,3 +128,9 @@ Below is what needs to be done before launch to reduce the chances of the above 
 
 - [ ] Coordinate with wallet providers to update their fee estimation logic
 - [ ] Implement automated monitoring on dabase growth rate
+
+## Audit Requirements
+
+An audit has not been deemed necessary for the relatively simple changes to the SystemConfig contract, which has been reviewed by Base internal security team.
+
+Indeed, the only addition is the `setOperatorFeeScalars` function, which is a simple setter function that updates the operator fee parameters and trigger an event. This function is callable by the SystemConfig owner only.
