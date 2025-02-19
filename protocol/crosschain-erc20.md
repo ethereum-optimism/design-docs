@@ -4,7 +4,7 @@ This design document aims to provide a clear implementation path for token issue
 
 # **Summary**
 
-xSuperchainERC20 is a token implementation that combines xERC20 ([ERC-7281](https://ethereum-magicians.org/t/erc-7281-sovereign-bridged-tokens/14979)) and SuperchainERC20 ([ERC-7802](https://ethereum-magicians.org/t/erc-7802-crosschain-token-interface/21508)) functionality. This allows tokens to be immediately usable with existing bridge infrastructure while being compatible with the Superchain interop cluster.
+CrosschainERC20 is a token implementation that combines xERC20 ([ERC-7281](https://ethereum-magicians.org/t/erc-7281-sovereign-bridged-tokens/14979)) and SuperchainERC20 ([ERC-7802](https://ethereum-magicians.org/t/erc-7802-crosschain-token-interface/21508)) functionality. This allows tokens to be immediately usable with existing bridge infrastructure while being compatible with the Superchain interop cluster.
 
 # **Problem Statement + Context**
 
@@ -19,7 +19,7 @@ If the asset issuer wants to make their token cross-chain interoperable today or
 
 ## **A. Non-deployed or upgradable tokens**
 
-For tokens that have not yet been deployed, or can be upgraded, we recommend implementing xSuperchainERC20 - a token that combines both ERC-7281 (xERC20) and ERC-7802 standards. This solution is ideal when:
+For tokens that have not yet been deployed, or can be upgraded, we recommend implementing CrosschainERC20 - a token that combines both ERC-7281 (xERC20) and ERC-7802 standards. This solution is ideal when:
 
 - You want your token to work both within the Superchain (via ERC-7802)
 - AND outside the Superchain using third-party bridges (via ERC-7281)
@@ -33,10 +33,10 @@ This approach provides maximum flexibility as:
 
 For tokens that are already deployed and cannot be upgraded, we propose using a Lockbox mechanism:
 
-1. Deploy a xSuperchainERC20 contract that will be the wrapped version of the original token
+1. Deploy a CrosschainERC20 contract that will be the wrapped version of the original token
 2. Deploy a Lockbox contract that:
    - Locks the original ERC20 tokens
-   - Mints xSuperchainERC20 tokens at a 1:1 ratio
+   - Mints CrosschainERC20 tokens at a 1:1 ratio
    - Can be deployed deterministically to have the same address across all chains
 
 Key benefits:
@@ -128,11 +128,11 @@ sequenceDiagram
   P7 -->> P7: RelayERC20()
 ```
 
-## xSuperchainERC20Factory
+## CrosschainERC20Factory
 
 The Factory contract serves as a central deployment mechanism for all the components in our system. It provides methods to:
 
-1. Deploy new xSuperchainERC20 tokens and grant mint/burn permissions to the SuperchainTokenBridge
+1. Deploy new CrosschainERC20 tokens and grant mint/burn permissions to the SuperchainTokenBridge
 2. Deploy Lockboxes for existing tokens that support ERC20 interfaces
 3. Deploy Adapters for existing xERC20 tokens
 
@@ -147,11 +147,11 @@ The Factory contract serves as a central deployment mechanism for all the compon
 
 ## Alternatives Considered for Scenario C
 
-_Worth mentioning that the Lockbox solution described in section B is also compatible with this scenario, providing an alternative option if the token issuer prefers to wrap their xERC20 into a new xSuperchainERC20 token_
+_Worth mentioning that the Lockbox solution described in section B is also compatible with this scenario, providing an alternative option if the token issuer prefers to wrap their xERC20 into a new CrosschainERC20 token_
 
-### **xSuperchainERC20Converter**
+### **CrosschainERC20Converter**
 
-It is a xSuperchainERC20 contract that can mint/burn xERC20 tokens. Similar to the Lockbox mechanism, but instead of locking tokens, it performs a direct conversion.
+It is a CrosschainERC20 contract that can mint/burn xERC20 tokens. Similar to the Lockbox mechanism, but instead of locking tokens, it performs a direct conversion.
 
 _It would be good to add a `pause` modifier on the convert functions to force the liquidity to be moved to one direction._
 
@@ -162,11 +162,11 @@ Pre-requisite:
 
 Key benefits:
 
-- Same approach that for non xERC20 migration, reduced complexity on development process. Allows native usage of xSuperchainERC20/7802
+- Same approach that for non xERC20 migration, reduced complexity on development process. Allows native usage of CrosschainERC20/7802
 
 Cons:
 
-- Fragmented liquidity if the xERC20 coexists with the xSuperchainERC20
+- Fragmented liquidity if the xERC20 coexists with the CrosschainERC20
 - User needs two transactions to cross-transfer
 
 Setup Diagram:
