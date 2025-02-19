@@ -43,7 +43,7 @@ Key benefits:
 
 For tokens that are already deployed as xERC20 and cannot be upgraded to implement ERC-7802. This is particularly important as many projects have already deployed xERC20 tokens and need a path to integrate with the Superchain while maintaining their existing bridge infrastructure.
 
-### **SuperchainERC20Adapter**
+### **ERC7802Adapter**
 
 This approach introduces an adapter contract that implements ERC-7802's crosschainBurn and crosschainMint functions, converting these calls into the corresponding xERC20 mint/burn operations.
 
