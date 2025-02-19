@@ -5,45 +5,39 @@
 
 - [Incident Response Improvements: Failure Modes and Recovery Path Analysis](#incident-response-improvements-failure-modes-and-recovery-path-analysis)
   - [Introduction](#introduction)
-  - [FM1: Contract deployment and/or initialization failures](#fm1-contract-deployment-andor-initialization-failures)
+  - [FM1: Legacy runbook/response confusion](#fm1-legacy-runbookresponse-confusion)
     - [Description](#description)
     - [Risk Assessment](#risk-assessment)
     - [Mitigations](#mitigations)
     - [Detection](#detection)
     - [Recovery Path(s)](#recovery-paths)
-  - [FM2: Legacy runbook/response confusion](#fm2-legacy-runbookresponse-confusion)
+    - [Action items](#action-items)
+  - [FM2: Anchor state fails to progress within a time bound](#fm2-anchor-state-fails-to-progress-within-a-time-bound)
     - [Description](#description-1)
     - [Risk Assessment](#risk-assessment-1)
-    - [Mitigations](#mitigations-1)
-    - [Detection](#detection-1)
-    - [Recovery Path(s)](#recovery-paths-1)
-    - [Action items](#action-items)
-  - [FM3: Anchor state fails to progress within a time bound](#fm3-anchor-state-fails-to-progress-within-a-time-bound)
+      - [Mitigations](#mitigations-1)
+      - [Detection](#detection-1)
+      - [Recovery Path(s)](#recovery-paths-1)
+      - [Action items:](#action-items-1)
+  - [FM3: Invalid anchor state](#fm3-invalid-anchor-state)
     - [Description](#description-2)
     - [Risk Assessment](#risk-assessment-2)
-      - [Mitigations](#mitigations-2)
-      - [Detection](#detection-2)
-      - [Recovery Path(s)](#recovery-paths-2)
-      - [Action items:](#action-items-1)
-  - [FM4: Invalid anchor state](#fm4-invalid-anchor-state)
+    - [Mitigations](#mitigations-2)
+    - [Detection](#detection-2)
+    - [Recovery Path(s)](#recovery-paths-2)
+    - [Action items](#action-items-2)
+  - [FM4: Bug in `FaultDisputeGame.wasRespectedGameTypeWhenCreated()` or Portal logic allows game that wasn't respected to be used for withdrawals](#fm4-bug-in-faultdisputegamewasrespectedgametypewhencreated-or-portal-logic-allows-game-that-wasnt-respected-to-be-used-for-withdrawals)
     - [Description](#description-3)
     - [Risk Assessment](#risk-assessment-3)
     - [Mitigations](#mitigations-3)
     - [Detection](#detection-3)
     - [Recovery Path(s)](#recovery-paths-3)
-    - [Action items](#action-items-2)
-  - [FM5: Bug in `FaultDisputeGame.wasRespectedGameTypeWhenCreated()` or Portal logic allows game that wasn't respected to be used for withdrawals](#fm5-bug-in-faultdisputegamewasrespectedgametypewhencreated-or-portal-logic-allows-game-that-wasnt-respected-to-be-used-for-withdrawals)
+  - [FM5: Errors in bond distribution](#fm5-errors-in-bond-distribution)
     - [Description](#description-4)
     - [Risk Assessment](#risk-assessment-4)
     - [Mitigations](#mitigations-4)
     - [Detection](#detection-4)
     - [Recovery Path(s)](#recovery-paths-4)
-  - [FM6: Errors in bond distribution](#fm6-errors-in-bond-distribution)
-    - [Description](#description-5)
-    - [Risk Assessment](#risk-assessment-5)
-    - [Mitigations](#mitigations-5)
-    - [Detection](#detection-5)
-    - [Recovery Path(s)](#recovery-paths-5)
     - [Action items](#action-items-3)
     - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
   - [Action Items](#action-items-4)
@@ -65,19 +59,19 @@ _Italics are used to indicate things that need to be replaced._
 
 This document covers the fault dispute game incident response improvements project. The project makes modifications to several key contracts to improve incident response capabilities:
 
-- **FaultDisputeGame**: Has changes but almost any failure mode here is equivalent to a bug in the dispute game which we already have runbooks for. The main new consideration is potential accounting issues in the new bond refund functionality (documented in [FM4](#fm4-errors-in-bond-distribution)).
+- **FaultDisputeGame**: Has changes but almost any failure mode here is equivalent to a bug in the dispute game which we already have runbooks for. The main new consideration is potential accounting issues in the new bond refund functionality (documented in [FM5](#fm5-errors-in-bond-distribution)).
 
 - **DelayedWETH**: Contract is basically unchanged and the diff is so minor there's really no genuine concern for any sort of failure.
 
 - **AnchorStateRegistry**: Since this change doesn't actually make the ASR a critical dependency yet, the only real failure modes are:
 
-  - The anchor state not being updated correctly (documented in [FM3](#fm3-anchor-state-fails-to-progress-within-a-time-bound))
-  - Incorrect anchor state being set (documented in [FM4](#fm4-invalid-anchor-state))
+  - The anchor state not being updated correctly (documented in [FM2](#fm2-anchor-state-fails-to-progress-within-a-time-bound))
+  - Incorrect anchor state being set (documented in [FM3](#fm3-invalid-anchor-state))
   - (We're already planning to add monitoring for anchor state getting too old and we can easily add monitoring for anchor state being invalid)
 
 - **OptimismPortal**: Very minor changes, with two main failure modes:
-  - The new incident response functionality being misused (documented in [FM2](#fm2-legacy-runbookresponse-confusion))
-  - A critical issue that allows a game that isn't respected to be used (either a bug in the changes or a bug in `FDG.wasRespectedGameTypeWhenCreated`) (documented in [FM5](#fm5-bug-in-faultdisputegamewasrespectedgametypewhencreated-or-portal-logic-allows-game-that-wasnt-respected-to-be-used-for-withdrawals))
+  - The new incident response functionality being misused (documented in [FM1](#fm1-legacy-runbookresponse-confusion))
+  - A critical issue that allows a game that isn't respected to be used (either a bug in the changes or a bug in `FDG.wasRespectedGameTypeWhenCreated`) (documented in [FM4](#fm4-bug-in-faultdisputegamewasrespectedgametypewhencreated-or-portal-logic-allows-game-that-wasnt-respected-to-be-used-for-withdrawals))
 
 Below are references for this project:
 
@@ -92,36 +86,7 @@ Below are references for this project:
   - [AnchorStateRegistry](https://github.com/ethereum-optimism/specs/blob/7706b68c6f8f4172f9396c03175e6c8cb299bfbc/specs/fault-proof/stage-one/anchor-state-registry.md)
   - [DelayedWETH](https://github.com/ethereum-optimism/specs/blob/a0c94920a3c3b6b3527e4f9c3f07b787cd9fe2ad/specs/fault-proof/stage-one/bond-incentives.md#delayedweth)
 
-## FM1: Contract deployment and/or initialization failures
-
-### Description
-
-Any of the modified contracts could be deployed or initialized incorrectly leading to a variety of failure modes, depending on the exact contract impacted.
-
-### Risk Assessment
-
-- Impact: HIGH/CRITICAL
-  - Reasoning: Highly depends on the exact failure mode but can be critical in the worst case.
-- Likelihood: LOW
-  - Reasoning: Very likely to be covered by both OPCM, testing, and auditing.
-
-### Mitigations
-
-- Validation via OPCM
-- Integration testing
-- 3rd party audit
-- Testnet deployment
-
-### Detection
-
-Detection for this failure mode is highly dependent on the exact manner in which the mode occurs. Given the complexity in detecting this failure mode and the overlap with existing OPCM validation, we do not propose any new detection mechanisms for this mode.
-
-### Recovery Path(s)
-
-- Contract redeployment if necessary
-- Superchain-wide pause mechanism
-
-## FM2: Legacy runbook/response confusion
+## FM1: Legacy runbook/response confusion
 
 ### Description
 
@@ -165,7 +130,7 @@ Dedicated detection apparatus not recommended. Very low likelihood of occurring 
 - [ ] Create version-aware runbooks
 - [ ] Operator training sessions
 
-## FM3: Anchor state fails to progress within a time bound
+## FM2: Anchor state fails to progress within a time bound
 
 ### Description
 
@@ -196,9 +161,9 @@ The anchor state held within the `AnchorStateRegistry` could fail to progress an
 
 #### Action items:
 
-- [x] Implement anchor state age monitoring (Monitoring in hexagate)
+- [x] Implement anchor state age monitoring (Monitoring in hexagate [here](https://github.com/ethereum-optimism/k8s/blob/84745478eac43a8077c46055ecb01191ac28d2b0/tf/hexagate/config/monitors/mainnet.yaml#L146-L159))
 
-## FM4: Invalid anchor state
+## FM3: Invalid anchor state
 
 ### Description
 
@@ -231,7 +196,7 @@ An anchor state could be invalid if some assumption in [specs/fault-proof/stage-
 
 - [x] Runbook for handling this situation
 
-## FM5: Bug in `FaultDisputeGame.wasRespectedGameTypeWhenCreated()` or Portal logic allows game that wasn't respected to be used for withdrawals
+## FM4: Bug in `FaultDisputeGame.wasRespectedGameTypeWhenCreated()` or Portal logic allows game that wasn't respected to be used for withdrawals
 
 ### Description
 
@@ -254,7 +219,7 @@ The `FaultDisputeGame.wasRespectedGameTypeWhenCreated()` function is now a criti
 
 ### Recovery Path(s)
 
-## FM6: Errors in bond distribution
+## FM5: Errors in bond distribution
 
 ### Description
 
@@ -287,7 +252,7 @@ The bond distribution system could fail in multiple ways:
 
 ### Detection
 
-- Existing monitoring of bonds within `op-dispute-mon` - [link]
+- Existing monitoring of bonds within `op-dispute-mon` - [link](https://github.com/ethereum-optimism/optimism/blob/develop/op-dispute-mon/mon/withdrawals.go)
 
 ### Recovery Path(s)
 
