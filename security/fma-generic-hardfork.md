@@ -72,7 +72,7 @@ Since there is no chain halt, we can just live with it and fix it in an upcoming
 
 - **Mitigations:** There are two cases:
     - If the safe transaction couldn’t be successfully executed, then: Revert `OptimismPortal` to use the permissioned fault dispute game as its respected game type. Depending on how much time till the upgrade, a superchain pause would be needed in order to gather necessary the signatures to change the `OptimismPortal`.
-    - If the game implementation was misconfigured and this was detected prior to fork activation, then do the above. If detection occurs post-fork actiavtoin, then follow the [Fault Proofs Recovery Runbook](https://www.notion.so/8dad0f1e6d4644c281b0e946c89f345f?pvs=21) (includes the "Pre-Signed Pause").
+    - If the game implementation was misconfigured and this was detected prior to fork activation, then do the above. If detection occurs post-fork activation, then follow the [Fault Proofs Recovery Runbook](https://www.notion.so/8dad0f1e6d4644c281b0e946c89f345f?pvs=21) (includes the [Superchain Pause Incident Response Runbook](https://docs.google.com/document/d/1ooKn16PYXl_iKkv9sK4CemzgqoiQkzUX-ufPzfY9L20/edit?pli=1&tab=t.0).).
 
 - **Detection:** An un-executed safe transaction is easily detectable. In the case of a misconfigured game implementation, the op-dispute-mon will alert proofs-squad and security on any attempt to exploit this misconfiguration.
 

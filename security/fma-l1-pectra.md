@@ -14,8 +14,8 @@
 | ------------------- | ----------------- |
 | Author              | George Knee       |
 | Created at          | 5th February 2025 |
-| Needs Approval From |                   |
-| Other Reviewers     |                   |
+| Needs Approval From |      Tom Assas    |
+| Other Reviewers     | Josep Bove (shadow) |
 | Status              | In Review         |
 
 ## Introduction
@@ -23,7 +23,7 @@
 This document is intended to be shared in a public space for reviews and visibility purposes. It covers Upgrade 12, which involves the following changes:
 
 - (Consensus Layer) Ability to parse and validate blocks and receipts with EIP-7702 transactions, as well as blocks with a non-nil EIP-7685 requestsHash field.
-- (Smart Contracts) For chains using Fault Proofs, L1 contracts updates which reference an updated absolute prestate hash
+- (Smart Contracts) For chains using Fault Proofs, L1 contracts updates which reference an updated absolute prestate hash.
 
 Each change has its own section below with a list of Failure Modes.
 
@@ -39,7 +39,7 @@ Below are references for this project:
 
 - **Description:** L2 EL/CL clients are not able to parse and/or validate blocks when Pectra goes live on L1, those nodes may halt. This could happen a) if operators do not update their nodes to a suitable release or release candidate before Pectra activates on L1 or b) no such release is available in time or c) there is a bug in such releases.
 - **Risk Assessment:** High severity, Low Likelihood
-- **Mitigations:**:
+- **Mitigations:**
   1. We will rely on unit tests, [end-to-end tests](https://github.com/ethereum-optimism/optimism/pull/14006) and cross-client devnet acceptance tests to ensure no client halts when L1 activates Pectra. In particular, we performed [manual Kurtosis testing](https://github.com/ethereum-optimism/optimism/pull/14046) with an L1 that has Pectra activated, and sent EIP-7702 transactions to the L1. This mitigates c.
   2. Pectra will activate on Sepolia before L1 mainnet. This will provide another test (in production) of the node software changed. If the sepolia superchain continues to progress its safe chains, this will give us high confidence that the mainnet superchain will also. This mitigates b and c.
   3. We will make our software releases well ahead of time and communicate clearly to operators about the need to upgrade. See these docs https://docs.optimism.io/notices/pectra-changes. This mitigates a and b.
@@ -50,7 +50,7 @@ Below are references for this project:
 
 - **Description:** If any fault proof program is unable parse and/or validate blocks when Pectra goes live on L1, it may be impossible to prove correct blocks and defend against malicious challenges. See FM1 for various scenarios which trigger this failure mode.
 - **Risk Assessment:** High severity, Low Likelihood
-- **Mitigations:**:
+- **Mitigations:**
   1. Our [end-to-end tests](https://github.com/ethereum-optimism/optimism/pull/14006) include coverage for `op-program` (this runs in CI) as well as `kona` (this has been run manually and passes).
   2. If upstream work does not yet allow for appropriate end-to-end tests, we can patch our L1 clients in the testing environment(s) so we can still run the tests.
 - **Detection:** Automatic proofs monitoring systems would alert on-call engineers quickly in this instance. We run the op-challenger (with the new absolute prestate) on our production networks already, so we this part of the system will benefit from several weeks of battle-testing.
@@ -60,7 +60,7 @@ Below are references for this project:
 
 - **Description:** The changes to L1 contracts which are required for this upgrade are being executed by a new path. Any bug could cause a failure of the fault proofs system (see FM2).
 - **Risk Assessment:** High severity, Medium Likelihood
-- **Mitigations:**:
+- **Mitigations:**
   - The superchain-ops tasks will include both manual checking (in Validations.md) and automated checking (in NestedSignFromJson.s.sol). Thus although the manner of executing the upgrade is changing, we are maintaining the
     pre-existing methods of fully validating the resulting system.
 - **Detection:**
