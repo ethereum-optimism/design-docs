@@ -15,10 +15,10 @@
   - [FM2: Anchor state fails to progress within a time bound](#fm2-anchor-state-fails-to-progress-within-a-time-bound)
     - [Description](#description-1)
     - [Risk Assessment](#risk-assessment-1)
-      - [Mitigations](#mitigations-1)
-      - [Detection](#detection-1)
-      - [Recovery Path(s)](#recovery-paths-1)
-      - [Action items:](#action-items-1)
+    - [Mitigations](#mitigations-1)
+    - [Detection](#detection-1)
+    - [Recovery Path(s)](#recovery-paths-1)
+    - [Action items:](#action-items-1)
   - [FM3: Invalid anchor state](#fm3-invalid-anchor-state)
     - [Description](#description-2)
     - [Risk Assessment](#risk-assessment-2)
@@ -147,19 +147,19 @@ The anchor state held within the `AnchorStateRegistry` could fail to progress an
 - Likelihood: LOW/MEDIUM
   - Reasoning: Unlikely to occur via bug or Guardian overuse in practice. Possible that this occurs if there is a bug with the `FaultDisputeGame`'s call to `setAnchorState` if no extra monitoring exists.
 
-#### Mitigations
+### Mitigations
 
 - Monitor for the age of the anchor state
 
-#### Detection
+### Detection
 
 - Monitor for the age of the anchor state
 
-#### Recovery Path(s)
+### Recovery Path(s)
 
 - Manual intervention to refresh the anchor state: a newer valid anchor state can be permissionlessly set via `AnchorStateRegistry.setAnchorState(game)`.
 
-#### Action items:
+### Action items:
 
 - [x] Implement anchor state age monitoring (Monitoring in hexagate [here](https://github.com/ethereum-optimism/k8s/blob/84745478eac43a8077c46055ecb01191ac28d2b0/tf/hexagate/config/monitors/mainnet.yaml#L146-L159))
 
