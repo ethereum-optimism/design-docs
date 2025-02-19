@@ -4,25 +4,18 @@ This design document aims to provide a clear implementation path for token issue
 
 # **Summary**
 
-CrosschainERC20 is a token implementation that combines xERC20 ([ERC-7281](https://ethereum-magicians.org/t/erc-7281-sovereign-bridged-tokens/14979)) and SuperchainERC20 ([ERC-7802](https://ethereum-magicians.org/t/erc-7802-crosschain-token-interface/21508)) functionality. This allows tokens to be immediately usable with existing bridge infrastructure while being compatible with the Superchain interop cluster.
-
-# **Problem Statement + Context**
-
-Token issuers face two main challenges:
-
-- Need for cross-ecosystem interoperability (Superchain + other ecosystems)
-- Need for immediate token interoperability
+CrosschainERC20 is a token implementation that combines [ERC-7281](https://ethereum-magicians.org/t/erc-7281-sovereign-bridged-tokens/14979) and [ERC-7802](https://ethereum-magicians.org/t/erc-7802-crosschain-token-interface/21508) functionality. This allows tokens to be immediately usable with existing bridge infrastructure while being compatible with the Superchain interop cluster.
 
 # **Proposed Solutions**
 
-If the asset issuer wants to make their token cross-chain interoperable today or wants their token to be available inside/outside the Superchain interop cluster, there are three approaches the asset issuer could take to make their token xSuperERC20 ready.
+If the asset issuer wants to make their token cross-chain interoperable today or wants their token to be available inside/outside the Superchain interop cluster, there are three approaches the asset issuer could take to make their token ready.
 
 ## **A. Non-deployed or upgradable tokens**
 
 For tokens that have not yet been deployed, or can be upgraded, we recommend implementing CrosschainERC20 - a token that combines both ERC-7281 (xERC20) and ERC-7802 standards. This solution is ideal when:
 
-- You want your token to work both within the Superchain (via ERC-7802)
-- AND outside the Superchain using third-party bridges (via ERC-7281)
+- You want your token to work both within the Superchain or any bridge that implements ERC-7802.
+- AND outside the Superchain using third-party bridges via ERC-7281.
 
 This approach provides maximum flexibility as:
 
@@ -52,16 +45,13 @@ For tokens that are already deployed as xERC20 and cannot be upgraded to impleme
 
 ### **SuperchainERC20Adapter**
 
-This approach introduces an adapter contract that implements SuperchainERC20's crosschainBurn and crosschainMint functions, converting these calls into the corresponding xERC20 mint/burn operations.
+This approach introduces an adapter contract that implements ERC-7802's crosschainBurn and crosschainMint functions, converting these calls into the corresponding xERC20 mint/burn operations.
 
 Raw Example:
 
 ```solidity
 function crosschainMint(address _to, uint256 _amount) external {
-    if (msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE) revert Unauthorized();
-
-    // Instead of internally calling the _mint() function it calls the xERC20 mint().
-    IXERC20(XERC20_ADDRESS).mint(_to, _amount);
+    XERC20.mint(_to, _amount);
 
     emit CrosschainMint(_to, _amount, msg.sender);
 }
@@ -69,7 +59,7 @@ function crosschainMint(address _to, uint256 _amount) external {
 
 Key benefits:
 
-- The most simple/straightforward solution, token no need to have the same address.
+- The most simple/straightforward solution, token do not need to have the same address.
 - Uses SuperchainTokenBridge
 
 Cons:
@@ -132,7 +122,7 @@ sequenceDiagram
 
 The Factory contract serves as a central deployment mechanism for all the components in our system. It provides methods to:
 
-1. Deploy new CrosschainERC20 tokens and grant mint/burn permissions to the SuperchainTokenBridge
+1. Deploy new CrosschainERC20 tokens and grant mint/burn permissions to the SuperchainTokenBridge or any other bridge that implements ERC-7802.
 2. Deploy Lockboxes for existing tokens that support ERC20 interfaces
 3. Deploy Adapters for existing xERC20 tokens
 
