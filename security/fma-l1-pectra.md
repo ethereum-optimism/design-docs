@@ -10,13 +10,13 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-|                     |                   |
-| ------------------- | ----------------- |
-| Author              | George Knee       |
-| Created at          | 5th February 2025 |
-| Needs Approval From |      Tom Assas    |
+|                     |                     |
+| ------------------- | ------------------- |
+| Author              | George Knee         |
+| Created at          | 5th February 2025   |
+| Needs Approval From | Tom Assas           |
 | Other Reviewers     | Josep Bove (shadow) |
-| Status              | In Review         |
+| Status              | In Review           |
 
 ## Introduction
 
@@ -32,6 +32,7 @@ Below are references for this project:
 - [Github tracker](https://github.com/orgs/ethereum-optimism/projects/117/views/9)
 - [Specs clarification (Logs)](https://specs.optimism.io/protocol/derivation.html#on-future-proof-transaction-log-derivation)
 - [Specs clarification (L1 Retrieval)](https://specs.optimism.io/protocol/derivation.html#l1-retrieval)
+- [OP Contracts Manager specs](https://specs.optimism.io/experimental/op-contracts-manager.html?highlight=opcm#op-contracts-manager)
 
 ## Failure Modes and Recovery Paths
 
