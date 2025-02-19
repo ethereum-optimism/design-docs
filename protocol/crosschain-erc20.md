@@ -50,7 +50,7 @@ This approach introduces an adapter contract that implements ERC-7802's crosscha
 Raw Example:
 
 ```solidity
-function crosschainMint(address _to, uint256 _amount) external {
+function crosschainMint(address _to, uint256 _amount) onlyBridge external {
     XERC20.mint(_to, _amount);
 
     emit CrosschainMint(_to, _amount, msg.sender);
