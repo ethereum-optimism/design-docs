@@ -60,13 +60,9 @@ minority of the Security Council to unpause the system or (2) have the pause aut
 after some period of time. Given the potential security concerns with allowing a minority of the
 Security Council to unpause, we prefer option (2).
 
-We therefore propose that the pause would expire after some period of time to be defined in the
-specification for these changes (on the order of several months). Once expired, the pause would
-have a cooldown period (to be specified later) to prevent anyone with access to the pause from
-repeatedly pausing as soon as the previous pause expires. A majority of the Security Council would
-be able to reset the expiry clock or explicitly unpause the system. An explicit unpause action
-(rather than an expiration) would  similarly reset the cooldown such that the pause can again be
-executed immediately.
+We therefore propose that the pause would expire after 6 months. Once the pause is used, the pause
+cannot be called again unless it is reset by a majority of the Security Council (this applies in
+all cases, regardless of whether the system unpauses due to expiry or due to explicit unpause).
 
 ### Cluster-wide Pause
 
@@ -75,26 +71,18 @@ the pause mechanism would also become the basis for an updated incident response
 the Superchain-wide Pause is far too impactful to be the only available option during an incident.
 Given that we suspect many incidents will take the form of *single* impacted chains or chain
 clusters, it may be valuable to implement a Cluster-wide Pause on top of the Superchain-wide Pause.
+
 A chain would be paused if *either* the Superchain-wide Pause is active or its Cluster-wide Pause
-is active.
+is active. We would implement the Cluster-wide Pause by allowing the Guardian to pause a specific
+chain/cluster as identified by a `SystemConfig` contract address. That is, the Guardian would call
+`SuperchainConfig.pause(someSystemConfigAddress)`. Other contracts would then check the status of
+the pause by calling `SuperchainConfig.paused(mySystemConfigAddress)` which would return true if
+either that specific system is paused or the entire Superchain is paused.
+
+The interop cluster can use a "fake" shared system config address in the call to `paused(..)` so
+that the entire cluster pauses at the same time.
 
 ## Considerations
-
-### Cluser-wide Pause Complexity
-
-It should be noted that the Cluster-wide Pause is likely the most significant source of complexity
-in this proposal. We have a number of different options for how to implement this. Here's a
-non-exhaustive list:
-
-- Cluster ID inside of `SystemConfig` with Cluster-wide Pause held inside of `SuperchainConfig`.
-- New `ClusterConfig` contract.
-- Pause within `SystemConfig` and bundle pauses for an entire cluster into single transaction.
-- Only use Superchain-wide pause.
-
-Given that for the foreseeable future we expect to either (1) pause individual chains or (2) pause
-the primary interop cluster and (3) that an issue impacting the entire primary interop cluster
-probably requires a Superchain-wide Pause anyway, it may just be simpler to implement an additional
-pause in the `SystemConfig` contract instead.
 
 ### Pause Expiry Security Implications
 
