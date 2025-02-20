@@ -33,6 +33,7 @@ Below are references for this project:
 - [Specs clarification (Logs)](https://specs.optimism.io/protocol/derivation.html#on-future-proof-transaction-log-derivation)
 - [Specs clarification (L1 Retrieval)](https://specs.optimism.io/protocol/derivation.html#l1-retrieval)
 - [OP Contracts Manager specs](https://specs.optimism.io/experimental/op-contracts-manager.html?highlight=opcm#op-contracts-manager)
+- [Optimism Docs on Pectra (including L1 activation times)](https://docs.optimism.io/notices/pectra-changes)
 
 ## Failure Modes and Recovery Paths
 
