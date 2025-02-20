@@ -64,6 +64,14 @@ we can blackbox the Fault Dispute Game. We also need to audit that the Super Roo
 used unless it has been activated and that the inclusion of both functions is not dangerous for any
 reason.
 
+### Cross-Chain Withdrawals
+
+We have decided that we will NOT allow the `OptimismPortal` for one chain to process withdrawals
+from another chain when interop launches because of security implications with the correctness of
+the cross-domain message sender. The Super Root withdrawal proof must therefore guarantee that a
+given withdrawal was actually created on the specific chain that corresponds to the given
+`OptimismPortal`. This means that we need to include a chain ID in the `OptimismPortal`.
+
 ## Failure Modes
 
 ### Bug in Proof Validation Logic
