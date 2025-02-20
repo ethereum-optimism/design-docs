@@ -72,6 +72,12 @@ the cross-domain message sender. The Super Root withdrawal proof must therefore 
 given withdrawal was actually created on the specific chain that corresponds to the given
 `OptimismPortal`. This means that we need to include a chain ID in the `OptimismPortal`.
 
+### Portal Code Differences
+
+We have a strong preference that all chains use the Super Root proof system within a relatively
+short time of the interop launch. We should have a clear plan to shipping this proof system to all
+chains after interop goes live.
+
 ## Failure Modes
 
 ### Bug in Proof Validation Logic
