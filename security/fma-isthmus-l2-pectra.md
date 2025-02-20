@@ -13,6 +13,7 @@
   - [FM5: BLS Precompiles could fail to execute in the FP program](#fm5-bls-precompiles-could-fail-to-execute-in-the-fp-program)
   - [FM6: Increased call data cost affects network upgrade transactions](#fm6-increased-call-data-cost-affects-network-upgrade-transactions)
   - [FM7: Early fork if batches containing EIP-7702 transactions could be posted before Pectra](#fm7-early-fork-if-batches-containing-eip-7702-transactions-could-be-posted-before-pectra)
+  - [FM8: Smart contracts relying on sender check no longer ensures sender does not have code](#fm8-smart-contracts-relying-on-sender-check-no-longer-ensures-sender-does-not-have-code)
   - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
 - [Action Items](#action-items)
 - [Audit Requirements](#audit-requirements)
@@ -155,6 +156,18 @@ BLS precompiles in sufficient time.
 - **Recovery Path(s)**: Emergency patch to rollup node clients (like `op-node`).
 
 
+### FM8: Smart contracts relying on sender check no longer ensures sender does not have code
+
+- **Description:** As part of EIP-7702, `msg.sender == tx.origin` no longer implies that the caller has no code. If unaddressed, this could cause
+some contracts to incorrectly assume the caller has no code.
+- **Risk Assessment:** Medium impact, low likelihood
+- **Mitigations:**
+  1. `isAddress` functions that are used as part of our predeployed contracts check code size, not the condition `msg.sender == tx.origin`.
+      - [OpenZeppelin reference](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/0a2cb9a445c365870ed7a8ab461b12acf3e27d63/contracts/utils/AddressUpgradeable.sol#L41)
+  2. The checks, `msg.sender == tx.origin` and `tx.origin == msg.sender`, do not appear in the contracts currently used.
+- **Detection:** Some contracts that use the `msg.sender == tx.origin` check would allow delegated accounts to execute certain actions they weren't able to before.
+- **Recovery Path(s)**: Fix and upgrade the contracts.
+
 ### Generic items we need to take into account:
 
 <!-- See [generic hardfork failure modes](./fma-generic-hardfork.md) and [generic smart contract failure modes](./fma-generic-contracts.md).
@@ -167,7 +180,6 @@ Incorporate any applicable failure modes with FMA-specific mitigations and detec
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
-- [ ] FM6: double check that call data cost doesn't break upgrade transactions - https://github.com/ethereum-optimism/specs/issues/576
 
 ## Audit Requirements
 <!-- 
