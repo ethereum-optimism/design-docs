@@ -30,7 +30,6 @@ For tokens that are already deployed and cannot be upgraded, we propose using a 
 2. Deploy a Lockbox contract that:
    - Locks the original ERC20 tokens
    - Mints CrosschainERC20 tokens at a 1:1 ratio
-   - Can be deployed deterministically to have the same address across all chains
 
 Key benefits:
 
@@ -46,6 +45,7 @@ For tokens that are already deployed as xERC20 and cannot be upgraded to impleme
 ### **ERC7802Adapter**
 
 This approach introduces an adapter contract that implements ERC-7802's crosschainBurn and crosschainMint functions, converting these calls into the corresponding xERC20 mint/burn operations.
+Since the bridges using this interface are going to call the adapter and not the token contract, we need to make sure the adapter is deployed deterministically to have the same address across all chains.
 
 Raw Example:
 
@@ -60,7 +60,7 @@ function crosschainMint(address _to, uint256 _amount) onlyBridge external {
 Key benefits:
 
 - The most simple/straightforward solution, token do not need to have the same address.
-- Uses SuperchainTokenBridge
+- Uses SuperchainTokenBridge or any other bridge that implements ERC-7802.
 
 Cons:
 
