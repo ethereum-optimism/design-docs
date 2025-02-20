@@ -81,6 +81,24 @@ Although this upgrade is technically a soft fork (it does not need to be coordin
 
 ## Audit Requirements
 
+## Appendix
+
+The following table shows how each EIP from Pectra will affect OPStack chains:
+
+| EIP      | Description                                                | Impact on L2 Consensus Rules                                                                                                                  |
+| -------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| EIP-2537 | Precompile for BLS12-381 curve operations                  | None, since it does not impact the data type of L1 blocks, only their execution results.                                                      |
+| EIP-2935 | Save historical block hashes in state                      | None, since it does not impact the data type of L1 blocks , only their execution results.                                                     |
+| EIP-6110 | Supply validator deposits on chain                         | Affects the L1 block header via the `requests_hash` field (see EIP 7685).                                                                     |
+| EIP-7002 | Execution layer triggerable withdrawals                    | Affects the L1 block header via the `requests_hash` field (see EIP 7685).                                                                     |
+| EIP-7251 | Increase the MAX_EFFECTIVE_BALANCE                         | Affects the L1 block header via the `requests_hash` field (see EIP 7685).                                                                     |
+| EIP-7549 | Move committee index outside Attestation                   | None, since it does not impact the data type of L1 blocks.                                                                                    |
+| EIP-7623 | Increase calldata cost - :exclamation: new EIP             | None, since it does not impact the data type of L1 blocks.                                                                                    |
+| EIP-7685 | General purpose execution layer requests                   | Adds a new field `requests_hash` to the L1 block header.                                                                                      |
+| EIP-7691 | Blob throughput increase :exclamation: new EIP             | None, since it does not impact the data type of L1 blocks.                                                                                    |
+| EIP-7702 | Set EOA account code                                       | Adds a new tx type (and corresponding receipt) which L2 Consensus Layer Clients need to be able to parse (changes the data type of L1 blocks) |
+| EIP-7840 | Add blob schedule to EL config files :exclamation: new EIP | None, since it does not impact the data type of L1 blocks.                                                                                    |
+
 ## Action Items
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
