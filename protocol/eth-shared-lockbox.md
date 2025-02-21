@@ -66,6 +66,7 @@ A ETH migration function can be added to the `OptimismPortal` to allow transferr
 The migration process would:
 
 - Only the `ProxyAdmin` owner can trigger the migration
+- The `OptimismPortal` MUST be first authorized in the `ETHLockbox`
 - Transfer the entire ETH balance of the `OptimismPortal` to the pre-configured `ETHLockbox`
 
 ### `ETHLockbox` merge process
@@ -84,7 +85,7 @@ The merge process has two parts:
 - Only the `ProxyAdmin` owner can trigger the migration
 - The destination lockbox is provided as a parameter during migration
 - Transfer the entire ETH balance to the specified destination lockbox
-- Permanently disable the current lockbox after migration
+- After migration, the source lockbox will no longer be used by any `OptimismPortal`
 
 This ensures a secure way to consolidate ETH liquidity from multiple lockboxes into a single one. After migration, the portal previously using the source lockbox would need to be updated to point to the destination lockbox.
 
