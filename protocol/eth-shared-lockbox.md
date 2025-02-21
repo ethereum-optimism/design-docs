@@ -6,7 +6,7 @@ This document discusses possible solutions to address the constraints on ETH wit
 
 # Summary
 
-With interoperable ETH, withdrawals may fail if the referenced `OptimismPortal` lacks sufficient ETH—especially for large amounts or on OP Chains with low liquidity—since ETH liquidity isn't shared at the L1 level. To prevent users from being stuck, several solutions have been explored. Currently, the Superchain design favors the `SharedLockbox`, which is considered the most effective solution.
+With interoperable ETH, withdrawals may fail if the referenced `OptimismPortal` lacks sufficient ETH—especially for large amounts or on OP Chains with low liquidity—since ETH liquidity isn't shared at the L1 level. To prevent users from being stuck, several solutions have been explored. Currently, the Superchain design favors the `ETHLockbox`, which is considered the most effective solution.
 
 # Problem Statement + Context
 
@@ -39,16 +39,16 @@ In any OP Chain that joins the cluster, it is assumed that `SuperchainWETH` has 
 
 # Solution
 
-The existing problem and considerations motivate us to propose an L1 shared liquidity design through the introduction of a new `SharedLockbox` on L1, which serves as a singleton contract for ETH, given a defined set of interoperable chains. New ETH deposits will be directed to the lockbox, with the same process applied to ETH withdrawals.
+The existing problem and considerations motivate us to propose an L1 shared liquidity design through the introduction of a new `ETHLockbox` on L1, which serves as a singleton contract for ETH, given a defined set of interoperable chains. New ETH deposits will be directed to the lockbox, with the same process applied to ETH withdrawals.
 
 ### Spec changes
 
 The core proposed changes are as follows:
 
-- **Introduce the `SharedLockbox` contract**: This contract acts as an escrow for ETH, receiving deposits and allowing withdrawals from approved `OptimismPortal` contracts.
-- **Modify the `OptimismPortal`**: To forward ETH into the `SharedLockbox` when `depositTransaction` is called, with the inverse process applying when `finalizeWithdrawal` is called.
+- **Introduce the `ETHLockbox` contract**: This contract acts as an escrow for ETH, receiving deposits and allowing withdrawals from approved `OptimismPortal` contracts. It is proxied and owned by the L1 `ProxyAdmin` contract.
+- **Modify the `OptimismPortal`**: To forward ETH into the `ETHLockbox` when `depositTransaction` is called, with the inverse process applying when `finalizeWithdrawal` is called.
 
-### `SharedLockbox` implementation
+### `ETHLockbox` implementation
 
 A minimal set of functions should include:
 
@@ -57,31 +57,31 @@ A minimal set of functions should include:
 
 Access control for `lockETH` and `unlockETH` is validated against the mapping of authorized `OptimismPortal` addresses.
 
-The upgrade controller role can add `OptimismPortal` addresses to the `SharedLockbox` contract.
+The `ProxyAdmin` owner can add `OptimismPortal` addresses to the `ETHLockbox` contract. This role can be introspected in the `ETHLockbox` contract.
 
 ### `OptimismPortal` upgrade process
 
-A permissionless ETH migration function can be added to the `OptimismPortal` to allow transferring all ETH to the `SharedLockbox` at any time. The `SharedLockbox` address is set during initialization of the `OptimismPortal` and cannot be changed afterwards.
+A ETH migration function can be added to the `OptimismPortal` to allow transferring all ETH to the `ETHLockbox` at any time. The `ETHLockbox` address is set during initialization of the `OptimismPortal` and cannot be changed afterwards.
 
 The migration process would:
 
-- Allow any caller to trigger the migration
-- Transfer the entire ETH balance of the `OptimismPortal` to the pre-configured `SharedLockbox`
+- Only the `ProxyAdmin` owner can trigger the migration
+- Transfer the entire ETH balance of the `OptimismPortal` to the pre-configured `ETHLockbox`
 
-### `SharedLockbox` merge process
+### `ETHLockbox` merge process
 
-The `SharedLockbox` includes a migration function to allow transferring all ETH to another existing lockbox. This enables merging liquidity pools by migrating ETH from one lockbox to another, allowing multiple portals to use the same shared liquidity.
+The `ETHLockbox` includes a migration function to allow transferring all ETH to another existing lockbox. This enables merging liquidity pools by migrating ETH from one lockbox to another, allowing multiple portals to use the same shared liquidity.
 
 The merge process has two parts:
 
 1. Destination lockbox preparation:
 
-- Only the upgrade controller role can approve a specific source lockbox to send ETH
+- Only the `ProxyAdmin` owner can approve a specific source lockbox to send ETH
 - This prevents receiving ETH from unauthorized or incorrect lockboxes
 
 2. Source lockbox migration:
 
-- Only the upgrade controller role can trigger the migration
+- Only the `ProxyAdmin` owner can trigger the migration
 - The destination lockbox is provided as a parameter during migration
 - Transfer the entire ETH balance to the specified destination lockbox
 - Permanently disable the current lockbox after migration
@@ -92,9 +92,14 @@ This ensures a secure way to consolidate ETH liquidity from multiple lockboxes i
 
 ```mermaid
 flowchart TD
-  SuperchainConfig --> OptimismPortal
-  SuperchainConfig --> OptimismPortal'
-  SuperchainConfig --> OptimismPortal''
+  SuperchainConfig ~~~ OptimismPortal --> SuperchainConfig
+  OptimismPortal ~~~ SuperchainConfig
+
+  SuperchainConfig ~~~ OptimismPortal' --> SuperchainConfig
+  OptimismPortal' ~~~ SuperchainConfig
+
+  SuperchainConfig ~~~ OptimismPortal'' --> SuperchainConfig
+  OptimismPortal'' ~~~ SuperchainConfig
 
   OptimismPortal --> ETHLockbox
   OptimismPortal' --> ETHLockbox'
@@ -103,7 +108,7 @@ flowchart TD
 
 ## Impact
 
-The following components require an audit of the new and modified contracts: `OptimismPortal` and `SharedLockbox`.
+The following components require an audit of the new and modified contracts: `OptimismPortal` and `ETHLockbox`.
 
 # Alternatives Considered
 
