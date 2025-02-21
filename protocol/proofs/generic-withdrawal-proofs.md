@@ -35,6 +35,12 @@ available functions. When `superRootsActive` is `false`, the version of
 `proveWithdrawalTransaction` for Super Roots would revert. When `superRootsActive` is `true`, the
 legacy version of the function would revert.
 
+At the time of interop launch, chains in the interop set would switch to the Super Root versions of
+the dispute game and set `superRootsActive` to `true`. Chains not in the interop set would still
+have `superRootsActive` set to `false`. We would then switch these chains to a single-chain Super
+Root proof and either set `superRootsActive` to `true` or remove the old code path at the same
+time.
+
 ## Alternatives Considered
 
 ### Using an Inherited Contract
@@ -82,11 +88,11 @@ We have a strong preference that all chains use the Super Root proof system with
 short time of the interop launch. We should have a clear plan to shipping this proof system to all
 chains after interop goes live.
 
-### Early Upgrade
+### Wrong Withdrawal Path
 
 If any chain were to use this code *before* switching to Super Roots, user proofs would not
 function properly. We would not expect any safety concerns, but this woudl cause issues for the
-impacted chain and require an urgent upgrade.
+impacted chain and require a relatively urgent upgrade.
 
 ## Failure Modes
 
@@ -96,3 +102,9 @@ The only significant failure mode of this change is a bug in the new proof valid
 Although unlikely, the impact of this bug is only a HIGH because of existing withdrawal validity
 monitoring. Withdrawal validity monitoring will detect invalid withdrawals regardless of whether
 the proof verification bug is because of the output root logic or the merkle trie.
+
+### Premature Switch
+
+If a chain prematurely switches to setting `superRootsActive`, they will be using the Super Root
+withdrawal validation logic while the proof system will (correctly) be submitting Output Roots.
+This will cause user withdrawal proofs to fail and would therefore be a HIGH severity incident.
