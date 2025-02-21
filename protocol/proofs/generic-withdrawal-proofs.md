@@ -29,11 +29,11 @@ introducing the code to the `OptimismPortalInterop` portal. Doing so means that 
 extra code on the `OptimismPortal` that is technically unnecessary until interop ships but also
 means that we do not need to ship any additional changes to the `OptimismPortal` before interop.
 
-We could expose a new public variable `usingSuperRoots` that would toggle this function on and off
+We could expose a new public variable `superRootsActive` that would toggle this function on and off
 and would also act as a signal for client-side tooling to automatically switch between the two
-available functions. When `usingSuperRoots` is `false`, the version of `proveWithdrawalTransaction`
-for Super Roots would revert. When `usingSuperRoots` is `true`, the legacy version of the function
-would revert.
+available functions. When `superRootsActive` is `false`, the version of
+`proveWithdrawalTransaction` for Super Roots would revert. When `superRootsActive` is `true`, the
+legacy version of the function would revert.
 
 ## Alternatives Considered
 
@@ -70,13 +70,23 @@ We have decided that we will NOT allow the `OptimismPortal` for one chain to pro
 from another chain when interop launches because of security implications with the correctness of
 the cross-domain message sender. The Super Root withdrawal proof must therefore guarantee that a
 given withdrawal was actually created on the specific chain that corresponds to the given
-`OptimismPortal`. This means that we need to include a chain ID in the `OptimismPortal`.
+`OptimismPortal`.
+
+This means that we need to include a chain ID in the `OptimismPortal`. Instead of adding this into
+the `OptimismPortal` itself, we will add this into the `SystemConfig` and have the portal read the
+chain ID from the portal.
 
 ### Portal Code Differences
 
 We have a strong preference that all chains use the Super Root proof system within a relatively
 short time of the interop launch. We should have a clear plan to shipping this proof system to all
 chains after interop goes live.
+
+### Early Upgrade
+
+If any chain were to use this code *before* switching to Super Roots, user proofs would not
+function properly. We would not expect any safety concerns, but this woudl cause issues for the
+impacted chain and require an urgent upgrade.
 
 ## Failure Modes
 
