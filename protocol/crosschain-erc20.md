@@ -4,7 +4,7 @@ This design document aims to provide a clear implementation path for token issue
 
 # **Summary**
 
-CrosschainERC20 is a token implementation that combines [ERC-7281](https://ethereum-magicians.org/t/erc-7281-sovereign-bridged-tokens/14979) and [ERC-7802](https://ethereum-magicians.org/t/erc-7802-crosschain-token-interface/21508) functionality. This allows tokens to be immediately usable with existing bridge infrastructure while being compatible with the Superchain interop cluster.
+`CrosschainERC20` is a token implementation that combines [`ERC-7281`](https://ethereum-magicians.org/t/erc-7281-sovereign-bridged-tokens/14979) and [`ERC-7802`](https://ethereum-magicians.org/t/erc-7802-crosschain-token-interface/21508) functionality. This allows tokens to be immediately usable with existing bridge infrastructure while being compatible with the Superchain interop cluster.
 
 # **Proposed Solutions**
 
@@ -12,10 +12,10 @@ If the asset issuer wants to make their token cross-chain interoperable today or
 
 ## **A. Non-deployed or upgradable tokens**
 
-For tokens that have not yet been deployed, or can be upgraded, we recommend implementing CrosschainERC20 - a token that combines both ERC-7281 (xERC20) and ERC-7802 standards. This solution is ideal when:
+For tokens that have not yet been deployed, or can be upgraded, implement `CrosschainERC20` - a token that combines both `ERC-7281` (`xERC20`) and `ERC-7802` standards. This solution is ideal when:
 
-- You want your token to work both within the Superchain or any bridge that implements ERC-7802.
-- AND outside the Superchain using third-party bridges via ERC-7281.
+- The token MUST work both within the Superchain or any bridge that implements `ERC-7802`.
+- The token MUST work outside the Superchain using third-party bridges via `ERC-7281`.
 
 This approach provides maximum flexibility as:
 
@@ -24,30 +24,27 @@ This approach provides maximum flexibility as:
 
 ## **B. Deployed, non-upgradable tokens (Non-xERC20)**
 
-For tokens that are already deployed and cannot be upgraded, we propose using a Lockbox mechanism:
+For tokens that are already deployed and cannot be upgraded, use a Lockbox mechanism:
 
-1. Deploy a CrosschainERC20 contract that will be the wrapped version of the original token
-2. Deploy a Lockbox contract that:
-   - Locks the original ERC20 tokens
-   - Mints CrosschainERC20 tokens at a 1:1 ratio
+1. Deploy a `CrosschainERC20` contract that will be the wrapped version of the original token
+2. Deploy a `Lockbox` contract that:
+   - Locks the original `ERC20` tokens
+   - Mints `CrosschainERC20` tokens at a 1:1 ratio
 
-Key benefits:
+Properties:
 
 - Maintains the original token's supply while enabling Superchain functionality
 - The deterministic deployment ensures the wrapped token has the same address on all chains
-- Enables usage of the SuperchainTokenBridge since the wrapped token's address is consistent across the network
-- Users can always unwrap their tokens to return to the original ERC20
+- Enables usage of the `SuperchainTokenBridge` since the wrapped token's address is consistent across the network
+- Users can always unwrap their tokens to return to the original `ERC20`
 
-## **C. Deployed, non-upgradable xERC20**
+## **C. Deployed, non-upgradable `xERC20`**
 
-For tokens that are already deployed as xERC20 and cannot be upgraded to implement ERC-7802. This is particularly important as many projects have already deployed xERC20 tokens and need a path to integrate with the Superchain while maintaining their existing bridge infrastructure.
+For tokens already deployed as non-upgradable `xERC20`, upgrading to implement ERC-7802 is not an option. To integrate with the Superchain while maintaining existing bridge infrastructure, an `ERC7802Adapter` can be used. This contract implements `ERC-7802`’s crosschainBurn and crosschainMint functions, translating them into the corresponding `xERC20` mint/burn operations.
 
-### **ERC7802Adapter**
+Since bridges will interact with the adapter instead of the token contract, the adapter must be deployed deterministically to ensure the same address across all chains.
 
-This approach introduces an adapter contract that implements ERC-7802's crosschainBurn and crosschainMint functions, converting these calls into the corresponding xERC20 mint/burn operations.
-Since the bridges using this interface are going to call the adapter and not the token contract, we need to make sure the adapter is deployed deterministically to have the same address across all chains.
-
-Raw Example:
+#### Raw Example:
 
 ```solidity
 function crosschainMint(address _to, uint256 _amount) onlyBridge external {
@@ -57,16 +54,12 @@ function crosschainMint(address _to, uint256 _amount) onlyBridge external {
 }
 ```
 
-Key benefits:
+#### Properties:
 
-- The most simple/straightforward solution, token do not need to have the same address.
-- Uses SuperchainTokenBridge or any other bridge that implements ERC-7802.
-
-Cons:
-
+- Uses `SuperchainTokenBridge` or any other bridge that implements `ERC-7802`.
 - Token owner has to deploy one adapter for each chain using the same address.
 
-Setup Diagram:
+#### Setup Diagram:
 
 ```mermaid
 sequenceDiagram
@@ -83,7 +76,7 @@ sequenceDiagram
 
 ```
 
-Usage Diagrams:
+#### Usage Diagrams:
 
 ```mermaid
 sequenceDiagram
@@ -122,9 +115,9 @@ sequenceDiagram
 
 The Factory contract serves as a central deployment mechanism for all the components in our system. It provides methods to:
 
-1. Deploy new CrosschainERC20 tokens and grant mint/burn permissions to the SuperchainTokenBridge or any other bridge that implements ERC-7802.
-2. Deploy Lockboxes for existing tokens that support ERC20 interfaces
-3. Deploy Adapters for existing xERC20 tokens
+1. Deploy new `CrosschainERC20` tokens and grant mint/burn permissions to the `SuperchainTokenBridge` or any other bridge that implements `ERC-7802`.
+2. Deploy Lockboxes for existing tokens that support `ERC20` interfaces
+3. Deploy Adapters for existing `xERC20` tokens
 
 **Key Features:**
 
@@ -137,11 +130,11 @@ The Factory contract serves as a central deployment mechanism for all the compon
 
 ## Alternatives Considered for Scenario C
 
-_Worth mentioning that the Lockbox solution described in section B is also compatible with this scenario, providing an alternative option if the token issuer prefers to wrap their xERC20 into a new CrosschainERC20 token_
+_Worth mentioning that the Lockbox solution described in section B is also compatible with this scenario, providing an alternative option if the token issuer prefers to wrap their `xERC20` into a new `CrosschainERC20` token_
 
 ### **CrosschainERC20Converter**
 
-It is a CrosschainERC20 contract that can mint/burn xERC20 tokens. Similar to the Lockbox mechanism, but instead of locking tokens, it performs a direct conversion.
+It is a `CrosschainERC20` contract that can mint/burn `xERC20` tokens. Similar to the Lockbox mechanism, but instead of locking tokens, it performs a direct conversion.
 
 _It would be good to add a `pause` modifier on the convert functions to force the liquidity to be moved to one direction._
 
@@ -152,11 +145,11 @@ Pre-requisite:
 
 Key benefits:
 
-- Same approach that for non xERC20 migration, reduced complexity on development process. Allows native usage of CrosschainERC20/7802
+- Same approach that for non `xERC20` migration, reduced complexity on development process. Allows native usage of `CrosschainERC20`/`ERC-7802`
 
 Cons:
 
-- Fragmented liquidity if the xERC20 coexists with the CrosschainERC20
+- Fragmented liquidity if the `xERC20` coexists with the `CrosschainERC20`
 - User needs two transactions to cross-transfer
 
 Setup Diagram:
@@ -217,21 +210,21 @@ sequenceDiagram
 
 ### **SuperchainXERC20Bridge**
 
-This approach introduces a new predeploy contract that acts as a bridge between xERC20 tokens across the Superchain. The implementation requires:
+This approach introduces a new predeploy contract that acts as a bridge between `xERC20` tokens across the Superchain. The implementation requires:
 
 Pre-requisite:
 
-- xERC20 addresses MUST be the same in both chains
-- Configuring the xERC20 token to grant mint/burn permissions to this predeploy
+- `xERC20` addresses MUST be the same in both chains
+- Configuring the `xERC20` token to grant mint/burn permissions to this predeploy
 
 Key benefits:
 
 - Single contract for every token
-- Utilizing the L2ToL2CrossDomainMessenger for secure cross-chain communication
+- Utilizing the `L2ToL2CrossDomainMessenger` for secure cross-chain communication
 
 Cons:
 
-- Discourages the adoption, prioritizing xERC20 over SuperchainERC20
+- Discourages the adoption, prioritizing `xERC20` over `SuperchainERC20`
 - Build and maintain a new predeploy.
 
 Setup Diagram:
