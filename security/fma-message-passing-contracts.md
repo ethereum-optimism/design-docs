@@ -3,8 +3,8 @@
 | Author | Joxes, AgusDuha |
 | --- | --- |
 | Created at | 2025-02-04 |
-| Initial Reviewers | Pending |
-| Needs Approval From | Pending |
+| Initial Reviewers | presumably someone from wonderland? |
+| Needs Approval From | Michael Amadi, Matt Solomon |
 | Status | In Review |
 
 ## Introduction
