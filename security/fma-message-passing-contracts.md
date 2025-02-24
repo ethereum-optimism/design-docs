@@ -133,8 +133,9 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 - [ ]  FM5: Implement a monitoring tool that alerts successful reentrancies.
 - [ ]  FM6: Attach client-side test files that verify repeated identifiers are not validated.
 - [ ]  FM6: Implement a monitoring tool that alerts when a message validation uses a repeated identifier.
+- [ ]  Write up an FMA for `op-supervisor`, as this component is critical and transversal to many of the cases explained, since its failure could degrade liveness or the safety of interop.
 - [ ]  Ensure the support team is aware of these failure modes and prepared to respond.
 
 ## Audit Requirements
 
-Following the [Audit Framework](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864), interop contracts fit within the second budget, which includes smart contract code that secures assets. That means the `CrossL2Inbox`, `L2ToL2CrossDomainMessenger`, `L1BlockInterop`, and `SuperchainTokenBridge` require an audit before going to production.
+Following the [Audit Framework](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864), interop contracts fit within the second budget, which includes smart contract code that secures assets. That means the `CrossL2Inbox`, `L2ToL2CrossDomainMessenger`, `L1BlockInterop`, and `SuperchainTokenBridge` require an audit before going to production. It is also recommended to audit `op-supervisor`, as it is a critical component for message passing which sequencers and other full nodes may rely on.
