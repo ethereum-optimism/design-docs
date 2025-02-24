@@ -1,9 +1,9 @@
 # Message Passing (Contracts-only): Failure Modes and Recovery Path Analysis
 
-| Author | Joxes, AgusDuha |
+| Author | Joxes |
 | --- | --- |
 | Created at | 2025-02-04 |
-| Initial Reviewers | presumably someone from wonderland? |
+| Initial Reviewers | AgusDuha |
 | Needs Approval From | Michael Amadi, Matt Solomon |
 | Status | In Review |
 
