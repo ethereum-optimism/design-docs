@@ -63,7 +63,7 @@ The `ProxyAdmin` owner can add `OptimismPortal` addresses to the `ETHLockbox` co
 
 A ETH migration function can be added to the `OptimismPortal` to allow transferring all ETH to the `ETHLockbox` at any time. The `ETHLockbox` address is set during initialization of the `OptimismPortal` and cannot be changed afterwards.
 
-The migration process would:
+The migration process would work as follows:
 
 - Only the `ProxyAdmin` owner can trigger the migration
 - The `OptimismPortal` MUST be first authorized in the `ETHLockbox`
@@ -84,6 +84,7 @@ The merge process has two parts:
 
 - Only the `ProxyAdmin` owner can trigger the migration
 - The destination lockbox is provided as a parameter during migration
+- The `ProxyAdmin` owner of the source lockbox must be the same as the `ProxyAdmin` owner of the destination lockbox
 - Transfer the entire ETH balance to the specified destination lockbox
 - After migration, the source lockbox will no longer be used by any `OptimismPortal`
 
