@@ -105,6 +105,7 @@ Below is what needs to be done before launch to reduce the chances of the above 
 
 - [ ] (BLOCKING): Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
 - [x] (BLOCKING): Action tests will be added which are run on op-node and Kona https://github.com/ethereum-optimism/optimism/issues/13967. Ideally they run against the usual mainline version of op-geth -- if this is not possible the tests can run against a patched version until op-geth is ready to support such tests.
+- [ ] (Non-BLOCKING) Add the E2E tests that support proof testing with transactions type 4 described in the discord thread with diagram. 
 - [x] (BLOCKING): The changes will be deployed to a local multi-client kurtosis devnet with both op-geth and op-reth running as well as Pectra activated on L1. https://github.com/ethereum-optimism/optimism/pull/14046
 - [x] (BLOCKING): Ensuring that `setcodeTx` is not causing unexpected behavior with the current logic of contract deployed on L1. 
 - [ ] (non-BLOCKING) The changes will be deployed to a devnet which targets a public, Pectra-enabled L1 devnet.
