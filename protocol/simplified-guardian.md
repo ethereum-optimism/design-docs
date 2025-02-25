@@ -102,7 +102,10 @@ incident response tool.
 We propose the following incident response protocol:
 
 - Always attempt to resolve an issue offchain if possible, before a game resolves incorrectly.
-- First reaction when a dispute game resolves incorrectly is to execute the Superchain-wide Pause.
+- Determine if the issue is chain-specific (e.g., missing honest actor) or applies to all chains
+  (e.g., contract bug in dispute game).
+  - If chain-specific, execute the chain-specific pause.
+  - If applies to all chains, execute the Superchain-wide pause.
 - We immediately determine if we believe that the bug can be resolved within 2 weeks.
 - If the bug can be resolved within 2 weeks (via Security Council emergency upgrade) then we
   keep the pause active until the bug is resolved, upgrade the game, blacklist all invalid games or
