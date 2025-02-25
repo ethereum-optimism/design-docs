@@ -73,9 +73,9 @@ Below are references for this project:
 
 Although this upgrade is technically a soft fork (it does not need to be coordinated across nodes other than being applied before Pectra activates on L1) many of the items in [./fma-generic-hardfork.md](./fma-generic-hardfork.md) apply. In particular:
 
-- Chain Halt at activation
+- Chain Halt at activation.
 - Invalid `DisputeGameFactory.setImplementation` execution.
-- Chain split across clients
+- Chain split across clients.
 
 - [x] Check this box to confirm that these items have been considered and updated if necessary.
 
@@ -103,17 +103,17 @@ The following table shows how each EIP from Pectra will affect OPStack chains:
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
-- [ ] (BLOCKING): Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
+- [x] (BLOCKING): Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
 - [x] (BLOCKING): Action tests will be added which are run on op-node and Kona https://github.com/ethereum-optimism/optimism/issues/13967. Ideally they run against the usual mainline version of op-geth -- if this is not possible the tests can run against a patched version until op-geth is ready to support such tests.
-- [ ] (Non-BLOCKING) Add the E2E tests that support proof testing with transactions type 4 described in the discord thread with diagram. 
+- [ ] (Non-BLOCKING) Add the E2E tests that support proof testing with transactions type 4 described in the [discord thread](https://discord.com/channels/1244729134312198194/1341446000379826361/1343630904370790551) with diagram or tests this in Belgrod
 - [x] (BLOCKING): The changes will be deployed to a local multi-client kurtosis devnet with both op-geth and op-reth running as well as Pectra activated on L1. https://github.com/ethereum-optimism/optimism/pull/14046
 - [x] (BLOCKING): Ensuring that `setcodeTx` is not causing unexpected behavior with the current logic of contract deployed on L1. 
-- [x] (non-BLOCKING) The changes will be deployed to a devnet which targets a public, Pectra-enabled L1 devnet.
+- [x] (non-BLOCKING): The changes will be deployed to a devnet which targets a public, Pectra-enabled L1 [devnet]([url](https://devnets.optimism.io/balrog.html))
 - [x] (non-BLOCKING): We will update the op-sepolia and op-mainnet vm-runners to use the new absolute prestate. The vm-runner runs the op-program in the MIPS FPVM using inputs sampled from a live chain.
 - [x] (BLOCKING): The following design docs for aliasing correctly the EoA for 7702 (https://github.com/ethereum-optimism/design-docs/pull/209/files) should be merged before.
 - [x] (BLOCKING): Perform tests for Force Inclusion with type 4 transaction with kurtosis (https://github.com/ethereum-optimism/optimism/pull/14046#issuecomment-2675152160)
+- [ ] (non-BLOCKING): Before the pectra goes live on approx 8th April we should have monitoring and response for deposit transaction aliasing cf -> (https://github.com/ethereum-optimism/security-pod/issues/248).
 
-Additional action items are copied here from the [generic hardfork FMA](./fma-generic-hardfork.md) doc:
 
 
 
