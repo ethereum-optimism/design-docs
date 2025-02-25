@@ -108,11 +108,12 @@ Below is what needs to be done before launch to reduce the chances of the above 
 - [ ] (Non-BLOCKING) Add the E2E tests that support proof testing with transactions type 4 described in the discord thread with diagram. 
 - [x] (BLOCKING): The changes will be deployed to a local multi-client kurtosis devnet with both op-geth and op-reth running as well as Pectra activated on L1. https://github.com/ethereum-optimism/optimism/pull/14046
 - [x] (BLOCKING): Ensuring that `setcodeTx` is not causing unexpected behavior with the current logic of contract deployed on L1. 
-- [ ] (non-BLOCKING) The changes will be deployed to a devnet which targets a public, Pectra-enabled L1 devnet.
+- [x] (non-BLOCKING) The changes will be deployed to a devnet which targets a public, Pectra-enabled L1 devnet.
 - [x] (non-BLOCKING): We will update the op-sepolia and op-mainnet vm-runners to use the new absolute prestate. The vm-runner runs the op-program in the MIPS FPVM using inputs sampled from a live chain.
+- [x] (BLOCKING): The following design docs for aliasing correctly the EoA for 7702 (https://github.com/ethereum-optimism/design-docs/pull/209/files) should be merged before.
+- [x] (BLOCKING): Perform tests for Force Inclusion with type 4 transaction with kurtosis (https://github.com/ethereum-optimism/optimism/pull/14046#issuecomment-2675152160)
 
 Additional action items are copied here from the [generic hardfork FMA](./fma-generic-hardfork.md) doc:
 
-- [ ] (non-BLOCKING): The superchain-ops task to upgrade any contract should check if the semantic versions and bytecodes after the upgrade are as expected.
-- [x] (BLOCKING): The following design docs for aliasing correctly the EoA for 7702 (https://github.com/ethereum-optimism/design-docs/pull/209/files) should be merged before.
-- [x] (BLOCKING): Perform tests for Force Inclusion with type 4 transaction with kurtosis (https://github.com/ethereum-optimism/optimism/pull/14046#issuecomment-2675152160)```
+
+
