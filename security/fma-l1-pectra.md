@@ -113,3 +113,4 @@ Below is what needs to be done before launch to reduce the chances of the above 
 Additional action items are copied here from the [generic hardfork FMA](./fma-generic-hardfork.md) doc:
 
 - [ ] (non-BLOCKING): The superchain-ops task to upgrade any contract should check if the semantic versions and bytecodes after the upgrade are as expected.
+- [x] (BLOCKING): The following design docs for aliasing correctly the EoA for 7702 (https://github.com/ethereum-optimism/design-docs/pull/209/files) should be merged before.
