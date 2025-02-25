@@ -115,3 +115,4 @@ Additional action items are copied here from the [generic hardfork FMA](./fma-ge
 
 - [ ] (non-BLOCKING): The superchain-ops task to upgrade any contract should check if the semantic versions and bytecodes after the upgrade are as expected.
 - [x] (BLOCKING): The following design docs for aliasing correctly the EoA for 7702 (https://github.com/ethereum-optimism/design-docs/pull/209/files) should be merged before.
+- [x] (BLOCKING): Perform tests for Force Inclusion with type 4 transaction with kurtosis (https://github.com/ethereum-optimism/optimism/pull/14046#issuecomment-2675152160)```
