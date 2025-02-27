@@ -107,13 +107,13 @@ Below are references for this project:
 
 ### FM6 : A repeated identifier is validated through `CrossL2Inbox`
 
-- **Description:** The `validateMessage` in `CrossL2Inbox` does not store or track whether a given identifier has been used before. If the same identifier is provided in multiple calls, messages could be executed multiple times, leading to unintended consequences.
+- **Description:** The `validateMessage` in `CrossL2Inbox` does not store or track whether a given identifier has been used before. While this is an intended feature that could be used for different purposes, if the same identifier is provided in multiple calls when it shouldn't be able to do so, messages could be executed multiple times, leading to unintended consequences.
 - **Risk Assessment:** Medium.
-    - Potential Impact: High. A `validateMessage` call with a repeated identifier could cause an action to be executed multiple times in contracts that rely on `CrossL2Inbox`, similar to the impact in FM4. However, `L2ToL2CrossDomainMessenger` has replay protection.
-    - Likelihood: Low. Core contracts such as `SuperchainTokenBridge` and `SuperchainWETH` relies on `L2ToL2CrossDomainMessenger`, but other contracts that rely solely on `CrossL2Inbox` could be affected. Even in such cases, chain progression will eventually invalidate repeated calls.
-- **Mitigations:** Ensure proper client-side testing to prevent messages from being validated multiple times.
-- **Detection:** Monitoring tools should track validated messages to ensure they have been seen and validated at the origin and are not duplicated.
-- **Recovery Path(s):** The issue would require a fix, most likely on the client side.
+    - Potential Impact: High. A `validateMessage` call with a repeated identifier could cause an action to be executed multiple times in contracts that rely on `CrossL2Inbox`, similar to the impact in FM4. Currently, `L2ToL2CrossDomainMessenger` has replay protection.
+    - Likelihood: Low. Core contracts such as `SuperchainTokenBridge` and `SuperchainWETH` relies on `L2ToL2CrossDomainMessenger`, but other contracts that rely solely on `CrossL2Inbox` could be affected.
+- **Mitigations:** This possibility needs to be properly documented and communicated, as developers will likely find it relevant for use cases that don't rely on `L2ToL2CrossDomainMessenger` and instead rely directly on `CrossL2Inbox` and custom contracts.
+- **Detection:** Monitoring tools should track validated messages to ensure they have been seen and validated at the origin and are not duplicated, for the case of the `L2ToL2CrossDomainMessenger`, already covered by FM4.
+- **Recovery Path(s):** If the issue impacts a core contract such as `L2ToL2CrossDomainMessenger`, it would require a fix and a rollback.
 
 ### Generic items we need to take into account:
 
@@ -131,9 +131,8 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 - [ ]  FM3: Implement a monitoring tool that tracks and flags initiated messages that are not relayed despite being ready.
 - [ ]  FM4: Implement a monitoring tool that alerts when relayed events are repeated.
 - [ ]  FM5: Implement a monitoring tool that alerts successful reentrancies.
-- [ ]  FM6: Attach client-side test files that verify repeated identifiers are not validated.
-- [ ]  FM6: Implement a monitoring tool that alerts when a message validation uses a repeated identifier.
-- [ ]  Write up an FMA for `op-supervisor`, as this component is critical and transversal to many of the cases explained, since its failure could degrade liveness or the safety of interop.
+- [ ]  FM6: Ensure that the Interop documentation for developers explains the possibility of repeated identifiers being validated during a `validatedMessage`, the role of `L2ToL2CrossDomainMessenger`, and whether replay protections are required, depending on the expected use case when developing custom messengers.
+- [ ]  Write a FMA for `op-supervisor`, as this component is critical and transversal to many of the cases explained, since its failure could degrade liveness or the safety of interop.
 - [ ]  Ensure the support team is aware of these failure modes and prepared to respond.
 
 ## Audit Requirements
