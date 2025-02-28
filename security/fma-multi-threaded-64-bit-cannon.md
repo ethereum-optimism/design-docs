@@ -157,7 +157,7 @@ Below is what needs to be done before launch to reduce the chances of the above 
 
 - [x] Third-party audit the offchain and onchain VM implementation and specification (Assignee: @inphi)
 - [x] [Add a healthcheck for the vm-runner (Assignee: @pauldowman)](https://github.com/ethereum-optimism/k8s/pull/5424)
-- [ ] Add a dedicated Validation file for ensuring the AbsolutePrestate is valid  cf this [discussion](https://github.com/ethereum-optimism/design-docs/pull/123#discussion_r1942055196) (Assignee: @pauldowman).
+- [x] Add a dedicated Validation file for ensuring the AbsolutePrestate is valid here -> https://github.com/ethereum-optimism/superchain-ops/pull/673).
 
 ## Audit requirements
 
