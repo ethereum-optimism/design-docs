@@ -41,8 +41,8 @@ when this definition goes into effect.
 
 We begin by removing the Deputy Guardian role entirely. The Guardian role would be held exclusively
 by the 1/1 Security Council Operations Safe (held by the Security Council). All Guardian actions
-would therefore only be executable by a majority of the Security Council. This eliminates the
-intial problem posed by the updated Stage 1 definition.
+except for the pause mechanism would therefore only be executable by a majority of the Security
+Council. This eliminates the intial problem posed by the updated Stage 1 definition.
 
 ### Deputy Pause Module v2
 
@@ -104,15 +104,15 @@ We propose the following incident response protocol:
 - Always attempt to resolve an issue offchain if possible, before a game resolves incorrectly.
 - Determine if the issue is chain-specific (e.g., missing honest actor) or applies to all chains
   (e.g., contract bug in dispute game).
-  - If chain-specific, execute the chain-specific pause.
+  - If chain-specific or cluster-specific, execute the chain-specific or cluster-specific pause.
   - If applies to all chains, execute the Superchain-wide pause.
 - We immediately determine if we believe that the bug can be resolved within 2 weeks.
 - If the bug can be resolved within 2 weeks (via Security Council emergency upgrade) then we
-  keep the pause active until the bug is resolved, upgrade the game, blacklist all invalid games or
-  retire all existing games, and unpause.
+  keep the pause active until the bug is resolved, upgrade the game, or retire all existing games,
+  and unpause.
 - If the bug cannot be resolved within 2 weeks or if 2 weeks have actually passed since the pause
-  was executed then we switch to the Permissioned Proof System, blacklist all invalid games or
-  retire all existing games, and unpause.
+  was executed then we switch to the Permissioned Proof System, or retire all existing games, and
+  unpause.
 
 <!-- References -->
 [1]: https://forum.l2beat.com/t/stages-update-a-high-level-guiding-principle-for-stage-1/338
