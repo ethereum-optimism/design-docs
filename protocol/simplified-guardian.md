@@ -74,13 +74,14 @@ clusters, it may be valuable to implement a Cluster-wide Pause on top of the Sup
 
 A chain would be paused if *either* the Superchain-wide Pause is active or its Cluster-wide Pause
 is active. We would implement the Cluster-wide Pause by allowing the Guardian to pause a specific
-chain/cluster as identified by a `SystemConfig` contract address. That is, the Guardian would call
-`SuperchainConfig.pause(someSystemConfigAddress)`. Other contracts would then check the status of
-the pause by calling `SuperchainConfig.paused(mySystemConfigAddress)` which would return true if
-either that specific system is paused or the entire Superchain is paused.
+chain/cluster as identified by a `ETHLockbox` contract address. That is, the Guardian would call
+`SuperchainConfig.pause(ethLockboxAddress)`. Other contracts would then check the status of the
+pause by calling `SuperchainConfig.paused(myEthLockboxAddress)` which would return true if either
+that specific system is paused or the entire Superchain is paused.
 
-The interop cluster can use a "fake" shared system config address in the call to `paused(..)` so
-that the entire cluster pauses at the same time.
+This has the advantage of guaranteeing that a cluster of chains that share a bridge and proof
+system can easily be paused together as a result of their shared `ETHLockbox` address. Exact
+details of this mechanism will be specified later.
 
 ## Considerations
 
@@ -101,7 +102,9 @@ incident response tool.
 
 We propose the following incident response protocol:
 
-- Always attempt to resolve an issue offchain if possible, before a game resolves incorrectly.
+- Always attempt to resolve an issue offchain if possible, before a game resolves incorrectly. This
+  scenario would typically occur if the forecasted incorrect resolution is the result of an issue
+  with offchain infrastructure rather than a bug in smart contracts.
 - Determine if the issue is chain-specific (e.g., missing honest actor) or applies to all chains
   (e.g., contract bug in dispute game).
   - If chain-specific or cluster-specific, execute the chain-specific or cluster-specific pause.
