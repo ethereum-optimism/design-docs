@@ -123,10 +123,11 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 
 ## Action Items
 
-- [ ]  Resolve all the comments.
+- [x]  Resolve all the comments.
 - [ ]  FM1: Decide whether to implement any of the mitigation approaches described, either now or in the future.
 - [ ]  FM1: Decide whether to implement a monitoring solution that tracks when a message is sent to a `destination` that is not part of the dependency set.
 - [ ]  FM2: Implement a monitoring tool that tracks invalid/non-existent initiated messages.
+- [ ]  FM3: Check for any L2Beat Stage 1 considerations related to the inability to successfully call `validateMessage` as part of a force-include a transaction.
 - [ ]  FM3: Implement a mechanism that can execute `validateMessage` that is censorship-resistant to mitigate the current risks, as discussed [here](https://github.com/ethereum-optimism/specs/issues/520).
 - [ ]  FM3: Implement a monitoring tool that tracks and flags initiated messages that are not relayed despite being ready.
 - [ ]  FM4: Implement a monitoring tool that alerts when relayed events are repeated.
