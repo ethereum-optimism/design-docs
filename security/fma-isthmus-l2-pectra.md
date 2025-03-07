@@ -142,7 +142,7 @@ BLS precompiles in sufficient time.
 	1. Tested that network upgrade transactions don't fail.
         - [Action test created here](https://github.com/ethereum-optimism/optimism/blob/01ddb2e6a09edf55a7cb2130e0a5b6acd0c2d2fa/op-e2e/actions/upgrades/isthmus_fork_test.go#L290)
 - **Detection:** Manual detection is likely after inspecting the fork block.
-- **Recovery Path(s)**: We would have to release an emergency rollup node (e.g. `op-node`) update with fixed network upgrade trnasactions.
+- **Recovery Path(s)**: We would have to release an emergency rollup node (e.g. `op-node`) update with fixed network upgrade transactions.
 
 ### FM7: Early fork if batches containing EIP-7702 transactions could be posted before Pectra
 
