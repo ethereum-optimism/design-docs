@@ -17,6 +17,8 @@
   - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
 - [Action Items](#action-items)
 - [Audit Requirements](#audit-requirements)
+- [Appendix](#appendix)
+  - [Appendix A: Required Code Changes by EIP](#appendix-a-required-code-changes-by-eip)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -74,6 +76,8 @@ Below is a list of EIPs that are enabled with Pectra, and a quick description of
   - Requests sent to this contract are ignored, and the contract is not deployed by default
 - EIP-7685: General purpose execution layer requests
   - No requests are currently applicable to OP, so the [execution requests array is always empty in Isthmus](https://github.com/ethereum-optimism/specs/blob/b5e0fa98881171f658f782597a46b641e8f3dfd0/specs/protocol/exec-engine.md#engine_newpayloadv4).
+
+See [Appendix A](#appendix-a-required-code-changes-by-eip) for details on which EIPs required new code and where.
 
 ## Failure Modes and Recovery Paths
 
@@ -195,13 +199,21 @@ _Given the failure modes and action items, will this project require an audit? S
 
 This change should be secure through extensive testing and real world usage rather than through extreme caution and auditing.
 
+## Appendix
+
+### Appendix A: Required Code Changes by EIP
 
 
-<!-- ## Appendix
-
-### Appendix A: This is a Placeholder Title
-
-_Appendices must include any additional relevant info, processes, or documentation that is relevant for verifying and reproducing the above info. Examples:_
-
-- _If you used certain tools, specify their versions or commit hashes._
-- _If you followed some process/procedure, document the steps in that process or link to somewhere that process is defined._# [Project Name]: Failure Modes and Recovery Path Analysis -->
+| EIP      | Description                                                | Impact on L2 Consensus Rules                                                                                                                  | Scope of Changes (new code)                   |
+| -------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| EIP-2537 | Precompile for BLS12-381 curve operations                  | Support precompile in op-geth and add support for precompile to FP programs.                                                                  | op-geth, FP programs (op-program, Kona, etc.) |
+| EIP-2935 | Save historical block hashes in state                      | Support this predeploy and deploy it by default as a network upgrade transaction.                                                             | op-geth, op-node (upgrade tx)                 |
+| EIP-6110 | Supply validator deposits on chain                         | Affects the L1 block header via the `requests_hash` field (see EIP 7685).                                                                     | none                                          |
+| EIP-7002 | Execution layer triggerable withdrawals                    | Affects the L1 block header via the `requests_hash` field (see EIP 7685).                                                                     | none                                          |
+| EIP-7251 | Increase the MAX_EFFECTIVE_BALANCE                         | Affects the L1 block header via the `requests_hash` field (see EIP 7685).                                                                     | none                                          |
+| EIP-7549 | Move committee index outside Attestation                   | None, since it only affects beacon chain.                                                                                                     | none                                          |
+| EIP-7623 | Increase calldata cost                                     | Support change in op-geth; no extra changes are required.                                                                                     | none                                          |
+| EIP-7685 | General purpose execution layer requests                   | Adds a new field `requests_hash` to the L1 block  which always must reflect an empty requests array.                                          | op-node (engine API, block header)            |
+| EIP-7691 | Blob throughput increase                                   | None, since OP chains do not support blob txs.                                                                                                | none                                          |
+| EIP-7702 | Set EOA account code                                       | Support the new SetCode tx type on L2.                                                                                                        | op-batcher, op-node (span batch format)       |
+| EIP-7840 | Add blob schedule to EL config files                       | None, since OP chains do not support blob txs.                                                                                                | none                                          |
