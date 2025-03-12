@@ -81,12 +81,12 @@ See [Appendix A](#appendix-a-required-code-changes-by-eip) for details on which 
 
 ## Failure Modes and Recovery Paths
 
-### FM1: Chain halt due to upgrade transaction failing
+### FM1: Chain halt due to L1 block deployment upgrade transaction failing
 
-- **Description:** The chain could halt if a network upgrade transaction can't be included in the upgrade block.
+- **Description:** The chain could halt if the [L1 block deployment](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/isthmus/derivation.md#l1block-deployment) upgrade transaction can't be included in the upgrade block.
 - **Risk Assessment:** High severity, low likelihood
 - **Mitigations:**
-  1. end-to-end tests created for network upgrade transactions
+  1. end-to-end tests created for the L1 block deployment upgrade transaction
       - [Action test created here](https://github.com/ethereum-optimism/optimism/blob/01ddb2e6a09edf55a7cb2130e0a5b6acd0c2d2fa/op-e2e/actions/upgrades/isthmus_fork_test.go#L290)
   2. same upgrade path as previous predeploys
       - example: [EIP-4788 deployment transaction](https://github.com/ethereum-optimism/optimism/blob/b6b74290b5502f45daae57946f969327cdb2d383/op-node/rollup/derive/ecotone_upgrade_transactions.go#L130)
