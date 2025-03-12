@@ -6,12 +6,12 @@
 
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [FM1: Chain halt due to upgrade transaction failing](#fm1-chain-halt-due-to-upgrade-transaction-failing)
-  - [FM2: Chain halt due to request hash mismatch](#fm2-chain-halt-due-to-request-hash-mismatch)
-  - [FM3: EIP-7702 transactions cannot be included on the chain](#fm3-eip-7702-transactions-cannot-be-included-on-the-chain)
-  - [FM4: BLS Precompiles could cause increased FP Program execution time](#fm4-bls-precompiles-could-cause-increased-fp-program-execution-time)
-  - [FM5: BLS Precompiles could fail to execute in the FP program](#fm5-bls-precompiles-could-fail-to-execute-in-the-fp-program)
-  - [FM6: Increased call data cost affects network upgrade transactions](#fm6-increased-call-data-cost-affects-network-upgrade-transactions)
+  - [FM1: Chain halt due to L1 block deployment upgrade transaction failing](#fm1-chain-halt-due-to-l1-block-deployment-upgrade-transaction-failing)
+  - [FM2: Chain halt or fork due to request hash mismatch](#fm2-chain-halt-or-fork-due-to-request-hash-mismatch)
+  - [FM3: Increased call data cost affects network upgrade transactions](#fm3-increased-call-data-cost-affects-network-upgrade-transactions)
+  - [FM4: EIP-7702 transactions cannot be included on the chain](#fm4-eip-7702-transactions-cannot-be-included-on-the-chain)
+  - [FM5: BLS Precompiles could cause increased FP Program execution time](#fm5-bls-precompiles-could-cause-increased-fp-program-execution-time)
+  - [FM6: BLS Precompiles could fail to execute in the FP program](#fm6-bls-precompiles-could-fail-to-execute-in-the-fp-program)
   - [FM7: Early fork if batches containing EIP-7702 transactions could be posted before Pectra](#fm7-early-fork-if-batches-containing-eip-7702-transactions-could-be-posted-before-pectra)
   - [FM8: Smart contracts relying on sender check no longer ensures sender does not have code](#fm8-smart-contracts-relying-on-sender-check-no-longer-ensures-sender-does-not-have-code)
   - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
@@ -19,6 +19,7 @@
 - [Audit Requirements](#audit-requirements)
 - [Appendix](#appendix)
   - [Appendix A: Required Code Changes by EIP](#appendix-a-required-code-changes-by-eip)
+  - [Appendix B: Block Header Changes](#appendix-b-block-header-changes)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -109,40 +110,7 @@ See [Appendix A](#appendix-a-required-code-changes-by-eip) for details on which 
     - [specs: Header validity rules](https://github.com/ethereum-optimism/specs/blob/b5e0fa98881171f658f782597a46b641e8f3dfd0/specs/protocol/isthmus/exec-engine.md#header-validity-rules)
     - [op-e2e: test ensuring empty hash even if requests created](https://github.com/ethereum-optimism/optimism/blob/9df1fc15d0bf0dc9464db249ce06424607d5f399/op-e2e/actions/proofs/isthmus_requests_test.go#L19)
 
-### FM3: EIP-7702 transactions cannot be included on the chain
-
-- **Description:** A client implementation could have a bug that disallows SetCode (EIP-7702) transactions from being included on chain. This could cause an unintended fork by the affected client.
-- **Risk Assessment:** High impact, low likelihood
-- **Mitigations:** 
-	1. End-to-end tests of set code transactions before and after the fork
-        - https://github.com/ethereum-optimism/optimism/pull/14197
-        - https://github.com/ethereum-optimism/optimism/pull/14288
-- **Detection:** Sending set code transactions would fail - manual detection is most likely.
-- **Recovery Path(s)**: This would require an emergency client update of the implementation with the bug (e.g. `op-reth`, `op-geth`, ...).
-
-### FM4: BLS Precompiles could cause increased FP Program execution time
-
-- **Description:** If implemented in the FP program, BLS precompiles could greatly increase computation time.
-- **Risk Assessment:** High impact, low likelihood
-- **Mitigations:**
-	1. Fully mitigated by using an accelerated precompile that calls out to L1 instead of calculating inside the program.
-        - [Specs](https://github.com/ethereum-optimism/specs/blob/b5e0fa98881171f658f782597a46b641e8f3dfd0/specs/protocol/isthmus/exec-engine.md#evm-changes)
-- **Detection:** op-program trace runner computation time would increase significantly (should trigger an alert)
-- **Recovery Path(s)**: If this occurred, which it can't with the mitigations, we'd have to make op-program efficient enough to execute
-BLS precompiles in sufficient time.
-
-### FM5: BLS Precompiles could fail to execute in the FP program
-
-- **Description:** If implemented in the FP program, BLS precompiles could fail to execute. This could cause certain blocks to be unprovable.
-- **Risk Assessment:** High impact, low likelihood
-- **Mitigations:**
-	1. Fully mitigated by using an accelerated precompile that calls out to L1 instead of calculating inside the program. This means it should 
-  have the same performance characteristics as existing crypto precompiles like `ecrecover`.
-        - [Specs](https://github.com/ethereum-optimism/specs/blob/b5e0fa98881171f658f782597a46b641e8f3dfd0/specs/protocol/isthmus/exec-engine.md#evm-changes)
-- **Detection:** op-program trace runner failure (possibly triggering an alert)
-- **Recovery Path(s)**: If this occurred, which it can't with the mitigations, we'd have to make op-program efficient enough to execute BLS precompiles in sufficient time.
-
-### FM6: Increased call data cost affects network upgrade transactions
+### FM3: Increased call data cost affects network upgrade transactions
 
 - **Description:** Increased calldata cost as the result of [EIP-7623](https://eips.ethereum.org/EIPS/eip-7623) could mean that network upgrade transactions fail.
 - **Risk Assessment:** High impact, low likelihood
@@ -153,6 +121,39 @@ BLS precompiles in sufficient time.
         - Most upgrade transactions create a new contract, and contract creation gas remains the same.
 - **Detection:** Manual detection is likely after inspecting the fork block.
 - **Recovery Path(s)**: We would have to release an emergency rollup node (e.g. `op-node`) update with fixed network upgrade transactions.
+
+### FM4: EIP-7702 transactions cannot be included on the chain
+
+- **Description:** A client implementation could have a bug that disallows SetCode (EIP-7702) transactions from being included on chain. This could cause an unintended fork by the affected client.
+- **Risk Assessment:** High impact, low likelihood
+- **Mitigations:** 
+	1. End-to-end tests of set code transactions before and after the fork
+        - https://github.com/ethereum-optimism/optimism/pull/14197
+        - https://github.com/ethereum-optimism/optimism/pull/14288
+- **Detection:** Sending set code transactions would fail - manual detection is most likely.
+- **Recovery Path(s)**: This would require an emergency client update of the implementation with the bug (e.g. `op-reth`, `op-geth`, ...).
+
+### FM5: BLS Precompiles could cause increased FP Program execution time
+
+- **Description:** If implemented in the FP program, BLS precompiles could greatly increase computation time.
+- **Risk Assessment:** High impact, low likelihood
+- **Mitigations:**
+	1. Fully mitigated by using an accelerated precompile that calls out to L1 instead of calculating inside the program.
+        - [Specs](https://github.com/ethereum-optimism/specs/blob/b5e0fa98881171f658f782597a46b641e8f3dfd0/specs/protocol/isthmus/exec-engine.md#evm-changes)
+- **Detection:** op-program trace runner computation time would increase significantly (should trigger an alert)
+- **Recovery Path(s)**: If this occurred, which it can't with the mitigations, we'd have to make op-program efficient enough to execute
+BLS precompiles in sufficient time.
+
+### FM6: BLS Precompiles could fail to execute in the FP program
+
+- **Description:** If implemented in the FP program, BLS precompiles could fail to execute. This could cause certain blocks to be unprovable.
+- **Risk Assessment:** High impact, low likelihood
+- **Mitigations:**
+	1. Fully mitigated by using an accelerated precompile that calls out to L1 instead of calculating inside the program. This means it should 
+  have the same performance characteristics as existing crypto precompiles like `ecrecover`.
+        - [Specs](https://github.com/ethereum-optimism/specs/blob/b5e0fa98881171f658f782597a46b641e8f3dfd0/specs/protocol/isthmus/exec-engine.md#evm-changes)
+- **Detection:** op-program trace runner failure (possibly triggering an alert)
+- **Recovery Path(s)**: If this occurred, which it can't with the mitigations, we'd have to make op-program efficient enough to execute BLS precompiles in sufficient time.
 
 ### FM7: Early fork if batches containing EIP-7702 transactions could be posted before Pectra
 
