@@ -219,3 +219,45 @@ This change should be secure through extensive testing and real world usage rath
 | EIP-7691 | Blob throughput increase                                   | None, since OP chains do not support blob txs.                                                                                                | none                                          |
 | EIP-7702 | Set EOA account code                                       | Support the new SetCode tx type on L2.                                                                                                        | op-batcher, op-node (span batch format)       |
 | EIP-7840 | Add blob schedule to EL config files                       | None, since OP chains do not support blob txs.                                                                                                | none                                          |
+
+### Appendix B: Block Header Changes
+
+```diff
+  // Header represents a block header in the Ethereum blockchain.
+  type Header struct {
+  	ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
+  	UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
+  	Coinbase    common.Address `json:"miner"`
+  	Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
+  	TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
+  	ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
+  	Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
+  	Difficulty  *big.Int       `json:"difficulty"       gencodec:"required"`
+  	Number      *big.Int       `json:"number"           gencodec:"required"`
+  	GasLimit    uint64         `json:"gasLimit"         gencodec:"required"`
+  	GasUsed     uint64         `json:"gasUsed"          gencodec:"required"`
+  	Time        uint64         `json:"timestamp"        gencodec:"required"`
+  	Extra       []byte         `json:"extraData"        gencodec:"required"`
+  	MixDigest   common.Hash    `json:"mixHash"`
+  	Nonce       BlockNonce     `json:"nonce"`
+  
+  	// BaseFee was added by EIP-1559 and is ignored in legacy headers.
+  	BaseFee *big.Int `json:"baseFeePerGas" rlp:"optional"`
+  
+  	// WithdrawalsHash was added by EIP-4895 and is ignored in legacy headers.
+  	WithdrawalsHash *common.Hash `json:"withdrawalsRoot" rlp:"optional"`
+  
+  	// BlobGasUsed was added by EIP-4844 and is ignored in legacy headers.
+  	BlobGasUsed *uint64 `json:"blobGasUsed" rlp:"optional"`
+  
+  	// ExcessBlobGas was added by EIP-4844 and is ignored in legacy headers.
+  	ExcessBlobGas *uint64 `json:"excessBlobGas" rlp:"optional"`
+  
+  	// ParentBeaconRoot was added by EIP-4788 and is ignored in legacy headers.
+  	ParentBeaconRoot *common.Hash `json:"parentBeaconBlockRoot" rlp:"optional"`
+  
++ 	// RequestsHash was added by EIP-7685 and is ignored in legacy headers.
++ 	RequestsHash *common.Hash `json:"requestsHash" rlp:"optional"`
+ }
+
+```
