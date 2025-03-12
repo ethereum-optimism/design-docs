@@ -104,6 +104,10 @@ See [Appendix A](#appendix-a-required-code-changes-by-eip) for details on which 
   2. Simplicity of validation rules - always must be an empty hash
 - **Detection:** Alert for L2 Unsafe liveness should be triggered
 - **Recovery Path(s)**: This would require an emergency update if it occurred fixing requests hash logic in respective clients (e.g. `op-node`, `op-geth`, `op-reth`, ...)
+- **References**:
+    - [Appendix B](#appendix-b-block-header-changes) shows the changes to the block header.
+    - [specs: Header validity rules](https://github.com/ethereum-optimism/specs/blob/b5e0fa98881171f658f782597a46b641e8f3dfd0/specs/protocol/isthmus/exec-engine.md#header-validity-rules)
+    - [op-e2e: test ensuring empty hash even if requests created](https://github.com/ethereum-optimism/optimism/blob/9df1fc15d0bf0dc9464db249ce06424607d5f399/op-e2e/actions/proofs/isthmus_requests_test.go#L19)
 
 ### FM3: EIP-7702 transactions cannot be included on the chain
 
