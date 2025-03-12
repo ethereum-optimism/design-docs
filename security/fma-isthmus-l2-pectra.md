@@ -94,12 +94,12 @@ See [Appendix A](#appendix-a-required-code-changes-by-eip) for details on which 
 - **Detection:** Alert for L2 Unsafe liveness should be triggered
 - **Recovery Path(s)**: This would require an emergency update if it occurred fixing the network upgrade transaction in rollup node client software (like `op-node`).
 
-### FM2: Chain halt due to request hash mismatch
+### FM2: Chain halt or fork due to request hash mismatch
 
-- **Description:** Requests hash was added to the block header. If it mismatches between the EL client and the rollup node, the chain could halt.
+- **Description:** Requests hash was added to the block header. If it mismatches between EL clients, or the rollup node, the chain could halt or fork for the affected clients.
 - **Risk Assessment:** High severity, low likelihood
 - **Mitigations:**
-  1. End-to-end test ensuring no requests are included in blocks
+  1. End-to-end test ensuring requests hash is always `sha256('')` indicating no requests are included in blocks.
       - https://github.com/ethereum-optimism/optimism/pull/14253
   2. Simplicity of validation rules - always must be an empty hash
 - **Detection:** Alert for L2 Unsafe liveness should be triggered
