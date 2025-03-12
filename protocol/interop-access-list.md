@@ -72,7 +72,7 @@ sequenceDiagram
     CrossL2Inbox-->>CrossL2Inbox: isWarm( checksum(Identifier, msgHash) )
     Note over CrossL2Inbox: Gas cost < WARM_READ_COST
     CrossL2Inbox-->>CrossL2Inbox: emit ExecutingMessage(msgHash, Identifier)
-    CrossL2Inbox->>L2toL2CDM:
+    CrossL2Inbox->>L2toL2CDM: success
 ```
 
 Example using the `L2toL2CDM` without access-list in the transaction. The `L2toL2CDM` is not needed, it is being used for diagram clarity, any contract can call the `validateMessage` function.
