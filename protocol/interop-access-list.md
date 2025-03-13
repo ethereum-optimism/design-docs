@@ -94,7 +94,7 @@ Alternative solutions that kept the current dynamic declaration approach were ex
 
 - Future changes in gas cost can affect this solution
 
-- Every message requires at most 3 entries in the access list and at least 2, therefore it will warms at most 3 and at least 2 storage slots, of which we only care about one. It's important that the checksum of the `Identifier` and `messageHash` data parameters provided to the `validateMessage` function doesn't result in one of these slots. We should ensure this scenario is statistically infeasible.
+- Every message requires at most 3 entries in the access list and at least 2, therefore it will warms at most 3 and at least 2 storage slots, of which we only care about one. It's important that the checksum of the `Identifier` and `messageHash` data parameters provided to the `validateMessage` function doesn't result in a slot warmed for any other reason than a prior non-reverting `validateMessage`. We should ensure there is no accidental storage collision that warms up an unverified checksum.
 
 - There should be no combination of invalid `Identifier` and `messageHash` being considered valid when they don't reference a valid message
 
