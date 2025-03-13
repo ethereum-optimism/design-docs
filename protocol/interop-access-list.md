@@ -36,15 +36,17 @@ The main downside with this approach is that it couples key security properties 
 
 The `WARM_READ_THRESHOLD` value is up for debate, the cost difference between hot and cold is very large, but it would be good to have a consensus over it. The `calculateChecksum` will be expanded on the specs doc.
 
+An important detail is that the storage-warmup is rolled back when the `revert` happens, meaning that prior invalid message lookups will not cause later lookups of the same checksum to appear valid.
+
 ```solidity
-uint256 internal constant WARM_READ_THRESHOLD = 150;
+uint256 internal constant WARM_READ_THRESHOLD = 1000;
 
 function _isWarm(bytes32 _slot) internal view returns (bool isWarm, uint256 result) {
     assembly {
         let startGas := gas()
         result := sload(_slot)
         let endGas := gas()
-        isWarm := iszero(gt(sub(startGas, endGas), WARM_READ_COST))
+        isWarm := iszero(gt(sub(startGas, endGas), WARM_READ_THRESHOLD))
     }
  }
 
@@ -70,7 +72,7 @@ sequenceDiagram
     Relayer->>L2toL2CDM: tx with access-list: <br>{ "address": address(CrossL2Inbox), <br>"storageKeys": [checksum(Identifier, msgHash)] }
     L2toL2CDM->>+CrossL2Inbox: validateMessage(Identifier, msgHash)
     CrossL2Inbox-->>CrossL2Inbox: isWarm( checksum(Identifier, msgHash) )
-    Note over CrossL2Inbox: Gas cost < WARM_READ_COST
+    Note over CrossL2Inbox: Gas cost < WARM_READ_THRESHOLD
     CrossL2Inbox-->>CrossL2Inbox: emit ExecutingMessage(msgHash, Identifier)
     CrossL2Inbox->>L2toL2CDM: success
 ```
@@ -82,7 +84,7 @@ sequenceDiagram
     Relayer->>L2toL2CDM: tx without access-list
     L2toL2CDM->>+CrossL2Inbox: validateMessage(Identifier, msgHash)
     CrossL2Inbox-->>CrossL2Inbox: isWarm( checksum(Identifier, msgHash) )
-    Note over CrossL2Inbox: Gas cost > WARM_READ_COST
+    Note over CrossL2Inbox: Gas cost > WARM_READ_THRESHOLD
     CrossL2Inbox-->>L2toL2CDM: revert NotWarm()
 ```
 
@@ -92,7 +94,8 @@ Alternative solutions that kept the current dynamic declaration approach were ex
 
 ### Security considerations
 
-- Future changes in gas cost can affect this solution
+- Future changes in gas cost can affect this solution. Gas introspection is fragile and will need expert review with every EVM storage/call gas behavior change.
+  A custom opcode or precompile solution can be considered to do the access-list check in the future.
 
 - Every message requires at most 3 entries in the access list and at least 2, therefore it will warms at most 3 and at least 2 storage slots, of which we only care about one. It's important that the checksum of the `Identifier` and `messageHash` data parameters provided to the `validateMessage` function doesn't result in a slot warmed for any other reason than a prior non-reverting `validateMessage`. We should ensure there is no accidental storage collision that warms up an unverified checksum.
 
