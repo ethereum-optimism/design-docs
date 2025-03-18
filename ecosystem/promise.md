@@ -110,6 +110,8 @@ library Promise {
 }
 ```
 
+![Promise Flow Diagram](./promise/promise.png)
+
 ## Notes
 
 - Requires no fundamental contract API changes to the CDM besides the event.
