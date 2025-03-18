@@ -115,7 +115,7 @@ library Promise {
 ## Notes
 
 - Requires no fundamental contract API changes to the CDM besides the event.
-- Different kinds of callbacks can be introduced on the source, all without change to the destination. `onFailure`, `onTimeout`, etc.
+- Different kinds of callbacks can be introduced on the source, all without change to the destination. `onFailure`, `onTimeout`, etc. The log identifier for the event has timestamp information. Currently the `L2ToL2CrossDomainMessenger` does not allow for failed message delivery but if it did, failure callbacks could be created as well.
 - Multiple callbacks can be registered to the same message. `then()` and `onTimeout()`.
 - Relayers must listen to `CallbackRegistered` events to know when which messages have pending continuations. The tradeoff being additional touch-points for relayers to hook into. In the alternative, if a message was to be sent back from the destination, it would be almost be a no-op in relayer infra since the message outbox would look the same.
 
