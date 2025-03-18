@@ -191,6 +191,9 @@ Incorporate any applicable failure modes with FMA-specific mitigations and detec
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
+- [ ] (NON-BLOCKING)  Make a way to enforce the gas limit of a block can't be lower of 30M (cf this [discord thread](https://discord.com/channels/1244729134312198194/1334603521454247946/1351651773755949117) with @tynes & @sebastianst) 
+- [x] (NON-BLOCKING):  Add the description of the new block header with the new field `request_hash` in this FMA (@meyer9)
+- [ ] (BLOCKING): Add a test that Validate a block with BLS accelerated precompile (@meyer9 ref to this [comment](https://github.com/ethereum-optimism/design-docs/pull/201/files#r1985623601))
 
 ## Audit Requirements
 <!-- 
