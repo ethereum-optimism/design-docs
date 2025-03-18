@@ -40,7 +40,7 @@ When a message is relayed the `L2ToL2CrossDomainMessenger` emits:
 
 `RelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash);`
 
-By including the return data of the target call, this event itself can be used to continue any attached continuations on the source without a message sent back or additional data to be propogated with the original message.
+By including the return data of the target call, this event itself can be used to continue any attached continuations on the source without a message sent back or additional data propogated from the sending chain.
 
 ```solidity
 contract L2ToL2CrossDomainMessenger {
@@ -114,6 +114,7 @@ library Promise {
 
 - Requires no fundamental contract API changes to the CDM besides the event.
 - Different kinds of callbacks can be introduced on the source, all without change to the destination. `onFailure`, `onTimeout`, etc.
+- Multiple callbacks can be registered to the same message. `then()` and `onTimeout()`.
 - Relayers must listen to `CallbackRegistered` events to know when which messages have pending continuations. The tradeoff being additional touch-points for relayers to hook into. In the alternative, if a message was to be sent back from the destination, it would be almost be a no-op in relayer infra since the message outbox would look the same.
 
 # Alternatives Considered
@@ -129,7 +130,10 @@ A new entrypoint contract is created, `CallbackEntrypoint` that expects callback
 ## Notes
 
 - Tight coupling between the source & destination chains. Callback information must be propogated between networks
+- Multiple callbacks cant clearly be registered. Must be enshrined in the propogated callback data.
 - Single interface for relayers `relayMessage`.
-- The proposed solution could be implemented via a generic entrypoint specified via `Promise.sol` to avoid adding the return data to the event. However this feels like more complexity from a code perspectice. Propogate callback -> parse callback -> relay -> capture return and send message back. Versus -- RelayedMessage() -> continue().
+- The proposed solution could be implemented via a generic entrypoint to avoid adding the return data to the event. However this feels like more complexity from a code & call path perspective. Propogate callback -> parse callback -> relay -> capture return and sendMessage(). Versus -- RelayedMessage() -> continue().
 
 # Risks & Uncertainties
+
+By adding the return data to the event, there's some additional gas used. Since there's no other API changes to the messenger, this is a low-risk change. If desired, the additonal field can be deprecated and replaced with empty bytes.
