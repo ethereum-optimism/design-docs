@@ -24,9 +24,7 @@
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 <!-- _Italics are used to indicate things that need to be replaced._ -->
-|  Related References       |     Links                                   |
-| ----------------------- | ------------------------------------------- |
-|   Operator Fee FMA        | https://github.com/succinctlabs/optimism-design-docs/blob/main/security/fma-operator-fee.md |
+
 |                    |                                                    |
 | ------------------ | -------------------------------------------------- |
 | Author             | Julian Meyer                                       |
@@ -34,6 +32,12 @@
 | Initial Reviewers  | refcell                                            |
 | Need Approval From |                                                    |
 | Status             | In Review 🔎                                       |
+
+
+|  Related References       |     Links                                   |
+| ----------------------- | ------------------------------------------- |
+|   Operator Fee FMA        | https://github.com/succinctlabs/optimism-design-docs/blob/main/security/fma-operator-fee.md |
+
 <!-- 
 > [!NOTE]
 > 📢 Remember:
