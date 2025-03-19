@@ -42,7 +42,7 @@ as information needed to understand the problem and design space.
 If more information is needed on the costs of the problem,
 this is a good place to that information. -->
 
-It is a goal to remove as many async, blocking operations from the hot path of
+It is a goal to remove as many sync, blocking operations from the hot path of
 the block builder as possible. Validating an interop cross chain transaction
 requires a remote RPC request to the supervisor. Having this as part of the hot
 path introduces a denial of service risk. Specifically, we do not want to have so
