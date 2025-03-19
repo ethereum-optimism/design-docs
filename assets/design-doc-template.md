@@ -5,7 +5,7 @@
 | Author             | _Author Name_                                      |
 | Created at         | _YYYY-MM-DD_                                       |
 | Initial Reviewers  | _Reviewer Name 1, Reviewer Name 2_                 |
-| Need Approval From | _Security Reviewer Name_                           |
+| Need Approval From | _Reviewer Name_                                    |
 | Status             | _Draft / In Review / Implementing Actions / Final_ |
 
 ## Purpose
