@@ -49,6 +49,7 @@ Below are references for this project:
 
 - **Description:** 
   Even if all clients agree and there is no chain split, if the `withdrawalsRoot` is incorrect, critical infra used to propose, challenge and validate fault proof games may fail.
+  Because the information is present both in state and in the block header, there is the opportunity for an "off by one" error to arise. 
 - **Risk Assessment:**
 
   **Mitigations:**
