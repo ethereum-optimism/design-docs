@@ -5,11 +5,10 @@
 
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [FM1: Operator Fee scalars are set to incorrect values](#fm1-operator-fee-scalars-are-set-to-incorrect-values)
-  - [FM2: Broken Fee Estimation (Wallets)](#fm2-broken-fee-estimation-wallets)
-  - [FM3: Bug in Receipt Hydrating Logic](#fm3-bug-in-receipt-hydrating-logic)
-  - [FM4: Database Growth Impact on Nodes](#fm4-database-growth-impact-on-nodes)
+  - [FM1: Fault proofs system failure do to inaccurate `withdrawalsRoot`](#fm1-fault-proofs-system-failure-do-to-inaccurate-withdrawalsroot)
+  - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
 - [Action Items](#action-items)
+- [Audit Requirements](#audit-requirements)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
