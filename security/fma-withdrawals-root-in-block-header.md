@@ -32,36 +32,31 @@ Below are references for this project:
 
 ## Failure Modes and Recovery Paths
 
-### FM1: Chain split due to divergent `withdrawalsRoot`
+### FM1: Fault proofs system failure do to inaccurate `withdrawalsRoot`
 
 - **Description:** 
-  If different clients compute a different `withdrawalsRoot` for the same block, this will cause a chain split because it is a consensus parameter.
-- **Risk Assessment:**
-  High impact, low likelihood.
-  **Mitigations:**
- 
-- **Detection:** 
-  Replica healthcheck would fire P1 alerts after a few minutes.
-- **Recovery Path(s)**:
-
-
-### FM2: Fault proofs system failure do to inaccurate `withdrawalsRoot`
-
-- **Description:** 
-  Even if all clients agree and there is no chain split, if the `withdrawalsRoot` is incorrect, critical infra used to propose, challenge and validate fault proof games may fail.
-  Because the information is present both in state and in the block header, there is the opportunity for an "off by one" error to arise. 
+  Even if all clients agree and there is no chain split, if the `withdrawalsRoot` is incorrect, critical infra used to propose, challenge and validate fault proof games may fail when it is switched to use the `withdrawalsRoot` header field instead of querying the information from an archive node in the usual way.  Because the information is present both in state and in the block header, there is the opportunity for an "off by one" error to arise, if there is confusion  about whether the root applies to the state before or after the block is applied. If there are any problems with activation, this would also cause the same issue.
 - **Risk Assessment:**
 
   **Mitigations:**
+  Fault proofs infrastructure (i.e. `op-challenger`) should be run against the newly populated `withdrawalsRoot` field in a testing environment, to confirm it still functions and agrees with a legacy-configured system.
 
 - **Detection:** 
+  Fault proof monitoring systems would detect this failure mode.
 
 - **Recovery Path(s)**:
+  Fault proof infrastructure would need to be patched. The pre-signed pause may need to be invoked. 
 
 
 ### Generic items we need to take into account: 
-## Action Items
+See the [generic FMA](./fma-generic-hardfork.md):
+* Chain halt at activation
+* Activation failure 
+* Invalid setImplementation execution
+* Chain split (across clients)
 
+## Action Items
+- [ ]   Fault proofs infrastructure (i.e. `op-challenger`) should be run against the newly populated `withdrawalsRoot` field in a testing environment, to confirm it still functions and agrees with a legacy-configured system.
 
 ## Audit Requirements
 
