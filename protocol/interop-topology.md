@@ -36,12 +36,9 @@ TODO: include information on recommendation around standard mode/multi node/runn
 Should include information on the value props of each so we can easily align on roadmap.
 
 # Problem Statement + Context
+There are two sets of problems to solve in our topology and software arrangement:
 
-<!-- Describe the specific problem that the document is seeking to address as well
-as information needed to understand the problem and design space.
-If more information is needed on the costs of the problem,
-this is a good place to that information. -->
-
+## Design Tx Ingress Flow for Optimal Latency, Correctness
 It is a goal to remove as many sync, blocking operations from the hot path of
 the block builder as possible. Validating an interop cross chain transaction
 requires a remote RPC request to the supervisor. Having this as part of the hot
@@ -56,7 +53,11 @@ only needs to focus on including transactions.
 For context, a cross chain transaction is defined in the [specs](https://github.com/ethereum-optimism/specs/blob/85966e9b809e195d9c22002478222be9c1d3f562/specs/interop/overview.md#interop). Any reference
 to the supervisor means [op-supervisor](https://github.com/ethereum-optimism/design-docs/blob/d732352c2b3e86e0c2110d345ce11a20a49d5966/protocol/supervisor-dataflow.md).
 
-# Proposed Solution
+## Arrange Infrastructure to Maximize Redundancy
+It is a goal to ensure that there are no single points of failure in the network infrastructure that runs an interop network.
+To that end, we need to organize hosts such that sequencers and supervisors may go down without an interruption.
+
+# Proposed Solutions
 
 <!-- A high level overview of the proposed solution.
 When there are multiple alternatives there should be an explanation
@@ -64,7 +65,8 @@ of why one solution was picked over other solutions.
 As a rule of thumb, including code snippets (except for defining an external API)
 is likely too low level. -->
 
-## Solution
+## TX Ingress Flow
+There are lots of gates and checks we can establish for inflowing Tx to prevent excess work (a DOS vector) from reaching the Supervisor.
 
 ### `op-supervisor` alternative backend
 
@@ -108,7 +110,7 @@ it doesn't capture the case of a future unsafe chain reorg happening that causes
 Because it is most likely that the remote unsafe reorg comes after the local block is sealed, there is no real
 reason to block the hot path of the chain with the remote lookups.
 
-## Resource Usage
+### Resource Usage
 
 <!-- What is the resource usage of the proposed solution?
 Does it consume a large amount of computational resources or time? -->
@@ -117,12 +119,35 @@ Doing a remote RPC request is always going to be an order of magnitude slower th
 Therefore we want to ensure that we can parallelize our remote lookups as much as possible. Block building
 is inherently a single threaded process given that the ordering of the transactions is very important.
 
-## Single Point of Failure and Multi Client Considerations
+### Single Point of Failure and Multi Client Considerations
 
 There is a single point of failure with the `op-supervisor`. Adding an alternative backend that dynamically
 fetches data using `eth_getLogs` rather than looking up its local database helps to approximate a second implementation.
 
 <!-- Details on how this change will impact multiple clients. Do we need to plan for changes to both op-geth and op-reth? -->
+
+## Host Topology / Arrangement
+
+In order to fully validate a Superchain, a Supervisor must be hooked up to one Node per chain (with one Executing Engine behind each).
+We can call this group a "full validation stack" because it contains all the executing parts to validate a Superchain.
+
+In order to have redundancy, we will need multiple Nodes, and also *multiple Supervisors*.
+We should use Conductor to ensure the Sequencers have redundancy as well.
+Therefore, we should arrange the nodes like so:
+
+|             | Chain A | Chain B | Chain C |
+|------------|---------|---------|---------|
+| Supervisor 1 | A1      | B1      | C1      |
+| Supervisor 2 | A2      | B2      | C2      |
+| Supervisor 3 | A3      | B3      | C3      |
+
+In this model, each chain has one Conductor, which joins all the Sequencers for a given network. And each heterogeneous group of Sequencers is joined by a Supervisor.
+This model gives us redundancy for both Sequencers *and* Supervisors. If an entire Supervisor were to go down,
+there are still two full validation stacks processing the chain correctly.
+
+There may need to be additional considerations the Conductor makes in order to determine failover,
+but these are not well defined yet. For example, if the Supervisor of the active Sequencer went down,
+it may be prudent to switch the active Sequencer to one with a functional Supervisor.
 
 # Alternatives Considered
 
@@ -135,6 +160,22 @@ The main alternative to not validating transactions at the block builder is vali
 at the block builder. We would like to have this feature implemented because it can work for simple networks,
 as well as act as an ultimate fallback to keep interop messaging live, but we do not want to run it as
 part of the happy path.
+
+## Multi-Node (redundancy solution)
+
+One request that has been made previously is to have "Multi-Node" support. In this model,
+multiple Nodes for a single chain are connected to the same Supervisor. To be clear, the Supervisor software
+*generally* supports this behavior, with a few known edge cases where secondary Nodes won't sync fully.
+
+The reason this solution is not the one being proposed is two-fold:
+- Managing multiple Nodes sync status from a single Supervisor is tricky -- you have to be able to replay
+all the correct data on whatever node is behind, must be able to resolve conflicts between reported blocks,
+and errors on one Node may or may not end up affecting the other Nodes. While this feature has some testing,
+the wide range of possible interplay means we don't have high confidence in Multi-Node as a redundancy solution.
+- Multi-Node is *only* a Node redundancy solution, and the Supervisor managing multiple Nodes is still a single
+point of failure. If the Supervisor fails, *every* Node under it is unable to sync also, so there must *still*
+be a diversification of Node:Supervisor. At the point where we split them up, it makes no sense to have higher quanitities
+than 1:1:1 Node:Chain:Supervisor.
 
 # Risks & Uncertainties
 
