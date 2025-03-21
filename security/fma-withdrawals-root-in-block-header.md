@@ -49,7 +49,7 @@ Below are references for this project:
 
 - **Risk Assessment:**
 
-  ** Medium impact, low likelihood ** 
+  **Medium impact, low likelihood** 
   
   Temporary downtime for withdrawals, but not a _consensus criticial_ bug.
 
