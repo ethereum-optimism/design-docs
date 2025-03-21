@@ -34,7 +34,7 @@ Below are references for this project:
 
 ## Failure Modes and Recovery Paths
 
-### FM1: Fault proofs system failure do to inaccurate `withdrawalsRoot`
+### FM1: Withdrawals downtime do to inaccurate `withdrawalsRoot`
 
 - **Description:** 
   If the `withdrawalsRoot` in the block header is incorrect, critical infra used to propose, challenge and validate fault proof games may fail. This is because it has already been switched to use the `withdrawalsRoot` header field instead of querying the information from an archive node in the usual way. Output roots are returned by the op-node [`optimism_outputAtBlock`](https://docs.optimism.io/operators/node-operators/json-rpc#optimism_outputatblock) RPC method, and this behaves differently under Isthmus -- when handling a request for an output root (it no longer delegates an `eth_getProof` to op-geth and just reads the information from the block header).
