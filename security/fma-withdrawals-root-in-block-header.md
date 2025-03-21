@@ -36,17 +36,26 @@ Below are references for this project:
 ### FM1: Fault proofs system failure do to inaccurate `withdrawalsRoot`
 
 - **Description:** 
-  Even if all clients agree and there is no chain split, if the `withdrawalsRoot` is incorrect, critical infra used to propose, challenge and validate fault proof games may fail when it is switched to use the `withdrawalsRoot` header field instead of querying the information from an archive node in the usual way.  Because the information is present both in state and in the block header, there is the opportunity for an "off by one" error to arise, if there is confusion about whether the root applies to the state before or after the block is applied (it is the latter). If there are any problems with activation, this would also cause the same issue.
+  If the `withdrawalsRoot` in the block header is incorrect, critical infra used to propose, challenge and validate fault proof games may fail when it is switched to use the `withdrawalsRoot` header field instead of querying the information from an archive node in the usual way. The switch is already implemented by having op-node behave differently under Isthmus when handling a request for an output root (it no longer delegates an `eth_getProof` to op-geth and just reads the information from the block header).
+  
+  Triggers: 
+  
+  * A failed hardfork activation in the execution client.
 
-  The genesis block is a special case, if Isthmus is active, there is an empty withdrawals root in the genesis block header.
+  * The genesis block is a special case, if Isthmus is active, there is an empty withdrawals root in the genesis block header. This could be a problem if anyone rolls a custom genesis with a nonzero hash in the `L2toL1MessagePasser` contract. Hang on, what if someone posts a withdrawal in the first block? that's a runtime problem.
 
-  If there is an EL client bug, it's possible the root is added to the header before the state is fully committed. 
+  * If there is an execution client bug, for example it is possible the root is (incorrectly) added to the header before the state is fully committed. 
 
-  If we were to ever introduce non empty `withdrawals` in the block body, this might override the mechanism introduced with this feature and invalidate the interpreation of the `withdrawalsRoot` field. 
+  * If we were to ever introduce non empty `withdrawals` in the block body, this might override the mechanism introduced with this feature and invalidate the interpreation of the `withdrawalsRoot` field. 
+
 - **Risk Assessment:**
 
   **Mitigations:**
-  Fault proofs infrastructure (i.e. `op-proposer` and `op-challenger`) should be run against the newly populated `withdrawalsRoot` field in a testing environment, to confirm it still functions and agrees with a legacy-configured system.
+  * Fault proofs infrastructure (i.e. `op-proposer` and `op-challenger`) should be run against the newly populated `withdrawalsRoot` field in a testing environment, to confirm it still functions and agrees with a legacy-configured system. We would need to patch a dev version of op-proposer to ignore the Isthmus optimization. Or, we simply rely on action tests to check for consistency. 
+
+  * A killswitch could be installed in op-geth, such that as long as isthmus is active the node should halt if the withdrawals list in the body is every non empty.
+
+  * Warnings or killswitches could be added to detect a non empty withdrawals root in the genesis state.
 
 - **Detection:** 
   Fault proof monitoring systems would detect this failure mode.
