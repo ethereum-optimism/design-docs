@@ -36,7 +36,7 @@ Below are references for this project:
 ### FM1: Fault proofs system failure do to inaccurate `withdrawalsRoot`
 
 - **Description:** 
-  If the `withdrawalsRoot` in the block header is incorrect, critical infra used to propose, challenge and validate fault proof games may fail when it is switched to use the `withdrawalsRoot` header field instead of querying the information from an archive node in the usual way. The switch is already implemented by having op-node behave differently under Isthmus when handling a request for an output root (it no longer delegates an `eth_getProof` to op-geth and just reads the information from the block header).
+  If the `withdrawalsRoot` in the block header is incorrect, critical infra used to propose, challenge and validate fault proof games may fail. This is because it has already been switched to use the `withdrawalsRoot` header field instead of querying the information from an archive node in the usual way. Output roots are returned by the op-node [`optimism_outputAtBlock`](https://docs.optimism.io/operators/node-operators/json-rpc#optimism_outputatblock) RPC method, and this behaves differently under Isthmus -- when handling a request for an output root (it no longer delegates an `eth_getProof` to op-geth and just reads the information from the block header).
   
   Triggers: 
   
@@ -48,10 +48,14 @@ Below are references for this project:
 
 - **Risk Assessment:**
 
-  ** High impact, low likelihood ** (Downtime for withdrawals)
+  ** Medium impact, low likelihood ** 
+  
+  Temporary downtime for withdrawals, but not a _consensus criticial_ bug.
 
   **Mitigations:**
   * We rely on e2e tests to check for consistency between the outputs returned from op-node and those constructed manually in the old way.
+
+  * Instead of waiting for the failure mode to materialize and then writing a patch in a rush, we could add an optional config var to op-node to switch it back into the old behavior. Rolling out the patch would then be extremely fast and no software releases would be necessary.
 
   * A killswitch could be installed in op-geth, such that as long as isthmus is active the node should halt if the withdrawals list in the body is ever non empty.
 
@@ -59,7 +63,7 @@ Below are references for this project:
   Fault proof monitoring systems would detect this failure mode.
 
 - **Recovery Path(s)**:
-  Fault proof infrastructure would need to be patched. The pre-signed pause may need to be invoked. 
+  Fault proof infra would nee to be pointed at a patched op-node. The patch would restore the old behaviour for generating output roots.
 
 
 ### Generic items we need to take into account: 
@@ -70,7 +74,9 @@ See the [generic FMA](./fma-generic-hardfork.md):
 * Chain split (across clients)
 
 ## Action Items
-- [ ]   Fault proofs infrastructure (i.e. `op-challenger`) should be run against the newly populated `withdrawalsRoot` field in a testing environment, to confirm it still functions and agrees with a legacy-configured system.
+- [ ] (BLOCKING) e2e tests must check for consistency between output roots returned from op-node and those constructed manually in the old way
+- [ ] (non-BLOCKING) op-node could be furnished with an override to make it serve output roots in the legacy fashion
+- [ ] (non-BLOCKING) op-geth could be made to log a critical error if ever the `withdrawals` list in the block body is non empty (post Isthmus)
 
 ## Audit Requirements
 
