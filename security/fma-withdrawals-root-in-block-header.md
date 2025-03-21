@@ -1,4 +1,4 @@
-# [Withdrawals Root in Block Header]: Failure Modes and Recovery Path Analysis
+# Withdrawals Root in Block Header: Failure Modes and Recovery Path Analysis
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -6,8 +6,9 @@
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
   - [FM1: Fault proofs system failure do to inaccurate `withdrawalsRoot`](#fm1-fault-proofs-system-failure-do-to-inaccurate-withdrawalsroot)
-  - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
-- [Action Items](#action-items)
+- [Generic failure modes:](#generic-failure-modes)
+- [Specific Action Items](#specific-action-items)
+- [Generic Action Items](#generic-action-items)
 - [Audit Requirements](#audit-requirements)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -66,7 +67,7 @@ Below are references for this project:
   Fault proof infra would nee to be pointed at a patched op-node. The patch would restore the old behaviour for generating output roots.
 
 
-### Generic items we need to take into account: 
+## Generic failure modes: 
 See the [generic FMA](./fma-generic-hardfork.md):
 * Chain halt at activation (there is a change to the engine API, which elevates this risk)
 * Activation failure
