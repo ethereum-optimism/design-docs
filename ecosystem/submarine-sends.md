@@ -18,9 +18,9 @@ For many use cases, this can be fine but in DeFi can undermine fairness, due to 
 
 # Proposed Solution
 
-We can take inspiration from by replicating a commit / reveal scheme for data sent between chains. By providing a standard interface for submarine sends, cross chain transactions can be made between contracts where the intent remains hidden until the reveal on the destination chain.
+We can take inspiration by replicating a commit / reveal scheme for data sent between chains. Enabling cross chain transactions between contracts where the intent remains hidden until the reveal on the destination chain.
 
-Unlike [Submarine Sends](https://libsubmarine.org/) which also provides the ability to make the commit transaction indistinguishable from a normal value transfer, the funds and commitment have to be propogated through the `L2ToL2CrossDomainMessenger` which can allow for an external entinty to differentiate between a hashed cross domain submarine send and not. However this is not a problem since DeFi attacks rely on understanding the intent of the transaction which we show remains masked.
+Unlike [Submarine Sends](https://libsubmarine.org/) which also provides the ability to make the commit transaction indistinguishable from a normal value transfer, the funds and commitment have to be accounted for and propogated through the `L2ToL2CrossDomainMessenger` which can allow for an external entinty to differentiate between a hashed cross domain submarine send and not. However this is not a problem since DeFi attacks rely on understanding the intent of the transaction which we show remains masked.
 
 - Maybe there's some additional design where the destination escrow address is fresh on every call, achieving the same property but that is left out of scope for now.
 
@@ -134,17 +134,17 @@ With the current structure of the `L2ToL2CrossDomainMessenger`, the reveal trans
 With [Entrypoints](https://github.com/ethereum-optimism/design-docs/pull/163), it is possible to provide an entrypoint contract where all three calls must happen in 1 invocation. For demonstrative purposes, we'll keep `relayETH` seperate and show `handleSubmarineSendETH()` and `submarineReveal()` can be consolidated into a single entrypoint contract.
 
 ```solidity
-contract SubmarineEntrypoint {
+contract CrossDomainSubmarineEntrypoint {
    function submarineReveal(Identifier _id, bytes calldata payload, uint256 salt, address target, bytes calldata message) external {
       // (1) Delivers the message which invokes handleSubmarineSendETH()
       bytes32 commitment = messenger.relayMessage(_id, payload);
 
       // (2) Reveal with the provided preimage
-      submarineReveal(salt, target, message);
+      submarineReveal(commitment, salt, target, message);
    }
 
-   function handleSubmarineSendETH() onlyMessenger external returns (bytes32);
-   function submarineReveal() internal;
+   function handleSubmarineSendETH(...) onlyMessenger external returns (bytes32);
+   function submarineReveal(...) internal;
 }
 ```
 
