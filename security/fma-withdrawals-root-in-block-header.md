@@ -49,9 +49,9 @@ Below are references for this project:
 
 - **Risk Assessment:**
 
-  **Medium impact, low likelihood** 
+  **High impact, low likelihood** 
   
-  Temporary downtime for withdrawals, but not a _consensus criticial_ bug.
+  Temporary downtime for withdrawals, or loss of funds if not remediated in time to challenge a malicious proposal.
 
   **Mitigations:**
   * We rely on e2e tests to check for consistency between the outputs returned from op-node and those constructed manually in the old way.
