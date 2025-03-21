@@ -68,15 +68,21 @@ Below are references for this project:
 
 ### Generic items we need to take into account: 
 See the [generic FMA](./fma-generic-hardfork.md):
-* Chain halt at activation  (there is a change to the engine API, which elevates this risk)
+* Chain halt at activation (there is a change to the engine API, which elevates this risk)
 * Activation failure
 * Invalid setImplementation execution
 * Chain split (across clients)
 
-## Action Items
+## Specific Action Items
 - [ ] (BLOCKING) e2e tests must check for consistency between output roots returned from op-node and those constructed manually in the old way
-- [ ] (non-BLOCKING) op-node could be furnished with an override to make it serve output roots in the legacy fashion
+- [ ] (non-BLOCKING) op-node could be furnished with an override to make it serve output roots in the legacy fashion; this would also aid in testing (see above item)
 - [ ] (non-BLOCKING) op-geth could be made to log a critical error if ever the `withdrawals` list in the block body is non empty (post Isthmus)
+
+## Generic Action Items
+- [x] (BLOCKING): We have implemented extensive unit and end-to-end testing of the activation flow: https://github.com/ethereum-optimism/optimism/blob/develop/op-e2e/actions/upgrades/isthmus_fork_test.go
+- [ ] (BLOCKING): We have implemented multi-client testing to reduce the chance of bugs (the above test could be migrated to a fault proof test where it can run on kona)
+- [ ] (non-BLOCKING): We have implemented fuzz testing in a kurtosis multi-client devnet to reduce the chance of bugs
+- [ ] (BLOCKING): We will be testing the activation on our devnets and testnets.
 
 ## Audit Requirements
 
