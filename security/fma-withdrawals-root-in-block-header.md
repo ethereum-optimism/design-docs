@@ -22,7 +22,7 @@
 
 ## Introduction
 
-The "Withdrawals Root in Block Header" feature copies some information stored in the L2 blockchain _state_ into the block header, making it a part of the information stored by full (non-archive) nodes. The information in question is the `L2toL1MessagePasser` account storage root, and it is stored in the previously unused `withdrawalsRoot` field of the block header. 
+The "Withdrawals Root in Block Header" feature copies some information stored in the L2 blockchain _state_ into the block header, making it a part of the information stored by all (including non-archive) nodes. The information in question is the `L2toL1MessagePasser` account storage root, and it is stored in the previously unused `withdrawalsRoot` field of the block header. 
 
 It allows proposals to be made and verified without the needing to bear the cost of running an archive node.
 
@@ -42,20 +42,18 @@ Below are references for this project:
   
   * A failed hardfork activation in the execution client.
 
-  * The genesis block is a special case, if Isthmus is active, there is an empty withdrawals root in the genesis block header. This could be a problem if anyone rolls a custom genesis with a nonzero hash in the `L2toL1MessagePasser` contract. Hang on, what if someone posts a withdrawal in the first block? that's a runtime problem.
-
   * If there is an execution client bug, for example it is possible the root is (incorrectly) added to the header before the state is fully committed. 
 
   * If we were to ever introduce non empty `withdrawals` in the block body, this might override the mechanism introduced with this feature and invalidate the interpreation of the `withdrawalsRoot` field. 
 
 - **Risk Assessment:**
 
+  ** High impact, low likelihood ** (Downtime for withdrawals)
+
   **Mitigations:**
-  * Fault proofs infrastructure (i.e. `op-proposer` and `op-challenger`) should be run against the newly populated `withdrawalsRoot` field in a testing environment, to confirm it still functions and agrees with a legacy-configured system. We would need to patch a dev version of op-proposer to ignore the Isthmus optimization. Or, we simply rely on action tests to check for consistency. 
+  * We rely on e2e tests to check for consistency between the outputs returned from op-node and those constructed manually in the old way.
 
-  * A killswitch could be installed in op-geth, such that as long as isthmus is active the node should halt if the withdrawals list in the body is every non empty.
-
-  * Warnings or killswitches could be added to detect a non empty withdrawals root in the genesis state.
+  * A killswitch could be installed in op-geth, such that as long as isthmus is active the node should halt if the withdrawals list in the body is ever non empty.
 
 - **Detection:** 
   Fault proof monitoring systems would detect this failure mode.
