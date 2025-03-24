@@ -1,12 +1,22 @@
-# Purpose
+# L2ToL2CrossDomainMessenger RelayedMessage return event field: Design Doc
+
+|                    |                                         |
+| ------------------ | --------------------------------------- |
+| Author             | Hamdi Allam                             |
+| Created at         | 2025-03-24                              |
+| Initial Reviewers  | Wonderland, Mark Tyneway, Harry Markley |
+| Need Approval From | Wonderland, Mark Tyneway, Harry Markley |
+| Status             | In Review                               |
+
+## Purpose
 
 The ability to read events with Superchain interop is incredibly powerful. We should make sure we maximize the potential of all the default events emmitted when interacting with the OP-Stack predeploys.
 
-## Goals
+## Summary
 
-- Faciliate cross chain async programming
+With an added field to the `RelayedMessage` event emitted by the `L2ToL2CrossDomainMessenger`, we open the door to better async contract development within the Superchain.
 
-# Problem Statement + Context
+## Problem Statement + Context
 
 As we horizontally scale, contract development will look more asynchronous. A lot of cross chain messages are predominalty write-based.
 
@@ -36,7 +46,7 @@ contract ERC20BalanceGateway {
 }
 ```
 
-# Proposed Solution
+## Proposed Solution
 
 When the `L2ToL2CrossDomainMessenger` invokes a target with calldata, the return data of that call is captured and returned via `relayMessage`. However this return data is only actionable for the caller of this function, typically the relayer, or a faciliating smart contract.
 
@@ -56,7 +66,7 @@ The `messageHash` known ahead of time can be correlated with the corresponding `
 
 See the Promise Library [Design Doc](https://github.com/ethereum-optimism/design-docs/pull/216)
 
-## Resource Usage
+### Resource Usage
 
 The extra gas cost associated with including a variable sized input into the `RelayedMessage` log. There's a gas cost of 8 per non-zero byte (4 for zeros) in log data. This is acceptable for a couple of reasons
 
@@ -64,11 +74,11 @@ The extra gas cost associated with including a variable sized input into the `Re
 2. The caller to `relayMessage` is already gas-sensitive to the return since it is already internally captured and returned.
 3. Just as these gas costs are a concern in a single-chain development experience, the developer looking to query a contract cross chain should also be aware of the gas costs of invoking any dynmically sized return values.
 
-## Single Point of Failure and Multi Client Considerations
+### Single Point of Failure and Multi Client Considerations
 
 N/A as this is a smart contract change.
 
-# Alternatives Considered
+## Alternatives Considered
 
 ### Entrypoint
 
@@ -88,8 +98,8 @@ However this limits additional tooling such as a general Promise library. Where 
 
 Entrypoint composition is also a bit undefined. Thus creates more uncertain behavior with a Promise-like abstraction or capturing the return amongst the involvement of different entrypoints.
 
-# Risks & Uncertainties
+## Risks & Uncertainties
 
-## Resource Usage
+### Resource Usage
 
 As noted in the proposed soluation, adding a dynamically sized field to the event does have an additional gas cost. However, as listed this should be minimal overhead.
