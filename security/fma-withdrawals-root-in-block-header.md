@@ -5,7 +5,9 @@
 
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [FM1: Fault proofs system failure do to inaccurate `withdrawalsRoot`](#fm1-fault-proofs-system-failure-do-to-inaccurate-withdrawalsroot)
+  - [FM1: Withdrawals downtime do to inaccurate `withdrawalsRoot`](#fm1-withdrawals-downtime-do-to-inaccurate-withdrawalsroot)
+  - [FM2: Chain split from genesis due to future changes to genesis state tooling](#fm2-chain-split-from-genesis-due-to-future-changes-to-genesis-state-tooling)
+  - [FM3: Failure of p2p network due to bug in new topic/message serde logic](#fm3-failure-of-p2p-network-due-to-bug-in-new-topicmessage-serde-logic)
 - [Generic failure modes:](#generic-failure-modes)
 - [Specific Action Items](#specific-action-items)
 - [Generic Action Items](#generic-action-items)
