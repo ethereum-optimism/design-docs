@@ -11,13 +11,13 @@ The ability to read events with Superchain interop is incredibly powerful. We sh
 As we horizontally scale, contract development will look more asynchronous. A lot of cross chain messages are predominalty write-based.
 
 - Bridge Funds
-- Invoke calldata on via a remotely controlled proxy account
+- Invoke calldata on a remotely controlled proxy account
 
 Read-based cross chain messages are less common but will increasingly become so in an asynchronous world. Solidity has a `view` modifier specifically targeted for reading -- it would be natural to also want to also query this state onchain very quickly.
 
 - Fetch remote swap quotes
 - Query balance/ownership status
-- Chain on subsequent write actions, only after success (deposit -> borrow -> brige)
+- Chain on subsequent write actions, only after success (deposit -> borrow -> bridge)
 
 In order to support use cases like these, custom handler contracts per-application must be written to capture these side effects and return data backwards or chain on additional side effects. For example
 
@@ -38,7 +38,7 @@ contract ERC20BalanceGateway {
 
 # Proposed Solution
 
-When the `L2ToL2CrossDomainMessenger` invokes a target with calldata, the return data of that call is captured and returned within the `relayMessage` function. However this return data is only actionable for the caller of this function, typically the relayer, or a faciliating smart contract.
+When the `L2ToL2CrossDomainMessenger` invokes a target with calldata, the return data of that call is captured and returned via `relayMessage`. However this return data is only actionable for the caller of this function, typically the relayer, or a faciliating smart contract.
 
 `relayMessage` emits the `RelayedMessage` event on successful execution which itself can be consumed remotely via the `CrossL2Inbox` predeploy. By including the return data in this event, it becomes immediately visible to the sending chain (and all others in the interop set) without any additional message or handler contract.
 
@@ -56,7 +56,19 @@ The `messageHash` known ahead of time can be correlated with the corresponding `
 
 See the Promise Library [Design Doc](https://github.com/ethereum-optimism/design-docs/pull/216)
 
-## Alternatives Considered
+## Resource Usage
+
+The extra gas cost associated with including a variable sized input into the `RelayedMessage` log. There's a gas cost of 8 per non-zero byte (4 for zeros) in log data. This is acceptable for a couple of reasons
+
+1. Dynamically sized return values are generally discouraged, and it is good practice in solidity to ensure bounds here when writing contracts.
+2. The caller to `relayMessage` is already gas-sensitive to the return since it is already internally captured and returned.
+3. Just as these gas costs are a concern in a single-chain development experience, the developer looking to query a contract cross chain should also be aware of the gas costs of invoking any dynmically sized return values.
+
+## Single Point of Failure and Multi Client Considerations
+
+N/A as this is a smart contract change.
+
+# Alternatives Considered
 
 ### Entrypoint
 
@@ -72,14 +84,12 @@ contract ReturnEmitterEntrypoint {
 }
 ```
 
-However this limits additional tooling such as the Promise library. Where every outbound message from the L2ToL2CDM returns a message hash that can behave like a Promise. In this approach, only outbound messages leveraging this entrypoint could.
+However this limits additional tooling such as a general Promise library. Where every outbound message from the L2ToL2CDM returns a message hash that can behave like a Promise. In this approach, only outbound messages leveraging this entrypoint could.
 
 Entrypoint composition is also a bit undefined. Thus creates more uncertain behavior with a Promise-like abstraction or capturing the return amongst the involvement of different entrypoints.
 
 # Risks & Uncertainties
 
-The extra gas cost associated with including a variable sized input into `RelayedMessage`. There's a gas cost of 8 per non-zero bytes (4 for zeros) in log data. This is not a real concern for a couple of reasons
+## Resource Usage
 
-1. Dynamically sized return values are generally discouraged, and it is good practice in solidity to ensure bounds here when writing contracts.
-2. The caller to `relayMessage` is already gas-sensitive to the captured return data since it returns this to the caller
-3. Just as these gas costs are a concern in a single-chain development experience, the developer looking to query a contract cross chain should also be aware of the gas costs of invoking any dynmically sized return values.
+As noted in the proposed soluation, adding a dynamically sized field to the event does have an additional gas cost. However, as listed this should be minimal overhead.
