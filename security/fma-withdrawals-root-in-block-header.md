@@ -87,6 +87,24 @@ Below are references for this project:
 - **Recovery Path(s)**:
   The changes to the genesis state would need to be reverted and rescheduled into a hardfork if still desired. Chains which were sequenced with the modified genesis sate logic may need to be repaired with a special hardfork.
 
+### FM3: Failure of p2p network due to bug in new topic/message serde logic
+
+- **Description:**
+  Because this feature introduces a new p2p gossip topic and message serialization format, a bug can mean the failure of p2p gossip for any chain with Isthmus active. This would cause an unsafe chain halt.
+
+- **Risk Assessment:**
+
+  **High impact, low likelihood**
+
+  **Mitigations:**
+  We rely on end-to-end testing (including fuzzing) to catch any bugs in this code path. We could run extended fuzzing campaigns.
+
+- **Detection:**
+  Continuous integration, or Kurtosis and/or devnet testing should catch this. Failing that, the bug makes it to production, our alerting infrastructure would notify us.
+
+- **Recovery Path(s)**:
+  The bug would need to be patched and new op-node release cut and rolled out.
+
 ## Generic failure modes:
 
 See the [generic FMA](./fma-generic-hardfork.md):
