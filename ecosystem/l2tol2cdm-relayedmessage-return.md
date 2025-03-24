@@ -13,7 +13,7 @@ As we horizontally scale, contract development will look more asynchronous. A lo
 - Bridge Funds
 - Invoke calldata on via a remotely controlled proxy account
 
-Read-based cross chain messages are less common but will increasingly become so in an asynchronous world. Solidity has a `view` modifier specifically targeted for off chain reading -- it would be natural to also want to also query this state onchain very quickly.
+Read-based cross chain messages are less common but will increasingly become so in an asynchronous world. Solidity has a `view` modifier specifically targeted for reading -- it would be natural to also want to also query this state onchain very quickly.
 
 - Fetch remote swap quotes
 - Query balance/ownership status
