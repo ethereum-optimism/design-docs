@@ -68,6 +68,25 @@ Below are references for this project:
 - **Recovery Path(s)**:
   Fault proof infra would nee to be pointed at a patched op-node. The patch would restore the old behaviour for generating output roots.
 
+### FM2: Chain split from genesis due to future changes to genesis state tooling
+
+- **Description:**
+  The genesis state is, with the activation of Isthmus at genesis, now part of the genesis block. Therefore changes to the tooling which generates the genesis block from the genesis state can cause a chain split if there is a bug introduced in the future or even if the genesis state is changed intentionally but in an uncoordinated manner.
+
+- **Risk Assessment:**
+
+  **High impact, low likelihood**
+
+  **Mitigations:**
+
+  A new e2e test could be introduced, to recompute the genesis block hash for a few select chains and compare to the existing (snapshot) block hashes stored in the superchain registry.
+
+- **Detection:**
+  Existing or newly added e2e tests would hopefully catch this. If the bug made it to production, replica healthcheck alerts would fire as nodes diverged.
+
+- **Recovery Path(s)**:
+  The changes to the genesis state would need to be reverted and rescheduled into a hardfork if still desired. Chains which were sequenced with the modified genesis sate logic may need to be repaired with a special hardfork.
+
 ## Generic failure modes:
 
 See the [generic FMA](./fma-generic-hardfork.md):
