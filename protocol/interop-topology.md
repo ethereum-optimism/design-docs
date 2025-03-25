@@ -133,7 +133,7 @@ it may be prudent to switch the active Sequencer to one with a functional Superv
 ## Solution Side-Ideas
 
 Although they aren't strictly related to TX Flow or Redundancy, here are additional ideas to increase the stability
-of a network. These ideas won't be brought forward into the Solution Summary.
+of a network. These ideas won't be brought forward into the Solution Summary or Action Items.
 
 ### `op-supervisor` alternative backend
 
@@ -157,42 +157,27 @@ We should establish `op-supervisor` checks of transactions at the following poin
 - On ingress to all mempools
 - On regular interval on all mempools
 
-Additionally, the Sequencer should batch the calls 
+Additionally, regular interval checks should use batch calls which validate at least a block's worth of the mempool
+at a time.
 
-The production topology of an interop cluster checks the validity of cross chain transactions at:
-- cloud ingress (`proxyd`)
-- sentry node mempool ingress
-- sentry node mempool on interval
-- sequencer node mempool on interval
-
-The validity of cross chain transactions are not checked at:
+`op-supervisor` checks of transactions should *not* happen at the following points:
 - sequencer node mempool ingress
-- block builder
+- block building (as a synchronous activity)
 
-It is safe to not check at block building time because if the check passes at ingress
-time and passes again at block building time, it does not exhaustively cover all cases.
-It is possible that the remote reorg happens **after** the local block is sealed.
-In practice, it is far more likely to have an unsafe reorg on the remote chain that is not
-caught **before** the local block is sealed because the time between checking at the mempool
-and checking at block building is so small. Therefore we should not add a remote RPC request
-as part of the block building happy path, but we should still implement and benchmark it.
-
-TODO: include information on recommendation around standard mode/multi node/running multiple supervisors.
-Should include information on the value props of each so we can easily align on roadmap.
+When we deploy hosts, we should currently use a "Full Validation Set" of one Supervisor plus N Managed nodes,
+to maximize redundancy and independent operation of validators. When Sequencers are deployed, Conductors should manage
+individual Managed Nodes *across* Supervisors.
 
 # Alternatives Considered
 
-<!-- List out a short summary of each possible solution that was considered.
-Comparing the effort of each solution -->
-
-## Block Building
+## Checking at Block Building Time (Tx Flow Solution)
 
 The main alternative to not validating transactions at the block builder is validating transactions
 at the block builder. We would like to have this feature implemented because it can work for simple networks,
 as well as act as an ultimate fallback to keep interop messaging live, but we do not want to run it as
 part of the happy path.
 
-## Multi-Node (redundancy solution)
+## Multi-Node (Host Redundancy Solution)
 
 One request that has been made previously is to have "Multi-Node" support. In this model,
 multiple Nodes for a single chain are connected to the same Supervisor. To be clear, the Supervisor software
@@ -210,8 +195,17 @@ than 1:1:1 Node:Chain:Supervisor.
 
 # Risks & Uncertainties
 
-<!-- An overview of what could go wrong.
-Also any open questions that need more work to resolve. -->
-
 We really need to measure everything to validate our hypothesis on the ideal architecture.
 To validate the ideal architecture, we need to measure it and then try to break it.
+
+Incorrect assumptions, or unexpected emergent behaviors in the network, could result in validation not happening at the right times,
+causing excessive replacement blocks. Conversely, we could also fail to reduce load on the block builder, still leading to slow
+block building or stalls.
+
+Ultimately, this design represents a hypothesis which needs real testing before it can be challenged and updated.
+
+# Action Items from this Document
+- Put the `proxyd` check in place
+- Put an interval check in place in the mempool
+- Remove build-time checks
+- Test RPC performance (data collectable via Grafana)
