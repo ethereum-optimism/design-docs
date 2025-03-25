@@ -146,7 +146,7 @@ See [Appendix A](#appendix-a-required-code-changes-by-eip) for details on which 
 - **Mitigations:**
 	1. Fully mitigated by using an accelerated precompile that calls out to L1 instead of calculating inside the program.
         - [Specs](https://github.com/ethereum-optimism/specs/blob/b5e0fa98881171f658f782597a46b641e8f3dfd0/specs/protocol/isthmus/exec-engine.md#evm-changes)
-- **Detection:** op-program trace runner computation time would increase significantly (should trigger an alert)
+- **Detection:** The `vm-runner` computation time would **increase** significantly, or **panic** due to OOM and trigger an alert through our current set of monitoring. 
 - **Recovery Path(s)**: If this occurred, which it can't with the mitigations, we'd have to make op-program efficient enough to execute
 BLS precompiles in sufficient time.
 
