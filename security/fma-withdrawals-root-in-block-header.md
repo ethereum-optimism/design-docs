@@ -118,7 +118,7 @@ See the [generic FMA](./fma-generic-hardfork.md):
 
 ## Specific Action Items
 
-- [ ] (BLOCKING) e2e tests must check for consistency between output roots returned from op-node and those constructed manually in the old way
+- [x] (BLOCKING) e2e tests must check for consistency between output roots returned from op-node and those constructed manually in the old way https://github.com/ethereum-optimism/optimism/blob/6a436fe9ac9acb215b0f4b9f87ccd3832f4d6b72/op-e2e/actions/upgrades/isthmus_fork_test.go#L286-L301
 - [ ] (non-BLOCKING) op-node could be furnished with an override to make it serve output roots in the legacy fashion; this would also aid in testing (see above item). It would even allow us to run the two systems side by side for a time before fully switching over.
 - [ ] (non-BLOCKING) op-geth could be made to log a critical error triggering an alert if ever the `withdrawals` list in the block body is non empty (post Isthmus)
 
