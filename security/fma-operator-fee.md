@@ -108,7 +108,47 @@ Below are references for this project:
   - Use archive nodes to maintain historical data.
   - Consider implementing receipt compression retroactively if needed.
 
-### Generic items we need to take into account: `L1Block` badly hydrated
+### FM5: EVM incorrectly charges operator fee
+
+- **Description:** The operator fee is integrated directly into the EVM, and failure to charge the fee correctly can result in ETH being minted or burned on the L2 unexpectedly.
+- **Risk Assessment:** High impact, low likelihood
+- **Mitigations**: Several tests have been added across multiple test suites to enforce that, with a range of operator fee configurations, no ETH is minted or burned on the L2 as a result of the feature. In addition, tests have been added to account for the specific transaction types that the operator fee applies to.
+    - **Cross-client Integration Tests:**
+        - https://github.com/ethereum-optimism/optimism/blob/7e6825bfb4affe7bda58ba2b32cad4c6b0198734/op-e2e/actions/proofs/operator_fee_test.go#L20
+            - Covers (`op-program`, `kona`, `op-geth`, `op-node`):
+                - Non-deposit transaction types are correctly charged the expected operator fee.
+                - Deposit transactions are **never** charged the operator fee.
+                - The operator fee refund accounts for the EVM's state refund.
+                - No ETH is minted or burned as a result of the operator fee being charged.
+                - When the operator fee parameters are configured to `0`, the operator fee is not applied.
+                    - The operator fee may never apply on the Isthmus transition block.
+        - https://github.com/ethereum-optimism/optimism/blob/7e6825bfb4affe7bda58ba2b32cad4c6b0198734/op-acceptance-tests/tests/isthmus/fees_test.go#L82-L83
+            - Covers (`op-geth`, `op-node`, `op-reth`, and other OP EL + CL clients supported by kurtosis): For all OP Stack EL/CL pairs (running on a kurtosis devnet,) the operator fee neither mints nor burns ETH on the L2. Additionally, asserts that clients participating in the devnet stay in-sync throughout the test.
+- **Recovery Path(s):**
+    - Depending on the severity of impact, and if the impacted client is sequencing the network or being used in the bridge's proof, we can choose to make the bug canonical, manually re-collateralizing the bridge on L1. Or, we could pause the bridge and hardfork to destroy any new ETH or re-mint any lost ETH.
+  
+### FM6: Transaction Pool is not updated to reflect transaction fee requirements
+
+- **Description:** If the new transaction fee formula is not properly represented in the tx pool admission function implementation, then a transaction can enter the pool without being valid for inclusion in a block, causing the transaction to get stuck in the pool.
+- **Risk Assessment:** Medium impact, medium likelihood
+- **Mitigations:** Update the transaction pool admission function to use the exact same fee formula as the EVM so that a transaction does not enter the pool unless it is considered valid for inclusion in a block. Testing has been added to ensure that the fee logic matches going forward.
+    - **Fixes:**
+      - [op-geth PR #558: core/txpool: Take total rollup cost into account (L1 + operator fee)](https://github.com/ethereum-optimism/op-geth/pull/558/files)
+    - **Tests:**
+        - _TODO: Update with link to @sebastemas's test of the txpool fee logic_
+- **Recovery Path(s):**
+    - An issue in the transaction pool logic is not consensus critical, and can be patched without a hardfork. In the event user experience is degraded, client teams can cut a new release and ask users to upgrade.
+
+### FM7: Discrepancy between client implementations of operator causes a chain fork
+
+- **Description:**: Since operator fee logic is executed within the L2 EVM, any differences in the two implementations' management of state can trigger a chain fork, where one client believes the state root of a given block to be **X** and another client believes the state root of the same block to be **Y**. Given that the codebase for reth and op-geth look very different, producing code to perform identical calculations down to details such as bit precision, casting and saturation modes, is difficult. Without adaquate testing, it would be difficult to claim that a chain fork would not occur in some operator fee scenarios.
+- **Risk Assessment**: Medium impact, high likelihood
+- **Recovery Path(s):** 
+  - Test that enabling operator fee and later updating the operator fee parameters does not cause a chain split while transactions without fuzzing.
+    - [PR #14972: Update operator fee NAT test to verify there is no chain split](https://github.com/ethereum-optimism/optimism/pull/14972)
+  - An additional test of the above _with_ fuzzing.
+
+### FM8: Generic items we need to take into account: `L1Block` badly hydrated
 
 - **Description:** At each hardfork, new data can be add to the `L1Block` contract, and the method called to hydrate it change (for instance
     `setL1BlockValuesEcotone` to `setL1BlockValuesIsthmus`). If there is a bug in a future method ending up to operator fee params no
