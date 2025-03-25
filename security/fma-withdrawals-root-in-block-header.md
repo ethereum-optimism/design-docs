@@ -6,7 +6,7 @@
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
   - [FM1: Withdrawals downtime do to inaccurate `withdrawalsRoot`](#fm1-withdrawals-downtime-do-to-inaccurate-withdrawalsroot)
-  - [FM2: Chain split from genesis due to future changes to genesis state tooling](#fm2-chain-split-from-genesis-due-to-future-changes-to-genesis-state-tooling)
+  - [FM2: Chain split from genesis due to divergent genesis block computation](#fm2-chain-split-from-genesis-due-to-divergent-genesis-block-computation)
   - [FM3: Failure of p2p network due to bug in new topic/message serde logic](#fm3-failure-of-p2p-network-due-to-bug-in-new-topicmessage-serde-logic)
 - [Generic failure modes:](#generic-failure-modes)
 - [Specific Action Items](#specific-action-items)
@@ -70,24 +70,23 @@ Below are references for this project:
 - **Recovery Path(s)**:
   Fault proof infra would nee to be pointed at a patched op-node. The patch would restore the old behaviour for generating output roots.
 
-### FM2: Chain split from genesis due to future changes to genesis state tooling
+### FM2: Chain split from genesis due to divergent genesis block computation
 
 - **Description:**
-  The genesis state is, with the activation of Isthmus at genesis, now part of the genesis block. Therefore changes to the tooling which generates the genesis block from the genesis state can cause a chain split if there is a bug introduced in the future or even if the genesis state is changed intentionally but in an uncoordinated manner.
+  The genesis state is, with the activation of Isthmus at genesis, now part of the genesis block. Therefore a consensus bug where clients compute a different genesis block from the same genesis state can cause a chain split.
 
 - **Risk Assessment:**
 
   **High impact, low likelihood**
 
   **Mitigations:**
-
-  A new e2e test could be introduced, to recompute the genesis block hash for a few select chains and compare to the existing (snapshot) block hashes stored in the superchain registry.
+  This should be caught by cross-client testing (kurtosis and devnets)
 
 - **Detection:**
-  Existing or newly added e2e tests would hopefully catch this. If the bug made it to production, replica healthcheck alerts would fire as nodes diverged.
+  If the bug made it to production, replica healthcheck alerts would fire as nodes diverged.
 
 - **Recovery Path(s)**:
-  The changes to the genesis state would need to be reverted and rescheduled into a hardfork if still desired. Chains which were sequenced with the modified genesis sate logic may need to be repaired with a special hardfork.
+  The buggy client(s) would need to be patched to bring them back into compliance with the specification.
 
 ### FM3: Failure of p2p network due to bug in new topic/message serde logic
 
