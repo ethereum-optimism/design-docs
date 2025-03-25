@@ -10,35 +10,26 @@ of a cloud deployment of an interop enabled OP Stack cluster.
 
 # Summary
 
-<!-- Most (if not all) documents should have a summary.
-While the length will likely be proportional to the length of the full document,
-the summary should be as succinct as possible. -->
+The creation of Interop transactions opens Optimistim Networks to new forms of undesierable activity.
+Specifically, including an interop transaction carries two distinct risks:
+- If an interop transaction is included which is *invalid*, the block which contains it is invalid too,
+and must be replaced, causing a reorg.
+- If the block building and publishing system spends too much time validating an interop transaction,
+callers may exploit this effort to create DOS conditions on the network, where the chain is stalled or slowed.
 
-The production topology of an interop cluster checks the validity of cross chain transactions at:
-- cloud ingress (`proxyd`)
-- sentry node mempool ingress
-- sentry node mempool on interval
-- sequencer node mempool on interval
+The new component `op-supervisor` serves to efficiently compute and index cross-safety information across all chains
+in a dependency set. However, we still need to decide on the particular arrangement of components,
+and the desired flow for a Tx to satisfy a high degree of correctness without risking networks stalls.
 
-The validity of cross chain transactions are not checked at:
-- sequencer node mempool ingress
-- block builder
-
-It is safe to not check at block building time because if the check passes at ingress
-time and passes again at block building time, it does not exhaustively cover all cases.
-It is possible that the remote reorg happens **after** the local block is sealed.
-In practice, it is far more likely to have an unsafe reorg on the remote chain that is not
-caught **before** the local block is sealed because the time between checking at the mempool
-and checking at block building is so small. Therefore we should not add a remote RPC request
-as part of the block building happy path, but we should still implement and benchmark it.
-
-TODO: include information on recommendation around standard mode/multi node/running multiple supervisors.
-Should include information on the value props of each so we can easily align on roadmap.
+In this document we will propose the desired locations and schedule for validating transactions for high correctness
+and low impact. We will also propose a desired arrangement of hosts to maximize redundancy in the event that
+some component *does* fail.
 
 # Problem Statement + Context
-There are two sets of problems to solve in our topology and software arrangement:
 
-## Design Tx Ingress Flow for Optimal Latency, Correctness
+Breaking the problem into two smaller parts:
+
+## TX Flow - Design for Correctness, Latency
 It is a goal to remove as many sync, blocking operations from the hot path of
 the block builder as possible. Validating an interop cross chain transaction
 requires a remote RPC request to the supervisor. Having this as part of the hot
@@ -53,64 +44,61 @@ only needs to focus on including transactions.
 For context, a cross chain transaction is defined in the [specs](https://github.com/ethereum-optimism/specs/blob/85966e9b809e195d9c22002478222be9c1d3f562/specs/interop/overview.md#interop). Any reference
 to the supervisor means [op-supervisor](https://github.com/ethereum-optimism/design-docs/blob/d732352c2b3e86e0c2110d345ce11a20a49d5966/protocol/supervisor-dataflow.md).
 
-## Arrange Infrastructure to Maximize Redundancy
+## Redundancy - Design for Maximum Redundancy
 It is a goal to ensure that there are no single points of failure in the network infrastructure that runs an interop network.
 To that end, we need to organize hosts such that sequencers and supervisors may go down without an interruption.
 
+This should include both Sequencers, arranged with Conductors, as well as redundancy on the Supervisors themselves.
+
 # Proposed Solutions
 
-<!-- A high level overview of the proposed solution.
-When there are multiple alternatives there should be an explanation
-of why one solution was picked over other solutions.
-As a rule of thumb, including code snippets (except for defining an external API)
-is likely too low level. -->
-
 ## TX Ingress Flow
-There are lots of gates and checks we can establish for inflowing Tx to prevent excess work (a DOS vector) from reaching the Supervisor.
-
-### `op-supervisor` alternative backend
-
-We add a backend mode to `op-supervisor` that operates specifically by using dynamic calls to `eth_getLogs`
-to validate cross chain messages rather than its local index. This could be accomplished by adding
-new RPC endpoints that do this or could be done with runtime config. When `op-supervisor` runs in this
-mode, it is a "light mode" that only supports `supervisor_validateMessagesV2` and `supervisor_validateAccessList`
-(potentially a subset of their behavior). This would give us a form of "client diversity" with respect
-to validating cross chain messages. This is a low lift way to reduce the likelihood of a forged initiating
-message. A forged initiating message would be tricking the caller into believing that an initiating
-message exists when it actually doesn't, meaning that it could be possible for an invalid executing
-message to finalize.
-
-TODO: feedback to understand what capabilities are possible
+There are multiple checks we can establish for inflowing Tx to prevent excess work (a DOS vector) from reaching the Supervisor.
 
 ### `proxyd`
 
-We update `proxyd` to validate interop messages on cloud ingress. It should check against both the indexed
+We can update `proxyd` to validate interop messages on cloud ingress. It should check against both the indexed
 backend of `op-supervisor` as well as the alternative backend.
+Because interop transactions are defined by their Access List,
+`proxyd` does not have to execute any transactions to make this request.
+This filter will eliminate all interop transactions made in bad faith, as they will be obviously invalid.
+
+It may be prudent for `proxyd` to wait and re-test a transaction after a short timeout (`1s` for example)
+to allow through transactions that are valid against the bleeding edge of chain content. `proxyd` can have its own
+`op-supervisor` and `op-node` cluster specifically to provide cross safety queries without putting any load on other
+parts of the network.
 
 ### Sentry Node Mempool Ingress
 
-We update the EL clients to validate interop transactions on ingress to the mempool. This should be a different
+We can update the EL clients to validate interop transactions on ingress to the mempool. This should be a different
 instance of `op-supervisor` than the one that is used by `proxyd` to reduce the likelihood of a nondeterministic
-bug within `op-supervisor`.
+bug within `op-supervisor`. See "Host Topology" below for a description of how to arrange this.
 
-### Sentry Node + Sequencer Mempool on Interval
+### All Nodes Mempool on Interval
 
-We update the EL clients to validate interop transactions on an interval in the mempool. Generally the mempool
-will revalidate all transactions on each new block, but for an L2 that has 1-2s blocktime, that is quite often.
-It may be the case that we could get away with a batch RPC request every 1-2s, but generally we should not do
-`n` RPC requests on each block where `n` is the number of transactions that include statically declared executing
-messages.
+We can update the EL clients to validate interop transactions on an interval in the mempool. Generally the mempool
+will revalidate all transactions on each new block, but for an L2 that has 1-2s blocktime, that could be frequent if the
+RPC round-trip of an `op-supervisor` query is too costly.
 
-### Block Building
+Instead, the Sequencer (and all other nodes) should validate only on a low frequency interval after ingress.
+The *reasoning* for this is: 
 
 Lets say that it takes 100ms for the transaction to be checked at `proxyd`, checked at the mempool of the sentry node,
 forwarded to the sequencer and pulled into the block builder. The chances of the status of an initiating message
 going from existing to not existing during that timeframe is extremely small. Even if we did check at the block builder,
 it doesn't capture the case of a future unsafe chain reorg happening that causes the message to become invalid.
 Because it is most likely that the remote unsafe reorg comes after the local block is sealed, there is no real
-reason to block the hot path of the chain with the remote lookups.
+reason to block the hot path of the chain with the remote lookups. If anything, we would want to coordinate these checks
+with the *remote block builders*, but of course we have no way to actually do this.
 
-### Resource Usage
+### Batching Supervisor Calls
+
+During ingress, transactions are independent and must be checked independently. However, once they've reached the Sequencer
+mempool, transactions can be grouped and batched by presumed block. Depending on the rate of the check, the Sequencer
+can collect all the transactions in the mempool it believes will be in a block soon, and can perform a batch RPC call
+to more effectively filter out transactions. This would allow the call to happen more often without increasing RPC overhead.
+
+### Note on Resource Usage
 
 <!-- What is the resource usage of the proposed solution?
 Does it consume a large amount of computational resources or time? -->
@@ -118,13 +106,6 @@ Does it consume a large amount of computational resources or time? -->
 Doing a remote RPC request is always going to be an order of magnitude slower than doing a local lookup.
 Therefore we want to ensure that we can parallelize our remote lookups as much as possible. Block building
 is inherently a single threaded process given that the ordering of the transactions is very important.
-
-### Single Point of Failure and Multi Client Considerations
-
-There is a single point of failure with the `op-supervisor`. Adding an alternative backend that dynamically
-fetches data using `eth_getLogs` rather than looking up its local database helps to approximate a second implementation.
-
-<!-- Details on how this change will impact multiple clients. Do we need to plan for changes to both op-geth and op-reth? -->
 
 ## Host Topology / Arrangement
 
@@ -148,6 +129,56 @@ there are still two full validation stacks processing the chain correctly.
 There may need to be additional considerations the Conductor makes in order to determine failover,
 but these are not well defined yet. For example, if the Supervisor of the active Sequencer went down,
 it may be prudent to switch the active Sequencer to one with a functional Supervisor.
+
+## Solution Side-Ideas
+
+Although they aren't strictly related to TX Flow or Redundancy, here are additional ideas to increase the stability
+of a network. These ideas won't be brought forward into the Solution Summary.
+
+### `op-supervisor` alternative backend
+
+We add a backend mode to `op-supervisor` that operates specifically by using dynamic calls to `eth_getLogs`
+to validate cross chain messages rather than its local index. This could be accomplished by adding
+new RPC endpoints that do this or could be done with runtime config. When `op-supervisor` runs in this
+mode, it is a "light mode" that only supports `supervisor_validateMessagesV2` and `supervisor_validateAccessList`
+(potentially a subset of their behavior). This would give us a form of "client diversity" with respect
+to validating cross chain messages. This is a low lift way to reduce the likelihood of a forged initiating
+message. A forged initiating message would be tricking the caller into believing that an initiating
+message exists when it actually doesn't, meaning that it could be possible for an invalid executing
+message to finalize.
+
+TODO: feedback to understand what capabilities are possible
+
+
+# Solution Summary
+
+We should establish `op-supervisor` checks of transactions at the following points:
+- On cloud ingress to `proxyd`
+- On ingress to all mempools
+- On regular interval on all mempools
+
+Additionally, the Sequencer should batch the calls 
+
+The production topology of an interop cluster checks the validity of cross chain transactions at:
+- cloud ingress (`proxyd`)
+- sentry node mempool ingress
+- sentry node mempool on interval
+- sequencer node mempool on interval
+
+The validity of cross chain transactions are not checked at:
+- sequencer node mempool ingress
+- block builder
+
+It is safe to not check at block building time because if the check passes at ingress
+time and passes again at block building time, it does not exhaustively cover all cases.
+It is possible that the remote reorg happens **after** the local block is sealed.
+In practice, it is far more likely to have an unsafe reorg on the remote chain that is not
+caught **before** the local block is sealed because the time between checking at the mempool
+and checking at block building is so small. Therefore we should not add a remote RPC request
+as part of the block building happy path, but we should still implement and benchmark it.
+
+TODO: include information on recommendation around standard mode/multi node/running multiple supervisors.
+Should include information on the value props of each so we can easily align on roadmap.
 
 # Alternatives Considered
 
