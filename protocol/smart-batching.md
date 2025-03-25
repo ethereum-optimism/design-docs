@@ -58,7 +58,11 @@ rollup-specific and opt-in.
 
 ### Single Point of Failure and Multi Client Considerations
 
-There are no changes in op-geth, only op-node.
+This change adds a potential single point of failure in op-node, in which bugs (in the new derivation pipeline logic _or_ in an inbox contract deployed by a particular rollup) could cause batches to be erroneously rejected and thus lead to a liveness fault. Recovery from such a fault could require manual intervention or social consensus (e.g. chain upgrade to fix the bug so that batches can be posted again). It is also very important that the added logic is deterministic, so that all nodes derive the same state. This should be automatic because we are not adding any additional inputs from the external world (transaction receipts are already a derivation input).
+
+We note that the proposed change ought to be quite small and self-contained, so it should be possible to thoroughly and confidently audit for potential consensus bugs.
+
+There are no multi-client considerations as the changes are only in op-node, not in op-geth/op-reth.
 
 ## Alternatives Considered
 
