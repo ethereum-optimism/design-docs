@@ -98,7 +98,7 @@ Below are references for this project:
   **High impact, low likelihood**
 
   **Mitigations:**
-  We rely on end-to-end testing (including fuzzing) to catch any bugs in this code path. We could run extended fuzzing campaigns.
+  We rely on [end-to-end testing](https://github.com/ethereum-optimism/optimism/blob/9249efc6343208f69283290fc9c5c8f6e7b243f8/op-service/eth/ssz_test.go#L251) (including fuzzing) to catch any bugs in this code path. We could run extended fuzzing campaigns.
 
 - **Detection:**
   Continuous integration, or Kurtosis and/or devnet testing should catch this. Failing that, the bug makes it to production, our alerting infrastructure would notify us.
