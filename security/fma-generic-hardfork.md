@@ -82,7 +82,7 @@ Since there is no chain halt, we can just live with it and fix it in an upcoming
 
 - **Description:** Differences in implementation across clients (e.g. `op-geth` versus `op-reth`) cause a chain split due to different effective consensus rules.
 - **Risk Assessment:** medium severity / medium likelihood
-- **Mitigations:** 
-- [ ] ACTION ITEM (BLOCKING): We have implemented extensive cross-client / differential testing of the new functionality.
-- **Detection:** Replicas of one kind of client will diverge from the sequencer
-- **Recovery Path(s)**: Most likely we would have the op-node/op-geth chain be the canonical one as this is the reference implementation. Other clients would need to be patched to resolve any discrepancies.
+- **Mitigations:**
+- [ ] ACTION ITEM (BLOCKING): We have implemented extensive cross-client / differential testing of the new functionality for both scenarios a) when chains activate the fork at genesis and b) when they activate it after genesis. This is part of our alphanet / betanet [devnet process](https://devnets.optimism.io/).
+- **Detection:** Replicas of one kind of client will diverge from the sequencer. If the bug made it to production, replica healthcheck alerts would fire as nodes diverged.
+- **Recovery Path(s)**: Divergent clients would need to be patched to resolve any discrepancies with the canonical chain (which should ideally be the one described by the specification, but could be the e.g. op-node/op-geth chain if that is considered the reference implementation).

@@ -6,8 +6,7 @@
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
   - [FM1: Withdrawals downtime do to inaccurate `withdrawalsRoot`](#fm1-withdrawals-downtime-do-to-inaccurate-withdrawalsroot)
-  - [FM2: Chain split from genesis due to divergent genesis block computation](#fm2-chain-split-from-genesis-due-to-divergent-genesis-block-computation)
-  - [FM3: Failure of p2p network due to bug in new topic/message serde logic](#fm3-failure-of-p2p-network-due-to-bug-in-new-topicmessage-serde-logic)
+  - [FM2: Failure of p2p network due to bug in new topic/message serde logic](#fm2-failure-of-p2p-network-due-to-bug-in-new-topicmessage-serde-logic)
 - [Generic failure modes:](#generic-failure-modes)
 - [Specific Action Items](#specific-action-items)
 - [Generic Action Items](#generic-action-items)
@@ -70,25 +69,7 @@ Below are references for this project:
 - **Recovery Path(s)**:
   Fault proof infra would nee to be pointed at a patched op-node. The patch would restore the old behaviour for generating output roots.
 
-### FM2: Chain split from genesis due to divergent genesis block computation
-
-- **Description:**
-  The genesis state is, with the activation of Isthmus at genesis, now part of the genesis block. Therefore a consensus bug where clients compute a different genesis block from the same genesis state can cause a chain split.
-
-- **Risk Assessment:**
-
-  **High impact, low likelihood**
-
-  **Mitigations:**
-  This should be caught by cross-client testing (kurtosis and devnets)
-
-- **Detection:**
-  If the bug made it to production, replica healthcheck alerts would fire as nodes diverged.
-
-- **Recovery Path(s)**:
-  The buggy client(s) would need to be patched to bring them back into compliance with the specification.
-
-### FM3: Failure of p2p network due to bug in new topic/message serde logic
+### FM2: Failure of p2p network due to bug in new topic/message serde logic
 
 - **Description:**
   Because this feature introduces a new p2p gossip topic and message serialization format, a bug can mean the failure of p2p gossip for any chain with Isthmus active. This would cause an unsafe chain halt.
@@ -129,7 +110,8 @@ See the [generic FMA](./fma-generic-hardfork.md):
 - [ ] (BLOCKING): We will be testing the activation on our devnets and testnets.
 - [ ] (NON-BLOCKING): Making sure, that component that now fetch the withdrawalHash by this have also a fallback mechanism to previous Merkle Tree method in case there is a bug (assignee: @XXXXX for now).
 - [ ] (NON-BLOCKING): Creating a monitoring that differential testing from the merkle tree inclusion computation and the block.header request `withdrawalRoot`(assignee: @Ethnical)](https://github.com/ethereum-optimism/design-docs/pull/223/files)https://github.com/ethereum-optimism/design-docs/pull/223/files
-- [ ] (BLOCKING):  Run fuzzing on the v4 gossip p2p more than 10s (assignee: @Ethnical @geoknee)
+- [ ] (BLOCKING): Run fuzzing on the v4 gossip p2p more than 10s (assignee: @Ethnical @geoknee)
+
 ## Audit Requirements
 
 An audit has not been deemed necessary.
