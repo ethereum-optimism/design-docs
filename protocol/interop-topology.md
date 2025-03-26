@@ -209,3 +209,4 @@ Ultimately, this design represents a hypothesis which needs real testing before 
 - Put an interval check in place in the mempool
 - Remove build-time checks
 - Test RPC performance (data collectable via Grafana)
+- Consider and add Supervisor-health as a trigger for Conductor Leadership Transfer
