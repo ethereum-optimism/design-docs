@@ -94,7 +94,7 @@ Below is what needs to be done before launch to reduce the chances of the above 
 
 ## Audit Requirements
 
-_Given the failure modes and action items, will this project require an audit? See [OP Labs Audit Framework: When to get external security review and how to prepare for it](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864) for a reference decision making framework. Please explain your reasoning._
+_Given the failure modes and action items, will this project require an audit? See [FMAs in the SDLC](https://github.com/ethereum-optimism/pm/blob/main/src/fmas.md#determine-audit-requirements) for a reference decision making framework. Please explain your reasoning._
 
 ## Appendix
 
