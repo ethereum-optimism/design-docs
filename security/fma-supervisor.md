@@ -114,7 +114,7 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
     - The message validity code in the Supervisor is the most core aspect of its implementation. It has reasonable unit testing for database, accessors, apis, and all validity checking code. It has some E2E tests, and some situationally comprehensive Action tests, as well as local Kurtosis and Devnet exposure. However, this component is not battle tested.
     - *Even When* the Supervisor behaves totally correctly, this case may occur if some data cross-unsafe data is used to build a block which later becomes invalid due to a reorg on the referenced chain. In this situation, the same outcome is felt by the network.
 - Mitigations
-    - The Sequencer could detect cross-unsafe head stall and issue a reorg on the unsafe chain in order to avoid invalid L1 inclusions. Depending on the heuristic used, this could create regular unsafe reorgs with low threshold, or larger, less common ones. This also saves operators from wasted L1 fees when a batch would contain unwanted data.
+    - The Sequencer *should* detect cross-unsafe head stall and issue a reorg on the unsafe chain in order to avoid invalid L1 inclusions. Depending on the heuristic used, this could create regular unsafe reorgs with low threshold, or larger, less common ones. This also saves operators from wasted L1 fees when a batch would contain unwanted data.
     - When promoting local-unsafe to cross-unsafe, the Supervisor can additionally detect if the data it is stalled on is already cross-safe or not. If it is, it can proactively notify the Sequencer that the current chain is hopeless to be valid, creating a more eager reorg point.
     - The Batcher can decline to post beyond the current cross-unsafe head. This will avoid the publishing of bad data so the sequencer may reorg it out, saving the replacement based reorg. If it went on long enough, the Batcher would prevent any new data from being posted to L1, effectively creating a safe-head stall until the sequencer resolved the issue. This *could* be a preferred scenario for some chains.
     - We need to develop and use production-realistic networks in large scale testing to exercise failure cases and get confidence that the system behaves and recovers as expected.
@@ -145,6 +145,7 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
     - Currently, the code used to issue resets to Managed Nodes is insufficiently tested. This is due to limitations in our ability to construct lifelike-yet-erroneous scenarios for Nodes to sync against. **As far as it has been battle-tested thus**-**far**, Managed Nodes are stable (for example, the “Denver Devnet” has run for 40 days with minimal operations, while supporting real builder traffic).
 - Mitigations
     - If a reset would significantly roll back the Sequencer, a chain with a Conductor Set *should* be able to Identify that the Node is unhealthy and elect a new Active Sequencer. In this case, there would be no interruption to the chain, as the tip is continued by the new Active Sequencer.
+    - We will be cleaning up the number of Node<>Supervisor messages in current operation, which will allow us to hook closer metrics to this. If A Sequencer ever gets a reset signal, it may be worthy of an alert on its own (even if the reset is due to a legitimate reason, they are rare enough to be tracked)
 - Recovery
     - With respect to the Node, an arbitrary amount of re-sync may be required.
     - Recovery to the network depends entirely on the impact of the node outage.
@@ -166,7 +167,7 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
 - Description
     - The Supervisor is managing one Managed Node per chain, and using the data reported from their derivation to calculate cross-safety.
     - For some reason, a Managed Node is not able to sync the chain quickly, or at all (perhaps the node is down or is failing)
-    - Without the data from this Node, the Supervisor cannot advance safety for any other chain which depends on this stalled cahin.
+    - Without the data from this Node, the Supervisor cannot advance safety for any other chain which depends on this stalled chain.
     - The Supervisor also won’t be able to answer any validity questions about the un-synced portion of the chain (which is why safety doesn’t advance)
     - Assuming they take some dependency on un-syncing chain, other chains will eventually stall their cross-unsafe and cross-safe chains
 - Risk Assessment
@@ -178,14 +179,26 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
         - This feature is mostly ready in the happy path, but there are known gaps in managing secondary Managed Nodes during block replacements and resets.
         - This feature *also* needs much more robust testing in lifelike environments. Previous development cycles were spent in the devnet trying to enable this feature, which was slow and risky. To get this feature working well, we need to leverage our new network-wide testing abilities.
 
+## FM4c: Supervisor has Insufficient Performance
+
+- Description
+    - Like FM4b, updates are not happening on the Supervisor quickly enough and it is falling behind.
+    - In this instance however, it is due to Supervisor performance, not Nodes.
+    - This is a liveness threat to the Supervisor only.
+    - Nodes who rely on the Supervisor may not be able to get all the queries they need answered, leading to protectively dropped interop transactions.
+- Risk Assessment
+    - Low Impact, Low likelihood
+    - The Supervisor does not do strenuous calculations, mostly just DB lookups.
+    - Nodes and their Execution Engines are likely to be the bottleneck because they have to process the Gas of the block.
+
 ## FM5: Increased Operational/Infrastructure Load Results in Fewer Nodes
 
 - Description
-    - In the current design, validating a given chain in the Supechain requires validaiton of *all* chains. Conceptually,
+    - In the current design, validating a given chain in the Supechain requires validation of *all* chains. Conceptually,
     this is unavoidable because inter-chain message validity requires inter-chain validation.
     - The way a user would achieve this today is by running one Node (`op-geth` and `op-node`) for each Chain in the Interopating Set, and would additionally run a Supervisor to manage these Managed Nodes.
     - If operators want redundancy, they are advised to create entire redundant stacks (N nodes and Supervisor)
-    - Operators may not appreciate the increased burdeon and could decline to validate the network at all
+    - Operators may not appreciate the increased burden and could decline to validate the network at all
 - Risk Assessment
     - Sliding Scale Impact and Likelihood
     - Network security is not based on number of validators, but fewer people running the OP Stack means less validation, mindshare, etc.
@@ -194,7 +207,7 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
         - In Standard Mode, a Node *is not* managed by a Supervisor, and instead runs its on L1 derivation
         - Periodically, the Node reaches out to *some* trusted Supervisor to fetch the Cross-Heads and any Replacement signals
         - The Node uses this data to confirm that the chain it has derived is also cross-safe, and to handle invalid blocks
-    - With Standard Mode, operators would only *need* to run a single Node, in exchange for the interop aspects of validation being a trusted activity. We expect this Mode to be valuable to offset operator burdeon in cases where fully trustless validation isn't critical.
+    - With Standard Mode, operators would only *need* to run a single Node, in exchange for the interop aspects of validation being a trusted activity. We expect this Mode to be valuable to offset operator burden in cases where fully trustless validation isn't critical.
 
 ## FM6: Standard Mode Nodes Trust a Malicious Supervisor
 
@@ -205,7 +218,7 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
     - The result depends on the way in which the data is incorrect:
         - If the data ignores a block Invalidation/Replacement, the Node will be deceived into following a chain where an invalid interop message exists, allowing for invalid interop behaviors (like inappropriate minting) *on that Node* (and presumably all Nodes who also trust this Supervisor)
         - If the data claims a block should be replaced, the Node would similarly perform the replacement, leaving this Node at that state.
-        - If the data simply isn't consistently applicable to what the Node independently derived, the Node has nothing to be decieved about, but also can't make forward progress, and would need to halt at this point.
+        - If the data simply isn't consistently applicable to what the Node independently derived, the Node has nothing to be deceived about, but also can't make forward progress, and would need to halt at this point.
 - Risk Assessment
     - Low Impact, Unknown Likelihood
     - If there were a tactical reason to use a Trusted Sequencer Endpoint to fool a Node as part of a larger exploit, this would be an attractive thing to attempt.
@@ -213,3 +226,24 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
     - At most, a dishonest Supervisor can mislead the Nodes connected to it. So long as block producers *are not* using one of these Trusted Endpoints, block production is unaffected.
 - Mitigation
     - Standard Mode could allow for *multiple* Supervisor Endpoints to be specified, they could confirm that all endpoints agree, preventing dishonesty from one party from deceiving the Node.
+
+# Action Item Summary
+
+Across all these Failure Modes, the following are explicitly identified improvements and mitigations we should make soon:
+- Alternative implementations should exist to catch instances where Supervisor has a bug.
+- Higher quality testing (NAT, Test-SDK, DSL) for:
+    - Rigorus syncing behaviors, including node resets and multi-node syncing.
+    - High volume indexing for performance.
+    - Chaos-Monkey style testing for Correctness.
+- Smarter behaviors for existing components:
+    - Batcher to only submit up-to cross-unsafe.
+    - Sequencer to look for cross-unsafe stalls to initiate reorg.
+    - Admin APIs to sideline interop messages during incidents.
+    - Conductor to consider Supervisor liveness for Leadership Transfers.
+    - Standard Mode should be implemented to allow operators to run a single Node to validate.
+        - Standard Mode should check with multiple Supervisors to avoid deception.
+
+When the Supervisor fails, the worst thing it could do is report the wrong information for a given message.
+This incorrect data can mislead a network into building an invalid chain which must be dropped once it is
+known to be invalid. At worst, if no one catches the incorrect data, the network can be mislead into an entirely
+non-canonical state indefinitely, threatening the validity of the network itself.
