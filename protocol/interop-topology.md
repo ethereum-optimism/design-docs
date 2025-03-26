@@ -65,7 +65,7 @@ This filter will eliminate all interop transactions made in bad faith, as they w
 
 It may be prudent for `proxyd` to wait and re-test a transaction after a short timeout (`1s` for example)
 to allow through transactions that are valid against the bleeding edge of chain content. `proxyd` can have its own
-`op-supervisor` and `op-node` cluster specifically to provide cross safety queries without putting any load on other
+`op-supervisor` and `op-node` cluster (and implicitly, an `op-geth` per `op-node`), specifically to provide cross safety queries without putting any load on other
 parts of the network.
 
 ### Sentry Node Mempool Ingress
