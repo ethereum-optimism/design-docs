@@ -45,6 +45,10 @@ Does it consume a large amount of computational resources or time? -->
 
 <!-- Details on how this change will impact multiple clients. Do we need to plan for changes to both op-geth and op-reth? -->
 
+## Failure Mode Analysis
+
+<!-- Link to the failure mode analysis document, created from the fma-template.md file. -->
+
 ## Alternatives Considered
 
 <!-- List out a short summary of each possible solution that was considered.
