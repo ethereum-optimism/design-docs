@@ -72,7 +72,7 @@ Below are references for this project:
 ### FM2: Failure of p2p network due to bug in new topic/message serde logic
 
 - **Description:**
-  Because this feature introduces a new p2p gossip topic and message serialization format, a bug can mean the failure of p2p gossip for any chain with Isthmus active. This would cause an unsafe chain halt.
+  Because this feature introduces a new p2p gossip topic and message serialization format, a bug can mean the failure of p2p gossip for any chain with Isthmus active. This would cause an unsafe chain halt on affected nodes (but the safe chain would still progress).
 
 - **Risk Assessment:**
 
@@ -82,7 +82,7 @@ Below are references for this project:
   We rely on [end-to-end testing](https://github.com/ethereum-optimism/optimism/blob/9249efc6343208f69283290fc9c5c8f6e7b243f8/op-service/eth/ssz_test.go#L251) (including fuzzing) to catch any bugs in this code path. We could run extended fuzzing campaigns.
 
 - **Detection:**
-  Continuous integration, or Kurtosis and/or devnet testing should catch this. Failing that, the bug makes it to production, our alerting infrastructure would notify us.
+  Continuous integration, or Kurtosis and/or devnet testing would catch this. Failing that, the bug makes it to production, our alerting infrastructure would notify us.
 
 - **Recovery Path(s)**:
   The bug would need to be patched and new op-node release cut and rolled out.
@@ -106,6 +106,7 @@ See the [generic FMA](./fma-generic-hardfork.md):
 
 - [x] (BLOCKING): We have implemented extensive unit and end-to-end testing of the activation flow: https://github.com/ethereum-optimism/optimism/blob/develop/op-e2e/actions/upgrades/isthmus_fork_test.go
 - [ ] (BLOCKING): We have implemented multi-client testing to reduce the chance of bugs (the above test could be migrated to a fault proof test where it can run on kona)
+- [ ] (BLOCKING) We should ensure that our usual suite of alerts applies to devnets and are routed to protocol engineers signing off on the devnet completion.
 - [ ] (non-BLOCKING): We have implemented fuzz testing in a kurtosis multi-client devnet to reduce the chance of bugs
 - [ ] (BLOCKING): We will be testing the activation on our devnets and testnets.
 - [ ] (NON-BLOCKING): Making sure, that component that now fetch the withdrawalHash by this have also a fallback mechanism to previous Merkle Tree method in case there is a bug (assignee: @XXXXX for now).
