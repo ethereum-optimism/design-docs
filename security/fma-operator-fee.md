@@ -185,11 +185,11 @@ Below is what needs to be done before launch to reduce the chances of the above 
 
 ## Audit Requirements
 
-An audit has not been deemed necessary for the relatively simple changes to the SystemConfig contract, which has been reviewed by Base internal security team. 
+An audit has not been deemed necessary on **L1** for the relatively simple changes to the SystemConfig contract, which has been reviewed by Base internal security team. 
 
 Indeed, the only addition is the `setOperatorFeeScalars` function, which is a setter function that updates the operator fee parameters and trigger an event. This function is callable by the SystemConfig owner only.
 
-However, for the infrastructure code (op-geth/op-reth) and not the smart contracts: Since this is modifiying **the state transition**, I recommend an audit of this feature, however, this need to see with other member of evm-safety to know what they think etc).
+However, for the **clients code** (op-geth/op-reth) and not the smart contracts: Since this is modifiying **the state transition**, I recommend an audit of this feature, however, this need to see with other member of evm-safety to know what they think etc).
 
 
 Additionally, we are performing multi-client testing (op-geth and op-reth) and will run a multi-client devnet, so bugs in either will be quickly detected by consensus disagreements among them. So, we don't think the operator fee feature falls into the [Audit Framework](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864) Existential + Safety category.
