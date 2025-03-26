@@ -127,7 +127,9 @@ See the [generic FMA](./fma-generic-hardfork.md):
 - [ ] (BLOCKING): We have implemented multi-client testing to reduce the chance of bugs (the above test could be migrated to a fault proof test where it can run on kona)
 - [ ] (non-BLOCKING): We have implemented fuzz testing in a kurtosis multi-client devnet to reduce the chance of bugs
 - [ ] (BLOCKING): We will be testing the activation on our devnets and testnets.
-
+- [ ] (NON-BLOCKING): Making sure, that component that now fetch the withdrawalHash by this have also a fallback mechanism to previous Merkle Tree method in case there is a bug (assignee: @XXXXX for now).
+- [ ] (NON-BLOCKING): Creating a monitoring that differential testing from the merkle tree inclusion computation and the block.header request `withdrawalRoot`(assignee: @Ethnical)](https://github.com/ethereum-optimism/design-docs/pull/223/files)https://github.com/ethereum-optimism/design-docs/pull/223/files
+- [ ] (BLOCKING):  Run fuzzing on the v4 gossip p2p more than 10s (assignee: @Ethnical @geoknee)
 ## Audit Requirements
 
 An audit has not been deemed necessary.
