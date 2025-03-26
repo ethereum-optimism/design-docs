@@ -166,13 +166,29 @@ Below are references for this project:
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
+ 
 - [ ] Coordinate with wallet providers to update their fee estimation logic
 - [ ] Implement automated monitoring on dabase growth rate
 
+**Testing**
+- [ ] (BLOCKING): **E2E tests** with Kurtosis to make sure we can not overflow when we use the feature.
+    - [ ] Can we include “weird” case including force inclusion from L1.
+    - [ ] A case with EIP7702 since now EOA can have code need to check if there is no `msg.sender`, `tx.origin` involve that can lead to unexpected behavior
+- [ ] (BLOCKING): Fuzzing testing with the math formula (if the code is really small we can maybe do formal verification on the formula).
+- [ ] (BLOCKING): ***Differential Fuzzing*** with op-reth/op-geth to avoid any chain-split on the operator fee component (with the refund).
+
+**Monitoring:** 
+- [ ] (NON-BLOCKING): **Monitoring** with multiples invariants: that can never be broken (e.g a refund higher than 30% of the total ETH amount on L1) should immediately raise concerned and receive an alerts.
+- [ ] (NON-BLOCKING): I would suggest at the beginning also monitoring high variation of refund (like 20% more than yesterday) probably would be false positive and can be adjusted in the next days to make sure by increasing this 20% in the future.
+
+
 ## Audit Requirements
 
-An audit has not been deemed necessary for the relatively simple changes to the SystemConfig contract, which has been reviewed by Base internal security team.
+An audit has not been deemed necessary for the relatively simple changes to the SystemConfig contract, which has been reviewed by Base internal security team. 
 
 Indeed, the only addition is the `setOperatorFeeScalars` function, which is a setter function that updates the operator fee parameters and trigger an event. This function is callable by the SystemConfig owner only.
+
+However, for the infrastructure code (op-geth/op-reth) and not the smart contracts: Since this is modifiying **the state transition**, I recommend an audit of this feature, however, this need to see with other member of evm-safety to know what they think etc).
+
 
 Additionally, we are performing multi-client testing (op-geth and op-reth) and will run a multi-client devnet, so bugs in either will be quickly detected by consensus disagreements among them. So, we don't think the operator fee feature falls into the [Audit Framework](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864) Existential + Safety category.
