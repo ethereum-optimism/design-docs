@@ -105,7 +105,7 @@ See the [generic FMA](./fma-generic-hardfork.md):
 ## Generic Action Items
 
 - [x] (BLOCKING): We have implemented extensive unit and end-to-end testing of the activation flow: https://github.com/ethereum-optimism/optimism/blob/develop/op-e2e/actions/upgrades/isthmus_fork_test.go
-- [ ] (BLOCKING): We have implemented multi-client testing to reduce the chance of bugs (the above test could be migrated to a fault proof test where it can run on kona)
+- [ ] (BLOCKING): We have implemented multi-client testing with kurtosis and/or devnets to reduce the chance of bugs. This should be in the form of an acceptance tests which target all client types in the network.
 - [ ] (BLOCKING) We should ensure that our usual suite of alerts applies to devnets and are routed to protocol engineers signing off on the devnet completion.
 - [ ] (non-BLOCKING): We have implemented fuzz testing in a kurtosis multi-client devnet to reduce the chance of bugs
 - [ ] (BLOCKING): We will be testing the activation on our devnets and testnets.
