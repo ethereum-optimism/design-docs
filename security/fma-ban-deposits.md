@@ -1,5 +1,7 @@
 # Ban `ExecutingMessage` Deposits: Failure Modes and Recovery Path Analysis
 
+THIS DOCUMENT IS DEPRECATED AND HAS BEEN REPLACED BY [ANOTHER APPROACH](https://github.com/ethereum-optimism/design-docs/blob/f3aa2db64b1676b5e58ae602acf2ebdba34b617c/protocol/interop-access-list.md).
+
 | Author | Skeletor, Parti, Joxes |
 | --- | --- |
 | Created at | 2025-01-10 |
