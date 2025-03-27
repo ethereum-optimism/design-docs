@@ -163,6 +163,20 @@ Below are references for this project:
     - If the bug is located in op-node, a new version must be deployed.
     - If the bug is located in the `L1Block` contract, the contract must be upgraded to fix the bug.
 
+### FM9: Overflow/Underflow of operator fee calculation
+- **Description:** If the operator fee calculation is vulnerable to overflows or underflows then it could be possible to manipulate the calculation through, say, a deliberately large gasUsed in order to trigger that overflow or underflow and charge a negative fee. 
+- **Risk Assessment:** high severity / low likelihood
+- **Mitigations:**
+  - The calculation cannot overlow or underflow. See context below:
+
+    > `gas` is a uint64, so `(gasUsed * operatorFeeScalar / 1e6) + operatorFeeConstant` can be at most `(u64.max * u32.max / 1e6) + u64.max ~= 7.924660923989131e+22`, which is an int of bit length 77 and fits comfortably within a uint256 variable allocation.
+
+- **Detection:**
+  - NAT fuzz testing (TODO)
+- **Recovery Paths(s):**
+  - A bug within the OP EVM would critical and would require an emergency upgrade of the sequencer and bridge.
+
+
 ## Action Items
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
@@ -172,16 +186,14 @@ Below is what needs to be done before launch to reduce the chances of the above 
 - [ ] Implement automated monitoring on dabase growth rate
 
 **Testing**
-- [ ] (BLOCKING): **E2E tests** with Kurtosis to make sure we can not overflow when we use the feature.
-    - [ ] Can we include “weird” case including force inclusion from L1.
-    - [ ] A case with EIP7702 since now EOA can have code need to check if there is no `msg.sender`, `tx.origin` involve that can lead to unexpected behavior
-- [ ] (BLOCKING): Fuzzing testing with the math formula (if the code is really small we can maybe do formal verification on the formula).
+- [ ] (BLOCKING): **NAT tests** with Kurtosis
+    - [ ] A force inclusion transaction from L1.
+    - [ ] A case with EIP7702. Since now EOA can have code, we need to check whether transactions without `msg.sender`, `tx.origin` leads to unexpected behavior
 - [ ] (BLOCKING): ***Differential Fuzzing*** with op-reth/op-geth to avoid any chain-split on the operator fee component (with the refund).
 
 **Monitoring:** 
-- [ ] (NON-BLOCKING): **Monitoring** with multiples invariants: that can never be broken (e.g a refund higher than 30% of the total ETH amount on L1) should immediately raise concerned and receive an alerts.
-- [ ] (NON-BLOCKING): I would suggest at the beginning also monitoring high variation of refund (like 20% more than yesterday) probably would be false positive and can be adjusted in the next days to make sure by increasing this 20% in the future.
-
+- [ ] (NON-BLOCKING): **Monitoring** a conservation of balance invariant. If the invariant is broken it should immediately raise alerts.
+  - [**PR:** feat(monitorism): Add ETH conservation invariant monitor](https://github.com/ethereum-optimism/monitorism/pull/135)
 
 ## Audit Requirements
 
@@ -189,7 +201,7 @@ An audit has not been deemed necessary on **L1** for the relatively simple chang
 
 Indeed, the only addition is the `setOperatorFeeScalars` function, which is a setter function that updates the operator fee parameters and trigger an event. This function is callable by the SystemConfig owner only.
 
-However, for the **clients code** (op-geth/op-reth) and not the smart contracts: Since this is modifiying **the state transition**, I recommend an audit of this feature, however, this need to see with other member of evm-safety to know what they think etc).
+However, for the **clients code** (op-geth/op-reth) and not the smart contracts: Since this is modifiying **the state transition**, @Ethnical recommends an audit of this feature, however they would need to see with other member of evm-safety to know what they think etc). Following a conversation with @clabby, @tynes, @teddyknox and @Ethnical the decision was made not to block the release of Isthmus on an audit of the op-geth logic touched.
 
 
 Additionally, we are performing multi-client testing (op-geth and op-reth) and will run a multi-client devnet, so bugs in either will be quickly detected by consensus disagreements among them. So, we don't think the operator fee feature falls into the [Audit Framework](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864) Existential + Safety category.
