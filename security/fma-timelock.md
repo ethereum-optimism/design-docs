@@ -5,10 +5,17 @@
 
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [[Name of Failure Mode 1]](#name-of-failure-mode-1)
-  - [[Name of Failure Mode 2]](#name-of-failure-mode-2)
-- [Audit Requirements](#audit-requirements)
+  - [FM1: Malicious Governance Action](#fm1-malicious-governance-action)
+  - [FM1.1: Introducing a malicious proposal into the governance proposal in the governance website](#fm11-introducing-a-malicious-proposal-into-the-governance-proposal-in-the-governance-website)
+  - [FM1.2: Multiple proposal verification tools compromised](#fm12-multiple-proposal-verification-tools-compromised)
+  - [FM1.3: Foundation signers compromised](#fm13-foundation-signers-compromised)
+  - [FM1.4: Malicious proposal remains undetected in the timelock](#fm14-malicious-proposal-remains-undetected-in-the-timelock)
+  - [FM1.5: Security Council not removing the malicious proposal from the timelock](#fm15-security-council-not-removing-the-malicious-proposal-from-the-timelock)
+  - [FM2: Denial of Service](#fm2-denial-of-service)
+  - [FM3: Spamming the Timelock](#fm3-spamming-the-timelock)
+  - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
 - [Action Items](#action-items)
+- [Audit Requirements](#audit-requirements)
 - [Appendix](#appendix)
   - [Appendix A: This is a Placeholder Title](#appendix-a-this-is-a-placeholder-title)
 
@@ -18,7 +25,7 @@ _Italics are used to indicate things that need to be replaced._
 
 |                    |                                                    |
 | ------------------ | -------------------------------------------------- |
-| Author             | _Author Name_                                      |
+| Author             | Alberto Cuesta Cañada                              |
 | Created at         | _YYYY-MM-DD_                                       |
 | Initial Reviewers  | _Reviewer Name 1, Reviewer Name 2_                 |
 | Need Approval From | _Security Reviewer Name_                           |
@@ -55,34 +62,11 @@ Below are references for this project:
 
 ## Failure Modes and Recovery Paths
 
-**_Use one sub-header per failure mode, so the full set of failure modes is easily scannable from the table of contents._**
-
-### FM1: [Name of Failure Mode 1]
-
-- **Description:** _Details of the failure mode go here. What the causes and effects of this failure?_
-- **Risk Assessment:** _Simple low/medium/high rating of impact (severity) + likelihood._
-- **Mitigations:** _What mechanisms are in place, or what should we add, to:_
-  1. _reduce the chance of this occurring?_
-  2. _reduce the impact of this occurring?_
-- **Detection:** _How do we detect if this occurs?_
-- **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
-
-### FM2: [Name of Failure Mode 2]
-
-- **Description:** _Details of the failure mode go here. What the causes and effects of this failure?_
-- **Risk Assessment:** _Simple low/medium/high rating of impact (severity) + likelihood._
-  **Mitigations:** _What mechanisms are in place, or what should we add, to:_
-  1. _reduce the chance of this occurring?_
-  2. _reduce the impact of this occurring?_
-- **Detection:** _How do we detect if this occurs?_
-- **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
-
 ### FM1: Malicious Governance Action
-
-- **Description:** 
 
 ![Malicious Governance Action](./images/timelock-malicious-governance.png)
 
+- **Description:** 
 In the proposed governance model, there are two prerequisites to execute a malicious governance action:
 1. Submitting a malicious proposal to the timelock
 2. The Security Council not removing the malicious proposal from the timelock
