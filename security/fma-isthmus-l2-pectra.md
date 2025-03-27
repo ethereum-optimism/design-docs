@@ -203,7 +203,7 @@ Below is what needs to be done before launch to reduce the chances of the above 
 - [ ] (NON-BLOCKING): Identify path from the sequencer during the deposit transaction on the L2 that can cause unexpected behavior when an EOA has some code.
 - [ ] (NON-BLOCKING): Indicate in this FMA reference the kurtosis devnet that allow the perform testing on Isthmus (L2 Pectra).
 - [x] (NON-BLOCKING): Tests to make sure that `ressources_limit` and `gas_limit` for each Superchain are not failling by overflowing from the config on L1 (assignee: @geoknee)
-- [ ] (NON-BLOCKING): Monitoring and alert if the systemconfig is less than 30M (assignee: @ethnical) [Tracked in security pod](https://github.com/ethereum-optimism/security-pod/issues/251)
+- [ ] (NON-BLOCKING): Monitoring and alerts if a SystemConfig has less than 30M (assignee: @Ethnical) [Tracked in security pod](https://github.com/ethereum-optimism/security-pod/issues/251) Based on the previous tests in the Action Item. 
 
 ## Audit Requirements
 
