@@ -208,7 +208,8 @@ Below is what needs to be done before launch to reduce the chances of the above 
 - [ ] (BLOCKING): Add a E2E test that Validate that minting to EOA that contains code (with Type4) is not an issue (@meyer9 assignee for now but could be someone else).
 - [ ]  (NON-BLOCKING): Identify path from the sequencer during the deposit transaction on the L2 that can cause unexpected behavior when an EOA has some code.
 - [ ]  (NON-BLOCKING): Indicate in this FMA reference the kurtosis devnet that allow the perform testing on Isthmus (L2 Pectra).
-- [ ]  (NON-BLOCKING): Tests to make sure that `ressources_limit` and `gas_limit` for each Superchain are not failling by overflowing from the config on L1 (assignee: @geoknee)
+- [x]  (NON-BLOCKING): Tests to make sure that `ressources_limit` and `gas_limit` for each Superchain are not failling by overflowing from the config on L1 (assignee: @geoknee)
+        - [ ]  (NON-BLOCKING): Execute this test in the warroom of the upgrade periodically before the upgrade through monitoring and alert if the systemconfig is less than 30M (assignee: anyEvm-safety engineers) [tracked here](https://github.com/ethereum-optimism/security-pod/issues/251)
 
 ## Audit Requirements
 <!-- 
