@@ -36,7 +36,7 @@ Below are references for this project:
 
 ## Failure Modes and Recovery Paths
 
-### FM1: Withdrawals downtime do to inaccurate `withdrawalsRoot`
+### FM1: Withdrawals downtime do to inaccurate `withdrawalsRoot` in the block header
 
 - **Description:**
   If the `withdrawalsRoot` in the block header is incorrect, critical infra used to enable withdrawals may fail. Namely, output proposals and challenges would be incorrect, affecting chains with permissioned and chains with permissionless proofs. This is because these components will, with the activation of the Isthmus fork, use the `withdrawalsRoot` header field instead of querying the information from an archive node in the usual way. Output roots are returned by the op-node [`optimism_outputAtBlock`](https://docs.optimism.io/operators/node-operators/json-rpc#optimism_outputatblock) RPC method, and this behaves differently under Isthmus -- when handling a request for an output root (it no longer delegates an `eth_getProof` to op-geth and just reads the information from the block header).
