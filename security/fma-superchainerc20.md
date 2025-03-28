@@ -119,13 +119,13 @@ The following action items need to be done:
 
 ## Warning for Integrators
 
-A key characteristic of a standard `SuperchainERC20` is that it will share the same address across chains. This allows for simpler code with robust access control while enhancing the idea that these tokens truly are one and the same despite living in different chains. From a security standpoint, this predictability in the address come with some considerations for the integrators at the time of transferring tokens into or out of your protocol:
+A key characteristic of a standard `SuperchainERC20` is that it will share the same address across chains. This allows for simpler code with robust access control while enhancing the idea that these tokens truly are one and the same despite living in different chains. From a security standpoint, this predictability in the address come with some considerations for the integrators at the time of transferring tokens into or out of their protocol:
 
 1. The code should not assume the `SuperchainERC20` is already deployed in that chain, but check that it actually is instead.
-1. If relying on a library to perform safe transfers, check that the library checks there's code deployed at the `SuperchainERC20` address before returning.
-1. If not relying on a library directly, but on a contract like `Permit2`, check that the library the contract uses for transfers checks there's code at the `SuperchainERC20` address. `Permit2`, as an example, uses an old `solmate` library that doesn't perform this check.
+1. If relying on a library to perform safe transfers, ensure the library checks there's code deployed at the target `SuperchainERC20` address before returning.
+1. If not relying on a library directly, but on a contract like `Permit2`, ensure the library it uses for transfers checks there's code at the target `SuperchainERC20` address. `Permit2`, as an example, uses an old `solmate` library that doesn't perform this check.
 
-The reason why this is crucial to ensure is that protocols can wrongly assume that tokens were transferred into or out of the protocol and update important state under this assumption. When a check like the one mentioned above is missing, an attacker can take advantage of the libraries not reverting when the token doesn't yet exist in the chain to increase their balance in the protocol. This can lead to the attacker stealing funds from users who actually deposited the token after it was actually deployed in that chain.
+The reason why this should not be overlooked is that otherwise protocols can wrongly assume that tokens were transferred into or out of the protocol and update important state under this assumption. When a check like the one mentioned above is missing, an attacker can take advantage of the libraries not reverting when the token doesn't yet exist in the chain to, for example, increase their balance in the protocol. This can lead to the attacker stealing funds from users who actually deposited the token after it was actually deployed in that chain.
 
 Although this is a vector of attack that is true for all tokens, the proclivity of `SuperchainERC20s` to share their address make the attack more likely as the attacker can more easily predict the address of a token that a given protocol may support in new chains.
 
