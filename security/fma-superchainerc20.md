@@ -15,6 +15,7 @@
   - [FM4: Token Contract Missing in Destination Chain — Token Deployer Is Lost or Unable to Deploy to Expected Address](#fm4-token-contract-missing-in-destination-chain--token-deployer-is-lost-or-unable-to-deploy-to-expected-address)
   - [FM5: Compromised Deployment Method](#fm5-compromised-deployment-method)
 - [Action Items](#action-items)
+- [Warning for Integrators](#warning-for-integrators)
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## **SuperchainERC20 standard-only FMA (Failure Modes and Recovery Path Analysis)**
@@ -115,3 +116,17 @@ The following action items need to be done:
 - [ ]  FM2, FM3, FM4: Communicate to bridge frontends to ensure they prevent users from sending tokens to a chain where the token doesn’t exist.
 - [ ]  FM4, FM5: Ensure that the documentation for SuperchainERC20 developers explains the need for deterministic deployment and how to achieve it, including that constructor args affect the resulting address, requiring consistency across chains.
 - [ ]  FM1, FM2, FM3, FM5: Communicate with the team in charge of responding to user-submitted support tickets about the need to create runbooks and define how issues are escalated to the security team or returned to the user when security involvement is not required.
+
+## Warning for Integrators
+
+A key characteristic of a standard `SuperchainERC20` is that it will share the same address across chains. This allows for simpler code with robust access control while enhancing the idea that these tokens truly are one and the same despite living in different chains. From a security standpoint, this predictability in the address come with some considerations for the integrators at the time of transferring tokens into or out of your protocol:
+
+1. The code should not assume the `SuperchainERC20` is already deployed in that chain, but check that it actually is instead.
+1. If relying on a library to perform safe transfers, check that the library checks there's code deployed at the `SuperchainERC20` address before returning.
+1. If not relying on a library directly, but on a contract like `Permit2`, check that the library the contract uses for transfers checks there's code at the `SuperchainERC20` address. `Permit2`, as an example, uses an old `solmate` library that doesn't perform this check.
+
+The reason why this is crucial to ensure is that protocols can wrongly assume that tokens were transferred into or out of the protocol and update important state under this assumption. When a check like the one mentioned above is missing, an attacker can take advantage of the libraries not reverting when the token doesn't yet exist in the chain to increase their balance in the protocol. This can lead to the attacker stealing funds from users who actually deposited the token after it was actually deployed in that chain.
+
+Although this is a vector of attack that is true for all tokens, the proclivity of `SuperchainERC20s` to share their address make the attack more likely as the attacker can more easily predict the address of a token that a given protocol may support in new chains.
+
+As an example, if `SuperchainERC20_A` is doing well in `Protocol_A` in Optimism, and `Protocol_A` decides to launch on Unichain as well, it's likely it will eventually support `SuperchainERC20_A` in there as well. With this, the attacker can get ahead and increase his balance in Unichain before `SuperchainERC20_A` is deployed there.
