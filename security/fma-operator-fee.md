@@ -170,9 +170,6 @@ Below are references for this project:
   - The calculation cannot overlow or underflow. See context below:
 
     > `gas` is a uint64, so `(gasUsed * operatorFeeScalar / 1e6) + operatorFeeConstant` can be at most `(u64.max * u32.max / 1e6) + u64.max ~= 7.924660923989131e+22`, which is an int of bit length 77 and fits comfortably within a uint256 variable allocation.
-
-- **Detection:**
-  - NAT fuzz testing (TODO)
 - **Recovery Paths(s):**
   - A bug within the OP EVM would critical and would require an emergency upgrade of the sequencer and bridge.
 
