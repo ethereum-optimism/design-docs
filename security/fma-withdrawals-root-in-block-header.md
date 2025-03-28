@@ -105,8 +105,8 @@ See the [generic FMA](./fma-generic-hardfork.md):
 ## Generic Action Items
 
 - [x] (BLOCKING): We have implemented extensive unit and end-to-end testing of the activation flow: https://github.com/ethereum-optimism/optimism/blob/develop/op-e2e/actions/upgrades/isthmus_fork_test.go
-- [ ] (BLOCKING): We have implemented multi-client testing with kurtosis and/or devnets to reduce the chance of bugs. This should be in the form of an acceptance tests which target all client types in the network.
-- [ ] (BLOCKING) We should ensure that our usual suite of alerts applies to devnets and are routed to protocol engineers signing off on the devnet completion.
+- [x] (BLOCKING): We have implemented multi-client testing with kurtosis and/or devnets to reduce the chance of bugs. This should be in the form of an acceptance tests which target all client types in the network https://github.com/ethereum-optimism/optimism/pull/15102
+- [x] (BLOCKING) We should ensure that our usual suite of alerts applies to devnets and are routed to protocol engineers signing off on the devnet completion.
 - [x] (BLOCKING): Run fuzzing on the v4 gossip p2p more than 10s (assignee: @Ethnical @geoknee) https://github.com/ethereum-optimism/optimism/pull/15068
 - [x] (BLOCKING): We tested the activation on our [devnets](https://devnets.optimism.io/interop-rc-alpha.html).
 - [ ] (non-BLOCKING): Making sure, that component that now fetch the withdrawalHash by this have also a fallback mechanism to previous Merkle Tree method in case there is a bug (assignee: @XXXXX for now).
