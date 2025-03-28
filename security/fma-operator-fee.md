@@ -201,7 +201,11 @@ An audit has not been deemed necessary on **L1** for the relatively simple chang
 
 Indeed, the only addition is the `setOperatorFeeScalars` function, which is a setter function that updates the operator fee parameters and trigger an event. This function is callable by the SystemConfig owner only.
 
-However, for the **clients code** (op-geth/op-reth) and not the smart contracts: Since this is modifiying **the state transition**, @Ethnical recommends an audit of this feature, however they would need to see with other member of evm-safety to know what they think etc). Following a conversation with @clabby, @tynes, @teddyknox and @Ethnical the decision was made not to block the release of Isthmus on an audit of the op-geth logic touched.
+An audit has not been deemed necessary right now of this feature. 
+For more context, the feature is about to be used by a low amount of Chain Operator in the near future.  
+Following a conversation with @clabby, @tynes, @teddyknox and @Ethnical the decision was made not to block the release of Isthmus on an audit of the `op-geth` logic touched.
+However, to make an audit in parallel of the implementation of the feature in case in near feature of an wide adoption of this feature. 
+To recap most of the current chains would not have this feature enabled.  
 
 
 Additionally, we are performing multi-client testing (op-geth and op-reth) and will run a multi-client devnet, so bugs in either will be quickly detected by consensus disagreements among them. So, we don't think the operator fee feature falls into the [Audit Framework](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864) Existential + Safety category.
