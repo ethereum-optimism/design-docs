@@ -5,7 +5,7 @@
 
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [FM1: Withdrawals downtime do to inaccurate `withdrawalsRoot`](#fm1-withdrawals-downtime-do-to-inaccurate-withdrawalsroot)
+  - [FM1: Withdrawals downtime do to inaccurate "withdrawalsRoot"](#fm1-withdrawals-downtime-do-to-inaccurate-withdrawalsroot-in-the-block-header)
   - [FM2: Failure of p2p network due to bug in new topic/message serde logic](#fm2-failure-of-p2p-network-due-to-bug-in-new-topicmessage-serde-logic)
 - [Generic failure modes:](#generic-failure-modes)
 - [Specific Action Items](#specific-action-items)
@@ -19,8 +19,8 @@
 | Author             | George Knee  |
 | Created at         | 2025-03-20   |
 | Initial Reviewers  | Mark Tyneway |
-| Need Approval From | Tom Assas    |
-| Status             | Implementing Actions|
+| Need Approval From | Tom Assas, Michael Amadi (Shadowing)   |
+| Status             | Implementing Actions 🛫 |
 
 ## Introduction
 
