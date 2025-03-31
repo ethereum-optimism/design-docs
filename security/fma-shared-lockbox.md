@@ -9,7 +9,7 @@
 
 ## Introduction
 
-This document covers the changes introduced by the addition of the Shared Lockbox design, a singleton contract that stores all ETH liquidity for a given set of interoperable chains. It addresses the [ETH withdrawals problem](https://github.com/ethereum-optimism/specs/issues/362) by the introduction of [SuperchainWETH](https://github.com/ethereum-optimism/specs/blob/main/specs/interop/superchain-weth.md). The following components are:
+This document covers the changes introduced by the addition of the Shared Lockbox design, a singleton contract that stores all ETH liquidity for a given set of interoperable chains. It addresses the [ETH withdrawals problem](https://github.com/ethereum-optimism/specs/issues/362) by the introduction of [SuperchainETHBridge](https://github.com/ethereum-optimism/specs/blob/main/specs/interop/superchain-eth-bridge.md). The following components are:
 
 - **Contracts**:
     - Introducing `SharedLockbox`: Stores all ETH liquidity for an interoperable graph. Only authorized `OptimismPortal` addresses can call `lockETH` and `unlockETH`.
