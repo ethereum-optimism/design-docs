@@ -191,8 +191,8 @@ Below is what needs to be done before launch to reduce the chances of the above 
 
 **Initial review**
 
-- [ ] (NON-BLOCKING): Coordinate with wallet providers to update their fee estimation logic.
-- [ ] (NON-BLOCKING): Implement automated monitoring on database growth rate.
+- [ ] (NON-BLOCKING): Coordinate with wallet providers to update their fee estimation logic (assignee: TBD).
+- [ ] (NON-BLOCKING): Implement automated monitoring on database growth rate (assignee: TBD).
 
 **Testing**
 
@@ -202,8 +202,8 @@ Below is what needs to be done before launch to reduce the chances of the above 
 
 **Monitoring:**
 
-- [ ] (NON-BLOCKING): **Monitoring** a conservation of balance invariant. If the invariant is broken it should immediately raise alerts.
-  - [**PR:** feat(monitorism): Add ETH conservation invariant monitor](https://github.com/ethereum-optimism/monitorism/pull/135)
+- [ ] (NON-BLOCKING): **Monitoring** a conservation of balance invariant. If the invariant is broken it should immediately raise alerts (assignee: @clabby @Ethnical)
+  - [**PR:** feat(monitorism): Add ETH conservation invariant monitor](https://github.com/ethereum-optimism/monitorism/pull/135) under review.
 
 ## Audit Requirements
 
