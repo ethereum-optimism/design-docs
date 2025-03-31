@@ -197,8 +197,8 @@ Below is what needs to be done before launch to reduce the chances of the above 
 **Testing**
 
 - [x] (BLOCKING): **NAT tests** with Kurtosis in this [PR](https://github.com/ethereum-optimism/optimism/pull/15109)
-- [x] (BLOCKING): **_Differential Fuzzing_** with op-reth/op-geth to avoid any chain-split on the operator fee component (with the refund).
-- [ ] (NON-BLOCKING): A force inclusion transaction from L1 with operator fee and check the that balance are accounted correctly.
+- [x] (BLOCKING): **_Differential Fuzzing_** with `op-reth`/`op-geth` to avoid any chain-split on the operator fee component (with the refund) -> [PR](https://github.com/ethereum-optimism/optimism/pull/15109).
+- [ ] (NON-BLOCKING): A force inclusion transaction from L1 with operator fee and check the that balance are accounted correctly (assignee: @teddyknox)
 
 **Monitoring:**
 
