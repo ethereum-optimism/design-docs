@@ -227,6 +227,22 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
 - Mitigation
     - Standard Mode could allow for *multiple* Supervisor Endpoints to be specified, they could confirm that all endpoints agree, preventing dishonesty from one party from deceiving the Node.
 
+## FM7: Supervisor Indexing Fills Disk
+- Description
+    - The Supervisor indexes information about every log in interoperating chains.
+    - Each log takes at least 24 bytes to store, with Executing Messages taking 3x as much.
+    - A large network like OPM processes millions of logs per day.
+    - If not provisioned correctly, the Supervisor may run out of room to store the DB.
+    - Should this occur, the Supervisor will fail in indeterminite ways and will likely crash, leading to liveness failures.
+- Risk Assessment
+    - Low Impact, Low Likelihood
+    - We can monitor disk space and keep machines well provisioned.
+    - Supervisor already holds a very minimal amount of data per log, costing ~134Mb per chain per day.
+- Mitigations
+    - The Supervisor may not need to hold old data if logs past a certain age can't be referenced.
+    - Excessively old data could be purged from the DB and obtained through some alternative implementation,
+    if the caller still needed it.
+
 # Action Item Summary
 
 Across all these Failure Modes, the following are explicitly identified improvements and mitigations we should make soon:
