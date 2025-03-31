@@ -38,13 +38,13 @@ Below are references for this project:
 
 ### FM1: Operator Fee scalars are set to incorrect values
 
-- **Description:** 
+- **Description:**
   If the operator fee scalars are incorrectly initialized or updated, there is a risk that the transactions fees will be too high. This could lead to a situation where the chain becomes unusable.
 - **Risk Assessment:**
   High impact, low likelihood.
   **Mitigations:**
   Before setting or updating the operator fee params, the operator should carefully read the [corresponding specs](https://specs.optimism.io/protocol/isthmus/exec-engine.html#operator-fee) and simulate the impact of operator fee on the whole transaction cost.
-- **Detection:** 
+- **Detection:**
   By default, the operator fee parameters are set to 0 and the feature is disabled. There are [E2E tests](https://github.com/ethereum-optimism/optimism/blob/develop/op-e2e/system/fees/fees_test.go) that ensure there is no impact on the transaction cost when the operator fee is disabled.
 
   On chains that enable operator fee, the operator should monitor the transaction cost and ensure that the operator fee is not too high.
@@ -55,14 +55,14 @@ Below are references for this project:
 
 ### FM2: Broken Fee Estimation (Wallets)
 
-- **Description:** 
+- **Description:**
   If wallets fail to update their fee estimation logic, users will no longer be shown the accurate costs of a transaction.
 - **Risk Assessment:**
   This failure mode can only happen on chains that enable the operator fee feature.
   Medium impact, medium likelihood.
   **Mitigations:**
   Coordinate with wallet providers to update their fee estimation logic. This includes MetaMask, Coinbase Wallet, and others.
-- **Detection:** 
+- **Detection:**
   Using a given wallet, compare the estimated transaction cost with the actual transaction cost, and check if the difference relates to the operator fee, using the formula.
 - **Recovery Path(s)**:
   Notify wallets of the new fee structure and ask them to update their fee estimation logic if the operator fee is enabled.
@@ -105,8 +105,17 @@ Below are references for this project:
 
   So, about 3,7 GB for 1 year.
 - **Recovery Path(s):**
+  The decision has been made to not store operator fee parameters in the
+  receipts if their values hasn't been set. So updated database growth rate is the following:
+
+  ```
+  (12 bytes / 2 seconds) x 365 days × 24 hours × 60 minutes × 60 seconds = 189,216,000 bytes in 1 year.
+  ```
+
+  So, about 180 GB for 1 year. Therefore, we don't think the following recovery paths are necessary anymore:
+
   - Use archive nodes to maintain historical data.
-  - Consider implementing receipt compression retroactively if needed.
+  - Consider implementing receipt compression retroactively.
 
 ### Generic items we need to take into account: `L1Block` badly hydrated
 
@@ -114,9 +123,9 @@ Below are references for this project:
     `setL1BlockValuesEcotone` to `setL1BlockValuesIsthmus`). If there is a bug in a future method ending up to operator fee params no
     longer being updated in the `L1Block` contract, the operator fee will no longer be taken into account in transactions fee.
 - **Risk Assessment:** medium severity / low likelihood
-- **Mitigations:** 
+- **Mitigations:**
     The [Operator Fee Constistency](https://github.com/ethereum-optimism/optimism/blob/develop/op-e2e/actions/proofs/operator_fee_test.go ) action test runs with all known hardforks activated at genesis, and checks that operator fee parameters are correctly reported to the `L1Block` contract.
-- **Detection:** 
+- **Detection:**
     The action or E2E tests or local testing may pick up an issue.
 - **Recovery Path(s):**
     - If the bug is located in op-node, a new version must be deployed.
@@ -127,4 +136,4 @@ Below are references for this project:
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [ ] Coordinate with wallet providers to update their fee estimation logic
-- [ ] Implement automated monitoring on dabase growth rate
+- [x] Implement automated monitoring on dabase growth rate
