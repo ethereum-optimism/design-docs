@@ -183,11 +183,9 @@ Below is what needs to be done before launch to reduce the chances of the above 
 - [ ] Implement automated monitoring on dabase growth rate
 
 **Testing**
-- [ ] (BLOCKING): **NAT tests** with Kurtosis
-    - [ ] A force inclusion transaction from L1.
-    - [ ] A case with EIP7702. Since now EOA can have code, we need to check whether transactions without `msg.sender`, `tx.origin` leads to unexpected behavior
-- [ ] (BLOCKING): ***Differential Fuzzing*** with op-reth/op-geth to avoid any chain-split on the operator fee component (with the refund).
-
+- [x] (BLOCKING): **NAT tests** with Kurtosis in this [PR](https://github.com/ethereum-optimism/optimism/pull/15109)
+- [x] (BLOCKING): ***Differential Fuzzing*** with op-reth/op-geth to avoid any chain-split on the operator fee component (with the refund).
+- [ ] (NON-BLOCKING): A force inclusion transaction from L1 with operator fee and check the that balance are accounted correctly.  
 **Monitoring:** 
 - [ ] (NON-BLOCKING): **Monitoring** a conservation of balance invariant. If the invariant is broken it should immediately raise alerts.
   - [**PR:** feat(monitorism): Add ETH conservation invariant monitor](https://github.com/ethereum-optimism/monitorism/pull/135)
