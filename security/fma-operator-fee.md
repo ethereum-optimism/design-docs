@@ -178,9 +178,9 @@ Below are references for this project:
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
- 
-- [ ] Coordinate with wallet providers to update their fee estimation logic
-- [ ] Implement automated monitoring on dabase growth rate
+**Initial review**  
+- [ ] (NON-BLOCKING): Coordinate with wallet providers to update their fee estimation logic. 
+- [ ] (NON-BLOCKING): Implement automated monitoring on database growth rate. 
 
 **Testing**
 - [x] (BLOCKING): **NAT tests** with Kurtosis in this [PR](https://github.com/ethereum-optimism/optimism/pull/15109)
