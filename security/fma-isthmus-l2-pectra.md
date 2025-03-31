@@ -197,7 +197,8 @@ Below is what needs to be done before launch to reduce the chances of the above 
 
 - [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
 - [x] (BLOCKING): Add a test that Validate a block with BLS accelerated precompile (@meyer9 ref to this [comment](https://github.com/ethereum-optimism/design-docs/pull/201/files#r1985623601))
-- [ ] (BLOCKING): Add a E2E test that Validate minting to EOA that contains code (through EIP7702) is not an issue (assignee: @meyer9). 
+- [x] (BLOCKING): Add a E2E test that Validate minting to EOA that contains code (through EIP7702) is not an issue (assignee: @meyer9). [Implemented here](https://github.com/ethereum-optimism/optimism/pull/15090) 
+ - [ ] (non-blocking): convert this to an actions/proof test refer to issue:  https://github.com/ethereum-optimism/optimism/issues/15123
 - [x] (NON-BLOCKING): Tests to make sure that `ressources_limit` and `gas_limit` for each Superchain are not failling by overflowing from the config on L1 (assignee: @geoknee)
 - [ ] (NON-BLOCKING): Monitoring and alerts if a SystemConfig has less than 30M (assignee: @Ethnical) [Tracked in security pod](https://github.com/ethereum-optimism/security-pod/issues/251) Based on the previous tests in the Action Item.
 - [x] (NON-BLOCKING): Add the description of the new block header with the new field `request_hash` in this FMA (@meyer9). 
