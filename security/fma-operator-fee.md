@@ -9,7 +9,13 @@
   - [FM2: Broken Fee Estimation (Wallets)](#fm2-broken-fee-estimation-wallets)
   - [FM3: Bug in Receipt Hydrating Logic](#fm3-bug-in-receipt-hydrating-logic)
   - [FM4: Database Growth Impact on Nodes](#fm4-database-growth-impact-on-nodes)
+  - [FM5: EVM incorrectly charges operator fee](#fm5-evm-incorrectly-charges-operator-fee)
+  - [FM6: Transaction Pool is not updated to reflect transaction fee requirements](#fm6-transaction-pool-is-not-updated-to-reflect-transaction-fee-requirements)
+  - [FM7: Discrepancy between client implementations of operator causes a chain fork](#fm7-discrepancy-between-client-implementations-of-operator-causes-a-chain-fork)
+  - [FM8: Generic items we need to take into account: `L1Block` badly hydrated](#fm8-generic-items-we-need-to-take-into-account-l1block-badly-hydrated)
+  - [FM9: Overflow/Underflow of operator fee calculation](#fm9-overflowunderflow-of-operator-fee-calculation)
 - [Action Items](#action-items)
+- [Audit Requirements](#audit-requirements)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
