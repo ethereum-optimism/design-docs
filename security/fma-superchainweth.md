@@ -63,7 +63,7 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 
 - [x]  Check this box to confirm that these items have been considered and updated if necessary.
 
-See [relevant FMAs to SuperchainWETH, To Do] 
+See [relevant FMAs to SuperchainETHBridge, To Do] 
 
 - [ ]  Check this box to confirm that these items have been considered and updated if necessary.
 
