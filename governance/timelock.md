@@ -48,7 +48,7 @@ is likely too low level. -->
 EVM Safety proposes to solve these two problems in the following way:
 
 1. We propose to uniquely **identify governance actions as a commit** in the superchain-ops github repository. Governance actions would published in [gov.optimism.io](http://gov.optimism.io) a period before execution, and include hashed identifiers which allow for verification using a multitude of tools. **Published governance actions would be eligible for a bounty** exactly as other smart contract code. This protects us from supply chain attacks and Op Labs staff being compromised, and enables the points below.
-2. We will add a new governance pipeline in which the **Foundation introduces governance actions to a timelock**, and a much reduced quorum of the **Security Council has veto powers**. The maximum impact from compromising a quorum of signers in **the new model is downgraded from catastrophic loss of assets to temporary denial of service**. The published and delayed execution of governance actions enables the point below.
+2. We will add a new governance pipeline in which the **Foundation introduces governance actions to a timelock**, and each member of the **Security Council has the power to remove proposals from the timelock**. The maximum impact from compromising a quorum of signers in **the new model is downgraded from catastrophic loss of assets to temporary denial of service**. The published and delayed execution of governance actions enables the point below.
 3. **The Security Council won’t be required on signing ceremonies**. The Security Council will acquire a reactive role that reduces the effort required from them, while preserving their duty and power to protect our assets. This will in turn reduce the effort we require to ship each feature, and will enable us to ship smaller and safer features more often.
 
 The following two sections describe the governance pipeline in detail, and a Failure Mode Analysis for the governance pipeline.
@@ -72,6 +72,26 @@ The proposed governance pipeline is described here in detail. For the significan
 7. We have some mechanism that allows the Security Council and potentially also the EVM Safety team to cancel pending governance actions in the timelock
     1.  Any member or potentially any 2 members
 8. The current 2/2 multisig could still be used as a backup without a timelock
+
+### Multisig and Smart Contract Architecture
+
+The feature will be implemented as an addition to the current multisig architecture, with an off-the-shelf OpenZeppelin Timelock implementation and two simple Gnosis Safe modules.
+
+Currently, governance actions flow through the ProxyAdminOwner, which is a Gnosis Safe with 2/2 threshold. The two owners of the ProxyAdminOwner are the Security Council Safe and the Foundation Upgrade Safe.
+
+<img src="images/timelock-before.png" alt="Multisig Architecture"/>
+
+The new Timelock would be an OpenZeppelin TimelockController, with the capability to call `execTransaction` on the ProxyAdminOwner through a Gnosis Safe module that skips the quorum check for the Timelock only.
+
+The timelock implements three roles, which would be assigned as follows:
+- The **Foundation** can submit proposals to the timelock.
+- The **Security Council** can cancel proposals on the timelock.
+- The **Security Council** can execute proposals on the timelock.
+
+A custom Gnosis Safe Module and Gnosis Safe Multisig with the same signers as the Security Council Safe would be used to allow a reduced quorum of Security Council members to execute a transaction to cancel a proposal on the timelock.
+
+<img src="images/timelock-after.png" alt="Timelock Architecture"/>
+
 
 ### Resource Usage
 
