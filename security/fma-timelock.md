@@ -62,21 +62,21 @@ Below are references for this project:
 
 ## Failure Modes and Recovery Paths
 
-### FM1: Malicious Governance Action
+### FM1: Malicious Upgrade
 
-![Malicious Governance Action](./images/timelock-malicious-governance.png)
+![Malicious Upgrade](./images/timelock-malicious-upgrade.png)
 
 - **Description:** 
-In the proposed governance model, there are two prerequisites to execute a malicious governance action:
+In the proposed upgrade model, there are two prerequisites to execute a malicious upgrade:
 1. Submitting a malicious proposal to the timelock
 2. The Security Council not removing the malicious proposal from the timelock
 
 Each one of these can be achieved in several ways, as illustrated in the mindmap above.
 
-**Introduce a malicious proposal into the governance proposal in the governance website.**
+**Introduce a malicious commit into the upgrade proposal in the governance website.**
 All of the following would need to be compromised:
 - Compromise the superchain-ops repository to inject a malicious proposal. 
-- Since EVM Safety signs-off the repository commit with the proposal, the attacker would need to compromise the website so that the published governance proposal points to the malicious commit.
+- Since EVM Safety signs-off the repository commit with the proposal, the attacker would need to compromise the website so that the published upgrade proposal points to the malicious commit.
 - Until the malicious proposal is executed, EVM Safety or the community would have time to follow the commit, simulate the proposal, and discover the attack.
 
 **Multiple proposal verification tools compromised**
@@ -88,9 +88,9 @@ The attacker could also compromise the tooling to have the Foundation signers su
 **Foundation signers compromised**
 The attacker could also submit a malicious proposal to the timelock by convincing a quorum of Foundation signers to sign a proposal different from the one published in the governance website.
 
-If the attacker succeeds in submitting a malicious proposal to the timelock, one of the following is required to execute a malicious governance action:
+If the attacker succeeds in submitting a malicious proposal to the timelock, one of the following is required to execute a malicious upgrade:
 
-**Malicious governance action undetected in the timelock**
+**Malicious upgrade undetected in the timelock**
 Both the following conditions need to be met:
 - EVM Safety would routinely execute and verify all proposals in the timelock, using the same tools and following the same process as the one used for the published proposals. Either human error or multiple tool compromise would be necessary for this to fail.
 - Bug bounty hunters, incentivized by a bounty, and using tools not known to the attacker, would also need to miss the malicious proposal.
@@ -102,14 +102,14 @@ One of the following is required:
 
 To facilitate the assessment of this combined failure mode, its five attack paths will be discussed as independent failure modes.
 
-### FM1.1: Introducing a malicious proposal into the governance proposal in the governance website
+### FM1.1: Introducing a malicious commit into the upgrade proposal in the governance website
 
 **Description:**
 The attacker would replace the published proposal with a malicious one in the governance website, pointing to a malicious commit in superchain-ops.
 
 **Risk Assessment:**
 Medium severity, low likelihood.
- - Potential impact: Medium. Enabler towards the execution of a malicious governance action. Light reputational damage by itself.
+ - Potential impact: Medium. Enabler towards the execution of a malicious upgrade. Light reputational damage by itself.
  - Likelihood: Low. The attacker would need to compromise both the superchain-ops repository and the governance website.
 
 **Mitigations:**
@@ -125,7 +125,7 @@ The attacker would compromise superchain-ops to inject a malicious proposal, and
 
 **Risk Assessment:**
 Medium severity, low likelihood.
- - Potential impact: Medium. Enabler towards the execution of a malicious governance action. Light reputational damage by itself.
+ - Potential impact: Medium. Enabler towards the execution of a malicious upgrade. Light reputational damage by itself.
  - Likelihood: Extremely Low. The attacker would need to compromise two different OP Labs repositories, and two different third party services.
 
 **Mitigations:**
@@ -141,7 +141,7 @@ The attacker would compromise a quorum of Foundation signers to submit a malicio
 
 **Risk Assessment:**
 Medium severity, low likelihood.
- - Potential impact: Medium. Enabler towards the execution of a malicious governance action. Light reputational damage by itself.
+ - Potential impact: Medium. Enabler towards the execution of a malicious upgrade. Light reputational damage by itself.
  - Likelihood: Low. The attacker would need to compromise a quorum of Foundation signers.
 
 **Mitigations:**
@@ -157,7 +157,7 @@ The malicious proposal would be in the timelock, with neither EVM Safety nor bug
 
 **Risk Assessment:**
 High severity, extremely low likelihood.
- - Potential impact: High. The attacker would execute a malicious governance action.
+ - Potential impact: High. The attacker would execute a malicious upgrade.
  - Likelihood: Extremely Low. A malicious proposal would have to have been submitted to the timelock, and neither EVM Safety nor bug bounty hunters realise it is malicious.
 
 **Mitigations:**
@@ -174,7 +174,7 @@ With a malicious proposal to the timelock, and the Security Council would not re
 
 **Risk Assessment:**
 High severity, extremely low likelihood.
- - Potential impact: High. The attacker would execute a malicious governance action.
+ - Potential impact: High. The attacker would execute a malicious upgrade.
  - Likelihood: Extremely Low. A malicious proposal would have to have been submitted to the timelock, and a single signer capable of signing the cancellation of the malicious proposal would be enough to avoid this scenario.
 
 **Mitigations:**
@@ -186,16 +186,16 @@ High severity, extremely low likelihood.
 ### FM2: Denial of Service
 
 **Description:**
-The compromise of a Security Council signer would result on a denial of service for the governance pipeline.
+The compromise of a Security Council signer would result on a denial of service for the upgrade pipeline. This could be a serious issue if the upgrade is time-sensitive such as a mainnet hard fork.
 
 **Risk Assessment:**
-Low severity, medium likelihood.
- - Potential impact: Low. The product would remain functional, but the governance pipeline would be blocked.
+Medium severity, medium likelihood.
+ - Potential impact: Medium. The product would stop working until the upgrade is executed.
  - Likelihood: Medium. Stealing the keys from a single signer out of 10+ is a feasible attack.
 
 **Mitigations:**
- - The current 2/2 governance pipeline would remain available to execute emergency instantaneous governance actions such as the one to remove the compromised signer from the Security Council
- - A low quorum of Security Council signers (two signers, for example) could be required to remove a malicious proposal from the timelock
+ - The current 2/2 upgrade pipeline would remain available to execute the upgrade bypassing the timelock.
+ - The quorum on the timelock security module could be set higher.
 
 **Detection:**
  - No detection is proposed.
@@ -203,7 +203,7 @@ Low severity, medium likelihood.
 ### FM3: Spamming the Timelock
 
 **Description:**
-The compromise of a quorum of Foundation signers could result on spamming the timelock with malicious governance actions.
+The compromise of a quorum of Foundation signers could result on spamming the timelock with malicious upgrades.
 
 **Risk Assessment:**
 Medium severity, extremely low likelihood.
