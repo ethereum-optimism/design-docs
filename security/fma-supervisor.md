@@ -22,10 +22,13 @@ To start setting context, here is a basic overview of how Interop works at the p
 - The way a chain can reference logs from other chains is by creating an *Executing Message*
     - Executing Messages are emitted as Logs by the Cross-L2-Inbox contract when called.
     - Each Executing Message contains indexing information and a hash.
-- By the rules of the protocol, Executing Messages are always valid on the canonical chain because:
-    - If they are valid, then they are valid.
-    - If they are *invalid* then the entire block which contains them is also invalid, and so nodes should derive a Replacement Block.
-    
+    - The indexing information in each Executing Message points at some *other* log, which we call an *Initiating Message*,
+    potententially on another chain (ie an Executing Message on Chain A can point at an Initiating Message on Chain B)
+    - When the hash matches the log at the index location, the Executing Message is *Valid*. Otherwise it is *Invalid*
+- When working with some blocks produced under the interop protocol, you can be sure that all Executing Message are valid. This is because:
+    - Per Protocol, blocks which contain *Invalid* Executing Messages are themselves Invalid, and should be Replaced by a Deposit-Only block.
+    - Blocks which only contain *Valid* Executing Messages are, as expected, valid too.
+- The Network uses this validity assurance so applications can build with Executing Messages as a secure cross-chain communication.
 
 To track this, Nodes now consider twice as many heads as before:
 
@@ -35,7 +38,8 @@ To track this, Nodes now consider twice as many heads as before:
 - Cross Safe: Represents the farthest point within the Local Safe chain which can be validated with Cross Safe data of other chains from this L1 source.
 - Finalization: As always, the L2 data is finalized when the L1 data from which it is derived becomes Finalized. However, Finalization only meaningfully applies to the *Cross Safe* head, because the local safe chain may be discovered invalid post-finalization if data that was awaited turns out to be invalid.
 
-While the protocol rules of interop create a very simple and effective method of keeping interoperation secure, it creates the incentive for chain operators to *not* include these transactions in their blocks. If they do, then the promotion from Local Safe to Cross Safe will fail and their chain will experience a reorg in order to replace the invalid block.
+While the protocol rules of interop create a very simple and effective method of keeping interoperation secure, it creates the incentive for chain operators to *not* include Invalid
+Executing Messages in their blocks. If they do, then the promotion from Local Safe to Cross Safe will fail and their chain will experience a reorg in order to replace the invalid block.
 
 So, the Supervisor was developed to effectively serve this information in a scalable, secure way:
 
