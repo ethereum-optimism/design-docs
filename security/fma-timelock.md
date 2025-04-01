@@ -185,15 +185,36 @@ High severity, extremely low likelihood.
 
 ### FM2: Denial of Service
 
-The compromise of a reduced number of Security Council signers would result on a denial of service for the governance pipeline. To mitigate this, the current 2/2 governance pipeline would remain available to execute emergency instantaneous governance actions such as the one to remove the compromised signer from the Security Council
+**Description:**
+The compromise of a Security Council signer would result on a denial of service for the governance pipeline.
 
-<TBA>
+**Risk Assessment:**
+Low severity, medium likelihood.
+ - Potential impact: Low. The product would remain functional, but the governance pipeline would be blocked.
+ - Likelihood: Medium. Stealing the keys from a single signer out of 10+ is a feasible attack.
+
+**Mitigations:**
+ - The current 2/2 governance pipeline would remain available to execute emergency instantaneous governance actions such as the one to remove the compromised signer from the Security Council
+ - A low quorum of Security Council signers (two signers, for example) could be required to remove a malicious proposal from the timelock
+
+**Detection:**
+ - No detection is proposed.
 
 ### FM3: Spamming the Timelock
 
-The compromise of a quorum of Foundation signers would result on spamming the timelock with malicious governance actions. To mitigate this, a quorum of Security Council signers would have the permission to instantaneously pause the submission of new actions to the timelock and to clear its queue. This emergency action would return the governance pipeline to the current 2/2 process until control of the Foundation multisig is restored.
+**Description:**
+The compromise of a quorum of Foundation signers could result on spamming the timelock with malicious governance actions.
 
-<TBA>
+**Risk Assessment:**
+Medium severity, extremely low likelihood.
+ - Potential impact: Medium. A member of the Security Council cancelling all pending proposals would be enough to avoid any lasting damage.
+ - Likelihood: Extremely Low. A quorum of Foundation signers would need to be compromised for an extended period of time.
+
+**Mitigations:**
+ - A quorum of Security Council signers would have the permission to instantaneously pause the submission of new actions to the timelock and to clear its queue until control of the Foundation multisig is restored.
+
+**Detection:**
+ - No detection is proposed.
 
 ### Generic items we need to take into account:
 
