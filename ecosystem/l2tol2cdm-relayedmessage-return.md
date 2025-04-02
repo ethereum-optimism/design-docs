@@ -76,7 +76,9 @@ We cap the overhead by including a hash of the return data that can be authentic
 
 ### Single Point of Failure and Multi Client Considerations
 
-This proposal doesnt change the callpath of cross domain messenger, thus has changes no impact on how messages are relayed.
+This proposal doesnt change the callpath of cross domain messenger, thus has changes no impact on how messages are relayed. The L2ToL2CrossDomainMessenger is not used in production outside of the existing devnet. Thus it is a good opportunity to make this change even thought it breaks the event signature for any indexers that may rely on it.
+
+- `RelayedMessage` also is not indexed in the callpath relative to `SentMessage` which is required to relaye a message, thus additionally safe to break right now.
 
 There's some additional gas overhead to relaying messages. A malicious contract can variable return a large amount of data to make it hard to query. Hashing the return data included in the event mitigates the blast radius of the gas increase.
 
