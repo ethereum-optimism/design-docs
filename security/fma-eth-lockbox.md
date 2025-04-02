@@ -5,7 +5,7 @@
 | Created at          | 2025-01-28                   |
 | Initial Reviewers   | Josep Bove                   |
 | Needs Approval From | Matt Solomon, Kelvin Fichter |
-| Status              | Implementing Actions         |
+| Status              | Final                        |
 
 ## Introduction
 
@@ -70,10 +70,10 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 ## Action Items
 
 - [x] FM1: Provide tests. ([ETHLockbox tests](https://github.com/ethereum-optimism/optimism/blob/5f003211aed7469eed7df666291a62c025d1c46c/packages/contracts-bedrock/test/L1/ETHLockbox.t.sol#L22) and [unlockETH test](https://github.com/ethereum-optimism/optimism/blob/5f003211aed7469eed7df666291a62c025d1c46c/packages/contracts-bedrock/test/L1/ETHLockbox.t.sol#L211))
-- [ ] FM1: Provide monitoring solutions.
-- [ ] FM2: Ensure that the security team is aware of how sensitive `ETHLockbox` is to potential compiler bugs.
-- [ ] FM1, FM2, FM3: Consider potential options for implementing automated pause mechanisms for the `ETHLockbox`, given the impact of these failures modes.
-- [ ] Confirm the interop fault proofs are consistent with the ETH Lockbox and dependency set management implementation so that FM discussed are aligned with it and new ones aren’t expected.
+- [x] FM1: Provide monitoring solutions. (tracked in [Interop Monitoring issue](https://github.com/ethereum-optimism/optimism/issues/15178))
+- [x] FM2: Ensure that the security team is aware of how sensitive `ETHLockbox` is to potential compiler bugs.
+- [x] FM1, FM2, FM3: Consider potential options for implementing automated pause mechanisms for the `ETHLockbox`, given the impact of these failures modes. (`ETHLockbox` uses `SuperchainConfig` pause mechanism for automated pause)
+- [x] Confirm the interop fault proofs are consistent with the ETH Lockbox implementation so that FM discussed are aligned with it and new ones aren’t expected. (`ETHLockbox` is integrated into the portal with the superproofs)
 
 ## Audit Requirements
 
