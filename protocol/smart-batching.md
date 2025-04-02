@@ -44,6 +44,8 @@ blob data.
 
 Modify the L1 derivation stage of the pipeline (`calldata_source` and `blob_data_source`) to fetch receipts for each L1 block they process, and skip any transaction where the `status` field of the receipt is 0 (reverted transactions).
 
+To support existing chains opting into this feature, we also make it possible for chains to update their inbox address, by adding an owner-only `setBatchInbox` method to the `SystemConfig.sol` contract. Chains can then use the existing mechanisms for updating the `SystemConfig` to change their batch inbox address to that of a smart contract.
+
 ### Compatibility
 
 The change is backwards compatible. If the inbox address is not a contract, transactions to it will never revert. Thus the only action necessary to opt in is to deploy a contract and upgrade to change the batch inbox address.
