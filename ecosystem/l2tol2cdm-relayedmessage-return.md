@@ -10,7 +10,7 @@
 
 ## Purpose
 
-The ability to read events with Superchain interop is incredibly powerful. We should make sure we maximize the potential of all the default events emmitted when interacting with the OP-Stack predeploys.
+The ability to read events with Superchain interop is incredibly powerful. We should make sure we maximize the potential of all the default events emitted when interacting with the OP-Stack predeploys.
 
 ## Summary
 
@@ -18,7 +18,7 @@ With an added field to the `RelayedMessage` event emitted by the `L2ToL2CrossDom
 
 ## Problem Statement + Context
 
-As we horizontally scale, contract development will look more asynchronous. A lot of cross chain messages are predominalty write-based.
+As we horizontally scale, contract development will look more asynchronous. A lot of cross chain messages are predominantly write-based.
 
 - Bridge Funds
 - Invoke calldata on a remotely controlled proxy account
@@ -52,12 +52,14 @@ When the `L2ToL2CrossDomainMessenger` invokes a target with calldata, the return
 
 `relayMessage` emits the `RelayedMessage` event on successful execution which itself can be consumed remotely via the `CrossL2Inbox` predeploy. By including the return data in this event, it becomes immediately visible to the sending chain (and all others in the interop set) without any additional message or handler contract.
 
+To limit the gas overhead of this inclusion, the hash of the return data is emitted such that authentication is possible by the consumer with the provided data.
+
 ```solidity
 contract L2ToL2CrossDomainMessenger {
     function relayMessage(Identifier calldata _id, bytes calldata _sentMessage) {
         // include return data
         (, returnData_) = target.call{ value: msg.value }(message);
-        emit RelayedMessage(source, nonce, messageHash, returnData_);
+        emit RelayedMessage(source, nonce, messageHash, keccak256(returnData_));
     }
 }
 ```
@@ -68,15 +70,15 @@ See the Promise Library [Design Doc](https://github.com/ethereum-optimism/design
 
 ### Resource Usage
 
-The extra gas cost associated with including a variable sized input into the `RelayedMessage` log. There's a gas cost of 8 per non-zero byte (4 for zeros) in log data. This is acceptable for a couple of reasons
+The extra gas cost associated with including a variable sized input into the `RelayedMessage` log. There's a gas cost of 8 per non-zero byte (4 for zeros) in log data.
 
-1. Dynamically sized return values are generally discouraged, and it is good practice in solidity to ensure bounds here when writing contracts.
-2. The caller to `relayMessage` is already gas-sensitive to the return since it is already internally captured and returned.
-3. Just as these gas costs are a concern in a single-chain development experience, the developer looking to query a contract cross chain should also be aware of the gas costs of invoking any dynmically sized return values.
+We cap the overhead by including a hash of the return data that can be authenticated by the consumer of the `RelayedMessage` event. It is up to the relayer of this event to include the appropriate return data for the caller.
 
 ### Single Point of Failure and Multi Client Considerations
 
-N/A as this is a smart contract change.
+This proposal doesnt change the callpath of cross domain messenger, thus has changes no impact on how messages are relayed.
+
+There's some additional gas overhead to relaying messages. A malicious contract can variable return a large amount of data to make it hard to query. Hashing the return data included in the event mitigates the blast radius of the gas increase.
 
 ## Alternatives Considered
 
@@ -102,4 +104,4 @@ Entrypoint composition is also a bit undefined. Thus creates more uncertain beha
 
 ### Resource Usage
 
-As noted in the proposed soluation, adding a dynamically sized field to the event does have an additional gas cost. However, as listed this should be minimal overhead.
+See the [Resource Usage](#resource-usage) section.
