@@ -167,3 +167,46 @@ Roots).
 - Corrective administrative action to toggle the flag back to the appropriate state.
 - Communication to users about the temporary disruption and resolution.
 - Investigation into how the incorrect toggling occurred.
+
+### FM5: Further Contract Changes Required for Full Interop
+
+#### Description
+
+Despite the goal of these contract changes being to enable interop support, unforeseen
+requirements, design gaps, or edge cases discovered during the development and testing of the full
+end-to-end interop system might necessitate additional contract modifications beyond this upgrade.
+The current changes might prove insufficient to launch the desired interop functionality.
+
+#### Risk Assessment
+
+- Impact: MEDIUM
+  - Reasoning: This failure doesn't directly risk user funds or core system safety/liveness.
+    However, it incurs significant operational overhead (design, development, audit, deployment)
+    for another upgrade cycle, delays the launch of full interop capabilities, and potentially
+    requires revisiting architectural decisions.
+- Likelihood: MEDIUM
+  - Reasoning: Interop systems are complex, involving interactions between multiple chains and
+    components. Discovering unforeseen requirements or integration challenges during the build-out
+    phase is relatively common.
+
+#### Mitigations
+
+- Thorough end-to-end interop design and specification review involving all stakeholders *before*
+  finalizing and deploying this set of changes.
+- Comprehensive integration testing of interop scenarios using these upgraded contracts in
+  realistic multi-chain test environments (devnets, testnets).
+- Allocating buffer time in the interop project plan for potential follow-up contract adjustments.
+- Clear documentation of the *intended scope* of interop functionality enabled by this specific
+  upgrade.
+
+#### Detection
+
+- We'll know it when we see it.
+
+#### Recovery Path(s)
+
+- Initiate a new contract development, audit, and deployment cycle to implement the missing or
+  corrected functionality.
+- Evaluate if a reduced scope for the initial interop launch is feasible, deferring features that
+  require the missing contract changes.
+- Delay the launch of interop features until the necessary follow-up contract upgrades are completed.
