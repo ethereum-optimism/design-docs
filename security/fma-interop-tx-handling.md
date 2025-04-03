@@ -67,14 +67,18 @@ having to take on new compute.
 
 ## FM1: Checks Fail to Catch an Invalid Executing Message
 - Description
-    - Due to a bug in either the Supervisor, or the Callers, an Executing Message
-    was allowed into block building.
-    - When this happens, the block which is built is invalid.
-    - The Sequencer for the network can choose to build from the Replacement of the Invalid block,
-    or from the Parent, if this is still the Unsafe Chain. If it continues to build from the Invalid
-    block itself, all those appended blocks will be dropped.
+    - This overlaps Supervisor FMA's FM2a, where an invalid message is included in a built block.
+    - An interop transaction is checked mulitiple times (Proxyd, Sentry Node, Sequencer), and each check must fail
+    in order for the transaction to make it all the way to block building.
+    - The most likely cause for all filter layers to fail is a bug in the Supervisor.
+    - Individual layers may fail to filter a transaction if it decides the transaction doesn't need to be
+    checked for Interop Validity. For example, if it appears to have no Access List, it does not need to be checked.
+    - Recurring filters (ones which regularly re-validate Transactions in a Mempool) may fail to filter
+    a Transaction if the frequency of the check is too low.
 - Risk Assessment
-    - Has no effect on our ability to process transactions. Supervisor effects are described in
+    - It is Low Likelihood that every individual filter layer has a different failure, leading to a total filter failure.
+    - It is more likely that a Supervisor bug would make every check ineffective.
+    - Has no effect on our ability to process other transactions. Supervisor effects are described in
     the Supervisor FMA.
     - Negative UX and Customer Perception from building invalid block content.
 
@@ -115,12 +119,18 @@ having to take on new compute.
     - When a Supervisor crashes, any connected Nodes can't keep their Cross-Heads up to date, and Managed Nodes won't get L1 updates either.
 - Risk Assessment
     - Medium Impact ; Low Likelihood
-    - The Supervisor is designed to respond to Check requests. Even though it hasn't been load tested in realistic settings, there is very little computational overhead when responding to an RPC request.
+    - The Supervisor is designed to respond to Check requests. Even though it hasn't been load tested in realistic settings,
+    there is very little computational overhead when responding to an RPC request.
     - Supervisors can be scaled and replicated to serve high-need sections of the infrastructure. Supervisors
     sync identically (assuming a matching L1), so two of them should be able to share traffic.
+    - Chain Liveness is not threatened, because block builders (Sequencers) who cannot determine Interop Validity (like if the Supervisor
+    is unavailable) should proactively drop these transactions. *Interop Liveness* is interrupted in order to preserve
+    chain liveness.
+    - Nodes who rely on this Supervisor to advance their Cross Heads will not be able to until the service is restored.
 - Mitigations
-    - When the Supervisor is down, any block builder or mempool filter *should* treat unavailability as
-    a negative - to protect correctness, when the Supervisor goes down, don't include any Interop Messages.
+    - Callers should avoid making requests of the Supervisor if they can avoid doing so.
+        - If a message has no Access List, it certainly doesn't require Interop Validation.
+        - If messages are invalid for other reasons, they can be rejected without Interop Validation.
 ## FM3c: Transaction Volume causes DOS Failures of Node
 - Description
     - Transactions make it past `proxyd` and arrive in a Sentry Node or the Sequencer.
@@ -135,3 +145,10 @@ having to take on new compute.
     of Transactions. This minimizes the amount of network latency experienced, allowing other work to get done.
     - Mempool transactions which fail checks should be dropped and not retried. This prevents malicious transactions
     from using more than one check against the Supervisor.
+## FM4: Additional Checks Lead to Increased Delay
+- Description
+    - An interop transaction is checked once at `proxyd`, and at least once more at the Sentry Node Mempool Ingress.
+    - It may be checked additional times if it stays in the mempool long enough.
+    - Each call to the Supervisor will take some amount of time, which synchronously delays the transaction.
+- Risk Assessment
+    - It's latency, it will happen, and the impact is based on customer sentiment on the latency.
