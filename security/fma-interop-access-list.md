@@ -37,12 +37,12 @@ Below are references for this project:
   - Set `WARM_READ_THRESHOLD` conservatively to account for potential fluctuations
   - Lock compiler version and optimization settings
   - Document compiler dependencies, optimization constraints, and gas schedule dependencies
-  - Add tests that verify validation works across different gas cost scenarios
+  - Implement end-to-end tests that verify validation reverts work correctly in a real environment
   - Regular bytecode verification to ensure `SLOAD` operations remain in place
 - **Detection:**
   - Monitor for network upgrades that modify storage access gas costs
   - Regular bytecode verification to ensure `SLOAD` operations remain in place
-  - Test suite that verifies gas costs match expectations
+  - End-to-end test suite that verifies validation reverts as expected
   - Run validation tests before accepting upgrades
 - **Recovery Path(s):**
   - Deploy contract upgrade with adjusted thresholds if gas schedule changes significantly
@@ -52,14 +52,35 @@ Below are references for this project:
 
 - **Description:** The checksum calculation for message validation uses storage slots that could potentially collide with other slots from the access list, leading to false validation of messages.
 - **Risk Assessment:** High
-  - Potential Impact: Critical. Storage collisions could allow unauthorized messages to be validated.
-  - Likelihood: Low. Storage slots are carefully calculated using Identifier and message hash parameter. The way both are encoded in the contract's logic needs to be flawed for this case to happen.
+  - Potential Impact: Critical. Storage collisions could allow unauthorized messages to be validated. Additionally, this would break the ability to filter invalid executing messages at ingress, creating a spam vector where MEV searchers could attempt arbitrage by submitting invalid messages with no inclusion cost.
+  - Likelihood: Extremely Low. Storage slots are calculated using a 248-bit (31 byte) hash space, providing cryptographically secure collision resistance. A collision would require finding a hash collision, which is computationally infeasible with 248 bits of security.
 - **Mitigations**
   - Implement robust checksum calculation that minimizes collision risk
   - Add tests verifying no collisions occur with expected storage patterns
   - Document storage layout and slot calculation methodology
 - **Detection:** Monitor for unexpected message validations that could indicate storage collisions.
 - **Recovery Path(s):** Deploy contract upgrade with revised storage slot calculation if collisions are detected and update ALL off-chain tools and SDKs that generate these hashes on the access list.
+
+### FM3: Unexpected Storage Slot Warming Behavior
+
+- **Description:** The validation mechanism assumes that storage slots are only warmed through the transaction's access list and that warming is rolled back on revert. However, this behavior relies on EVM implementation details that aren't explicitly guaranteed by the protocol. Several potential issues arise:
+  1. A slot could be warmed through other means than the access list
+  2. The current behavior where slot warming is rolled back on revert isn't guaranteed by the protocol spec - it's an implementation detail that could change, as cached values theoretically could persist after reverts
+  3. Storage warming is currently scoped per transaction, but future EVM updates could change this to be per block, which would break the security assumption that each transaction's access list independently controls its warm slots
+- **Risk Assessment:** High
+  - Potential Impact: Critical. If slots remain warm after reverts, can be warmed through alternative means, or warming persists across transactions in a block, it could allow unauthorized messages to be validated, bypassing the access list requirement entirely.
+  - Likelihood: Low. While the current behavior is stable, it relies on implementation details rather than protocol guarantees.
+- **Mitigations:**
+  - Document reliance on EVM warming behavior in reverts
+  - Add tests specifically verifying slot cooling behavior after reverts across multiple EVM clients
+  - Document dependency on per-transaction warming scope
+  - Monitor EIP proposals that could affect storage warming mechanics
+- **Detection:**
+  - Regular testing of slot warming behavior across multiple EVM clients, especially after network upgrades
+  - Monitor for unexpected successful message validations
+  - Track EVM changes that could affect storage slot warming mechanics or scope
+  - Test that warm slots from previous transactions in a block don't affect current transaction
+- **Recovery Path(s):** Deploy contract upgrade with alternative validation mechanism if EVM warming behavior changes
 
 ### Generic items we need to take into account:
 
@@ -73,6 +94,8 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 - [ ] FM1: Document gas schedule dependencies
 - [ ] FM2: Create storage layout documentation
 - [ ] FM2: Implement slots collision tests
+- [ ] FM3: Document EVM warming behavior dependencies and transaction-scoped assumptions
+- [ ] FM3: Implement comprehensive slot warming behavior tests including multi-transaction tests
 
 ## Audit Requirements
 
