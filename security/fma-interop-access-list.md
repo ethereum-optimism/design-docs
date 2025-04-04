@@ -21,77 +21,45 @@ The following components are included:
 Below are references for this project:
 
 - Design PR: [Access List design](https://github.com/ethereum-optimism/design-docs/pull/214)
-- Specs PR: [Access List Validation](https://github.com/ethereum-optimism/specs/pull/612)
+- Specs PR: [Access List spec](https://github.com/ethereum-optimism/specs/pull/612)
 
 ## Failure Modes and Recovery Paths
 
-### FM1: Gas Schedule Changes Break Validation
+### FM1: Gas Introspection Breaks Due to EVM Changes or Compiler Optimizations
 
-- **Description:** The validation mechanism relies on gas introspection to determine if storage slots are warm. If the EVM's gas schedule changes, particularly around storage access costs, it could break the validation logic.
+- **Description:** The validation mechanism relies on gas introspection to determine if storage slots are warm. This can break in two ways:
+  1. If the EVM's gas schedule changes, particularly around storage access costs, it could break the validation logic
+  2. Future changes in the Solidity compiler, via-IR pipeline, or optimizer settings could eliminate or modify the `SLOAD` operation used for gas introspection, causing the contract to incorrectly determine that a cold storage slot is warm
 - **Risk Assessment:** High
-  - Potential Impact: Critical. Changes to gas costs could cause all cross-chain message validation to fail or allow invalid messages to pass.
-  - Likelihood: Low. While gas schedule changes are rare, they do occur during network upgrades.
+  - Potential Impact: Critical. Changes to gas costs or optimized-away operations could cause all cross-chain message validation to fail or allow invalid messages to pass.
+  - Likelihood: Medium. While gas schedule changes are rare, they do occur during network upgrades. Additionally, compiler optimizations regularly evolve and could unexpectedly affect low-level gas introspection.
 - **Mitigations:**
   - Set `WARM_READ_THRESHOLD` conservatively to account for potential fluctuations
+  - Lock compiler version and optimization settings
+  - Document compiler dependencies, optimization constraints, and gas schedule dependencies
   - Add tests that verify validation works across different gas cost scenarios
-  - Document gas schedule dependencies clearly for future upgrades
-- **Detection:** Monitor for network upgrades that modify storage access gas costs. Run validation tests before accepting upgrades.
-- **Recovery Path(s):** Deploy contract upgrade with adjusted thresholds if gas schedule changes significantly.
+  - Regular bytecode verification to ensure `SLOAD` operations remain in place
+- **Detection:**
+  - Monitor for network upgrades that modify storage access gas costs
+  - Regular bytecode verification to ensure `SLOAD` operations remain in place
+  - Test suite that verifies gas costs match expectations
+  - Run validation tests before accepting upgrades
+- **Recovery Path(s):**
+  - Deploy contract upgrade with adjusted thresholds if gas schedule changes significantly
+  - Roll back to previous compiler version if optimization cannot be disabled
 
 ### FM2: Storage Slot Collision
 
 - **Description:** The checksum calculation for message validation uses storage slots that could potentially collide with other slots from the access list, leading to false validation of messages.
 - **Risk Assessment:** High
   - Potential Impact: Critical. Storage collisions could allow unauthorized messages to be validated.
-  - Likelihood: Low. Storage slots are carefully calculated using Identifier and message hash parameter. The way both are encoded in the contract’s logic needs to be flawed for this case to happen.
+  - Likelihood: Low. Storage slots are carefully calculated using Identifier and message hash parameter. The way both are encoded in the contract's logic needs to be flawed for this case to happen.
 - **Mitigations**
   - Implement robust checksum calculation that minimizes collision risk
   - Add tests verifying no collisions occur with expected storage patterns
   - Document storage layout and slot calculation methodology
 - **Detection:** Monitor for unexpected message validations that could indicate storage collisions.
 - **Recovery Path(s):** Deploy contract upgrade with revised storage slot calculation if collisions are detected and update ALL off-chain tools and SDKs that generate these hashes on the access list.
-
-### FM3: Access List Manipulation
-
-- **Description:** Malicious actors could attempt to manipulate transaction access lists to force validation of unauthorized messages.
-- **Risk Assessment:** High
-  - Potential Impact: High. Could allow unauthorized message execution.
-  - Likelihood: Medium. Access lists are user-controlled transaction parameters.
-- **Mitigations:**
-  - Ensure checksum calculation is cryptographically sound
-  - Implement proper validation of access list entries
-  - Add checks for maximum access list size
-- **Detection:** Monitor for unusual patterns in access list usage and message validation attempts.
-- **Recovery Path(s):** Pause message processing if manipulation is detected. Deploy fixes for validation logic.
-
-### FM4: Relayer Implementation Errors
-
-- **Description:** Relayers may implement access list construction incorrectly, leading to failed message validation even for valid messages. One possible cause for this could be the checksum calculation not matching between clients and on-chain logic.
-- **Risk Assessment:** Medium
-  - Potential Impact: Medium. Could cause temporary disruption of cross-chain messaging.
-  - Likelihood: Medium. Relayers need to adopt new patterns for access list construction.
-- **Mitigations:**
-  - Provide clear documentation and examples for relayer implementations
-  - Create reference implementations and test suites
-  - Add monitoring for failed validation attempts
-- **Detection:** Track validation failure rates and patterns across relayers.
-- **Recovery Path(s):** Work with relayer implementations to fix access list construction.
-
-### FM5: Compiler Optimizations Break Gas Introspection
-
-- **Description:** Future changes in the Solidity compiler, via-IR pipeline, or optimizer settings could eliminate or modify the `SLOAD` operation used for gas introspection. This could cause the contract to incorrectly determine that a cold storage slot is warm, as the gas cost check would be optimized away.
-- **Risk Assessment:** High
-  - Potential Impact: Critical. Could allow validation of unauthorized messages by bypassing the access list check entirely.
-  - Likelihood: Medium. Compiler optimizations regularly evolve and could unexpectedly affect low-level gas introspection.
-- **Mitigations:**
-  - Lock compiler version and optimization settings
-  - Document compiler dependencies and optimization constraints
-- **Detection:**
-  - Regular bytecode verification to ensure `SLOAD` operations remain in place
-  - Test suite that verifies gas costs match expectations
-- **Recovery Path(s):**
-  - Deploy contract upgrade with revised gas introspection implementation that cannot be optimized away
-  - Roll back to previous compiler version if optimization cannot be disabled
 
 ### Generic items we need to take into account:
 
@@ -105,11 +73,6 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 - [ ] FM1: Document gas schedule dependencies
 - [ ] FM2: Create storage layout documentation
 - [ ] FM2: Implement slots collision tests
-- [ ] FM3: Add access list validation tests
-- [ ] FM3: Document security considerations for access list handling
-- [ ] FM4: Create relayer implementation guide
-- [ ] FM4: Develop relayer test suite
-- [ ] FM5: Document compiler version and optimization constraints
 
 ## Audit Requirements
 
