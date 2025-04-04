@@ -53,7 +53,7 @@ Below are references for this project:
 - **Description:** The checksum calculation for message validation uses storage slots that could potentially collide with other slots from the access list, leading to false validation of messages.
 - **Risk Assessment:** High
   - Potential Impact: Critical. Storage collisions could allow unauthorized messages to be validated. Additionally, this would break the ability to filter invalid executing messages at ingress, creating a spam vector where MEV searchers could attempt arbitrage by submitting invalid messages with no inclusion cost.
-  - Likelihood: Extremely Low. Storage slots are calculated using a 248-bit (31 byte) hash space, providing cryptographically secure collision resistance. A collision would require finding a hash collision, which is computationally infeasible with 248 bits of security.
+  - Likelihood: Extremely Low. Storage slots are calculated using a 248-bit (31 byte) hash space, providing cryptographically secure collision resistance. A collision would require finding a hash collision, which makes it infeasible to have a collision as long as the implementation is correct.
 - **Mitigations**
   - Implement robust checksum calculation that minimizes collision risk
   - Add tests verifying no collisions occur with expected storage patterns
