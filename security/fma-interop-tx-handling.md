@@ -131,6 +131,11 @@ having to take on new compute.
     - Callers should avoid making requests of the Supervisor if they can avoid doing so.
         - If a message has no Access List, it certainly doesn't require Interop Validation.
         - If messages are invalid for other reasons, they can be rejected without Interop Validation.
+    - Callers can establish rate limits to enforce a maximum number of Access Lists (or maximum number of Access List Items)
+    which they will ask the Supervisor about.
+        - When the rate limit is hit, the caller can drop further interop messages in place, eliminating excess traffic.
+        - We can use heuristics to allow some transactions through despite rate limiting. For example, a sender who has recently
+        submitted a valid interop transaction may earn the ability to (check and) submit interop transactions even when the rate limit is hit.
 ## FM3c: Transaction Volume causes DOS Failures of Node
 - Description
     - Transactions make it past `proxyd` and arrive in a Sentry Node or the Sequencer.
