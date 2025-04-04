@@ -3,7 +3,7 @@
 | Author              | Agusduha, Skeletor-spaceman  |
 | ------------------- | ---------------------------- |
 | Created at          | 2025-02-05                   |
-| Initial Reviewers   | [Initial Reviewer Names]     |
+| Initial Reviewers   | Mark Tyneway                 |
 | Needs Approval From | Matt Solomon, Kelvin Fichter |
 | Status              | Draft                        |
 
@@ -90,8 +90,8 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 
 ## Action Items
 
-- [ ] FM1: Implement comprehensive gas schedule testing
 - [ ] FM1: Document gas schedule dependencies
+- [ ] FM1: Implement comprehensive gas schedule testing
 - [ ] FM2: Create storage layout documentation
 - [ ] FM2: Implement slots collision tests
 - [ ] FM3: Document EVM warming behavior dependencies and transaction-scoped assumptions
