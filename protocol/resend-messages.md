@@ -1,4 +1,4 @@
-# [Project Name]: Design Doc
+# Resend Messages
 
 |                    |                             |
 | ------------------ | --------------------------- |
@@ -32,7 +32,7 @@ We propose adding a new `resendMessage` function on the `L2ToL2CrossDomainMessen
 ## Failure Mode Analysis
 
 - **Re-emitting a log for a valid message sent hash with different message params:**
-  A hash collision could occur where different message params result in any valid message sent. This would involve a bug in the `Hashing` library logic or a hash collision, for which it’s likelihood is very low.
+  A hash collision could occur where message parameters that don't correspond to any sent message, result in the same message hash of a valid message sent. This would involve a bug in the `Hashing` library logic or a hash collision, for which its likelihood is very low.
 
 ## Risks
 
