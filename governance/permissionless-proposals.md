@@ -9,7 +9,7 @@ This design represents a step towards fully permissionless proposals. While it r
 
 # Problem Statement + Context
 
-The current process (per the Operating Manual v0.4.2) involves proposals being drafted on the forum, receiving delegate approvals (explicit sign-offs from four of the top 100 delegates), and then being submitted for a vote during a specific voting cycle. The existing process is partially off-chain and manually enforced.
+The current process (per the Operating Manual v0.4.2) requires proposals to be drafted on the forum, receive explicit approvals from at least four of the top 100 delegates (via linked attestations), and then be submitted for a vote during a specific voting cycle. The existing process is partially off-chain and manually enforced.
 
 We need to replicate this process on-chain so that:
 
@@ -27,7 +27,7 @@ At a high-level, we propose the creation of an `Top100DelegatesProposalValidator
 - **Submission window check:** Ensure the proposal is submitted within a defined short window relative to the current voting cycle. (Type proposal check, this is not valid of all types of proposals)
 - **Type-aware validation:** Confirm that the proposal meets any additional criteria based on its type (e.g. higher thresholds for larger OP grants) as defined in the `ProposalTypesConfigurator`.
 - **Distribution rate limit**: Ensures the proposed amount does not go over the distribution rate limit.
-- **Forward valid proposals:** Once all checks pass, forward the call to the existing `OptimismGovernor` without reimplementing its core functions.
+- **Forward valid proposals:** Once all checks pass, forward the call to the existing `OptimismGovernor` without reimplementing its core functions. To enable this, the `Top100DelegatesProposalValidator` must be granted proposal rights, which are currently restricted to the manager role.
 
 ## The Workflow
 
