@@ -115,8 +115,17 @@ Below are references for this project:
   So, about 3,7 GB for 1 year.
 
 - **Recovery Path(s):**
+  The decision has been made to not store operator fee parameters in the
+  receipts if their values hasn't been set. So updated database growth rate is the following:
+
+  ```
+  (12 bytes / 2 seconds) x 365 days × 24 hours × 60 minutes × 60 seconds = 189,216,000 bytes in 1 year.
+  ```
+
+  So, about 180 GB for 1 year. Therefore, we don't think the following recovery paths are necessary anymore:
+
   - Use archive nodes to maintain historical data.
-  - Consider implementing receipt compression retroactively if needed.
+  - Consider implementing receipt compression retroactively.
 
 ### FM5: EVM incorrectly charges operator fee
 
@@ -192,7 +201,7 @@ Below is what needs to be done before launch to reduce the chances of the above 
 **Initial review**
 
 - [ ] (NON-BLOCKING): Coordinate with wallet providers to update their fee estimation logic (assignee: TBD).
-- [ ] (NON-BLOCKING): Implement automated monitoring on database growth rate (assignee: TBD).
+- [x] (NON-BLOCKING): Implement automated monitoring on database growth rate (assignee: TBD).
 
 **Testing**
 
