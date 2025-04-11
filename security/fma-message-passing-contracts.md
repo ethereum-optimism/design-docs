@@ -5,7 +5,7 @@
 | Created at          | 2025-02-04                  |
 | Initial Reviewers   | AgusDuha                    |
 | Needs Approval From | Michael Amadi, Matt Solomon |
-| Status              | Implementing Actions        |
+| Status              | Final                       |
 
 ## Introduction
 
@@ -117,17 +117,17 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 ## Action Items
 
 - [x] Resolve all the comments.
-- [ ] FM1: Decide whether to implement any of the mitigation approaches described, either now or in the future.
-- [ ] FM1: Decide whether to implement a monitoring solution that tracks when a message is sent to a `destination` that is not part of the dependency set.
-- [ ] FM2: Implement a monitoring tool that tracks invalid/non-existent initiated messages.
-- [ ] FM3: Check for any L2Beat Stage 1 considerations related to the inability to successfully call `validateMessage` as part of a force-include a transaction.
-- [ ] FM3: Implement a mechanism that can execute `validateMessage` that is censorship-resistant to mitigate the current risks, as discussed [here](https://github.com/ethereum-optimism/specs/issues/520).
-- [ ] FM3: Implement a monitoring tool that tracks and flags initiated messages that are not relayed despite being ready.
-- [ ] FM4: Implement a monitoring tool that alerts when relayed events are repeated.
-- [ ] FM5: Implement a monitoring tool that alerts successful reentrancies.
-- [ ] FM6: Ensure that the Interop documentation for developers explains the possibility of repeated identifiers being validated during a `validatedMessage`, the role of `L2ToL2CrossDomainMessenger`, and whether replay protections are required, depending on the expected use case when developing custom messengers.
-- [ ] Write a FMA for `op-supervisor`, as this component is critical and transversal to many of the cases explained, since its failure could degrade liveness or the safety of interop.
-- [ ] Ensure the support team is aware of these failure modes and prepared to respond.
+- [x] FM1: Decide whether to implement any of the mitigation approaches described, either now or in the future. (re-introduce the L2 Dependency manager predeploy in the future)
+- [x] FM1: Decide whether to implement a monitoring solution that tracks when a message is sent to a `destination` that is not part of the dependency set. (tracked on [Interop Monitoring issue](https://github.com/ethereum-optimism/optimism/issues/15178))
+- [x] FM2: Implement a monitoring tool that tracks invalid/non-existent initiated messages. (tracked on [Interop Monitoring issue](https://github.com/ethereum-optimism/optimism/issues/15178))
+- [x] FM3: Check for any L2Beat Stage 1 considerations related to the inability to successfully call `validateMessage` as part of a force-include a transaction. (tracked in the [Censorship Resistance issue](https://github.com/ethereum-optimism/specs/issues/520))
+- [x] FM3: Implement a mechanism that can execute `validateMessage` that is censorship-resistant to mitigate the current risks, as discussed [here](https://github.com/ethereum-optimism/specs/issues/520).
+- [x] FM3: Implement a monitoring tool that tracks and flags initiated messages that are not relayed despite being ready. (tracked on [Interop Monitoring issue](https://github.com/ethereum-optimism/optimism/issues/15178))
+- [x] FM4: Implement a monitoring tool that alerts when relayed events are repeated. (Covered by tests no monitoring solution)
+- [x] FM5: Implement a monitoring tool that alerts successful reentrancies. (Covered by tests no monitoring solution)
+- [x] FM6: Ensure that the Interop documentation for developers explains the possibility of repeated identifiers being validated during a `validatedMessage`, the role of `L2ToL2CrossDomainMessenger`, and whether replay protections are required, depending on the expected use case when developing custom messengers. (The current documentation is in [Interop docs](https://docs.optimism.io/stack/interop/message-passing))
+- [x] Write a FMA for `op-supervisor`, as this component is critical and transversal to many of the cases explained, since its failure could degrade liveness or the safety of interop. (Follow in [Supervisor FMA PR](https://github.com/ethereum-optimism/design-docs/pull/233))
+- [x] Ensure the support team is aware of these failure modes and prepared to respond.
 
 ## Audit Requirements
 
