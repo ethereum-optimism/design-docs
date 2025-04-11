@@ -89,6 +89,8 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
     - Software fails; ports become blocked. At some point an interruption will take down a Supervisor.
     - We have redundancy solutions being designed [here](https://github.com/ethereum-optimism/design-docs/pull/218/files?short_path=88594e4#diff-88594e47f0a70261441a7452448ef1f240c7c0f15b9132c7789b2ee2d0e07bd2), which will make Supervisor failures less impactful for Chain Operators.
     - Other Node Operators can adopt similar redundancy measures, but may follow their own infrastructure designs . Operators should treat the Supervisor as consensus critical, and manage it similar to how they would manage their L1 source.
+    - The impact if a Sequencer's Supervisor goes down and cannot be replaced is an Interop Liveness failure, where the block building
+    won't include interop messages. This is higher impact, as it avoidably harms UX by dropping interop messages which were presumably valid.
 
 ## FM1b: Supervisor Is Corrupted
 
@@ -262,8 +264,20 @@ Across all these Failure Modes, the following are explicitly identified improvem
     - Conductor to consider Supervisor liveness for Leadership Transfers.
     - Standard Mode should be implemented to allow operators to run a single Node to validate.
         - Standard Mode should check with multiple Supervisors to avoid deception.
+- Operational
+    - Monitoring: we have metrics and logs, and need to build and maintain further dashboards.
+    We also need to build monitoring tools which go beyond metrics and can potentially challenge Supervisor
+    - Alerts: we need to develop meaningful alert criteria to respond immediately to failure early.
+    outputs (similar to Alternative Implementations)
+    - Runbooks: at a minimum we need to further document how to operate a reorg, or how to respond when the Supervisor
+    fails in various ways. Alerts should all have runbooks.
 
 When the Supervisor fails, the worst thing it could do is report the wrong information for a given message.
 This incorrect data can mislead a network into building an invalid chain which must be dropped once it is
 known to be invalid. At worst, if no one catches the incorrect data, the network can be mislead into an entirely
 non-canonical state indefinitely, threatening the validity of the network itself.
+
+Additional Considerations: If we cannot reduce risk in the Supervisor with the above action items, we can further consider:
+- 2 step cross chain messages plus pause button
+- Only build blocks based on safe cross chain messages, eliminating the opportunity for invalid message inclusion (FM 2A)
+- Use sequencer policy to only include ether transfers that are safe
