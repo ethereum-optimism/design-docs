@@ -120,7 +120,7 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 - [x] FM1: Decide whether to implement any of the mitigation approaches described, either now or in the future. (re-introduce the L2 Dependency manager predeploy in the future)
 - [x] FM1: Decide whether to implement a monitoring solution that tracks when a message is sent to a `destination` that is not part of the dependency set. (tracked on [Interop Monitoring issue](https://github.com/ethereum-optimism/optimism/issues/15178))
 - [x] FM2: Implement a monitoring tool that tracks invalid/non-existent initiated messages. (tracked on [Interop Monitoring issue](https://github.com/ethereum-optimism/optimism/issues/15178))
-- [ ] FM3: Check for any L2Beat Stage 1 considerations related to the inability to successfully call `validateMessage` as part of a force-include a transaction.
+- [x] FM3: Check for any L2Beat Stage 1 considerations related to the inability to successfully call `validateMessage` as part of a force-include a transaction. (tracked in the [Censorship Resistance issue](https://github.com/ethereum-optimism/specs/issues/520))
 - [x] FM3: Implement a mechanism that can execute `validateMessage` that is censorship-resistant to mitigate the current risks, as discussed [here](https://github.com/ethereum-optimism/specs/issues/520).
 - [x] FM3: Implement a monitoring tool that tracks and flags initiated messages that are not relayed despite being ready. (tracked on [Interop Monitoring issue](https://github.com/ethereum-optimism/optimism/issues/15178))
 - [x] FM4: Implement a monitoring tool that alerts when relayed events are repeated. (Covered by tests no monitoring solution)
