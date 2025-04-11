@@ -3,15 +3,16 @@
 
 ## **Table of Contents** _generated with [DocToc](https://github.com/thlorenz/doctoc)_
 
+- [**Table of Contents** _generated with DocToc_](#table-of-contents-generated-with-doctoc)
 - [**SuperchainERC20 standard-only FMA (Failure Modes and Recovery Path Analysis)**](#superchainerc20-standard-only-fma-failure-modes-and-recovery-path-analysis)
 - [Introduction](#introduction)
   - [Audit Requirements](#audit-requirements)
   - [Security Considerations](#security-considerations)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [FM1: Unauthorized Access to `crosschainMint` & `crosschainBurn` Functions](#fm1-unauthorized-access-to-crosschainmint--crosschainburn-functions)
-  - [FM2: Token Contract Missing in Destination Chain — Relay Fails Until Deployed (But Deployment Is Permissionless)](#fm2-token-contract-missing-in-destination-chain--relay-fails-until-deployed-but-deployment-is-permissionless)
-  - [FM3: Token Contract Missing in Destination Chain — Relay Fails Until Deployed (But Deployment Is Permissioned)](#fm3-token-contract-missing-in-destination-chain--relay-fails-until-deployed-but-deployment-is-permissioned)
-  - [FM4: Token Contract Missing in Destination Chain — Token Deployer Is Lost or Unable to Deploy to Expected Address](#fm4-token-contract-missing-in-destination-chain--token-deployer-is-lost-or-unable-to-deploy-to-expected-address)
+  - [FM1: Unauthorized Access to `crosschainMint` \& `crosschainBurn` Functions](#fm1-unauthorized-access-to-crosschainmint--crosschainburn-functions)
+  - [FM2: Token Contract Missing in Destination Chain: Relay Fails Until Deployed (But Deployment Is Permissioned)](#fm2-token-contract-missing-in-destination-chain-relay-fails-until-deployed-but-deployment-is-permissioned)
+  - [FM3: Token Contract Missing in Destination Chain: Relay Fails Until Deployed (But Deployment Is Permissionless)](#fm3-token-contract-missing-in-destination-chain-relay-fails-until-deployed-but-deployment-is-permissionless)
+  - [FM4: Token Contract Missing in Destination Chain: Token Deployer is Lost, or Unable to Deploy to Expected Address](#fm4-token-contract-missing-in-destination-chain-token-deployer-is-lost-or-unable-to-deploy-to-expected-address)
   - [FM5: Compromised Deployment Method](#fm5-compromised-deployment-method)
 - [Action Items](#action-items)
 - [Warning for Integrators](#warning-for-integrators)
@@ -62,10 +63,8 @@ Similar to ERC20, SuperchainERC20 implementations should be considered untrusted
 ### FM2: Token Contract Missing in Destination Chain: Relay Fails Until Deployed (But Deployment Is Permissioned)
 
 - **Description**: The token on the destination chain is not yet deployed, which prevents the cross-chain transfer from finalizing (`relayERC20` fails). However, the token's deployment is permissioned, meaning it is solely up to the deployer to make the token available on the destination chain
-- **Risk Assessment**: High.
-  - Potential impact: High. Users may lose access to their tokens temporarily or permanently. Two specific scenarios can arise:
-    1. Funds are stuck but can eventually be relayed if the deployment occurs before the message expiration window ends.
-    2. Funds are stuck and potentially lost if the deployment occurs after the message expiration time ends or never occurs.
+- **Risk Assessment**: Medium.
+  - Potential impact: Medium. Users may lose access to their tokens temporarily, until the token is deployed.
   - Likelihood: Medium. A deployer may choose not to deploy the token on all chains.
 - **Mitigation**: Trusted bridge frontends should prevent users from sending tokens to a chain where the token doesn’t exist. Double-check other trusted sources (such as Superchain Token List) for greater confidence.
 - **Detection**: Support tickets filed by users reporting the issue.
