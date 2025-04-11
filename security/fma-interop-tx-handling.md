@@ -157,3 +157,12 @@ having to take on new compute.
     - Each call to the Supervisor will take some amount of time, which synchronously delays the transaction.
 - Risk Assessment
     - It's latency, it will happen, and the impact is based on customer sentiment on the latency.
+
+# Notes From Review
+- We are comfortable disabling interop as-needed, when processing interop leads to negative externalities for the rest of the chain
+- Expiring messages are the largest concern
+    - But we can have the app layer re-emit messages, so this can be solved outside of protocol
+- One big risk we'd like to track and understand is a chaotic cycle of sequencers initiating reorgs
+    - The "Smarter" a sequencer might be to avoid invalid blocks, the more reorgs that get made
+    - If there were too many reorgs, chains may stomp on each other and cause widespread issue
+    - To mitigate this, we want lots of testing on the emergent behaviors, using dev networks with test sequencers.
