@@ -71,6 +71,8 @@ in performance, safety, and concurrency. The implementation will:
 
 ## Architecture
 
+### Building Blocks from First Principles
+
 The Rollup Node is a core component of the OP Stack.
 It is responsible for constructing the canonical safe L2 chain.
 In order to produce the chain, the Rollup Node listens to two sources
@@ -90,11 +92,11 @@ somehow producing the L2 Chain.
 ┌────────────┐
 │L2 Sequencer│
 │            ├────────────────────┐
-│   Gossip   │                    │    ┌────────────┐    ┌────────────┐
-└────────────┘                    │    │            │    │            │
-                                  ├──► │     ???    │──► │  L2 Chain  │
-┌────────────┐    ┌────────────┐  │    │            │    │            │
-│     DA     │    │            │  │    └────────────┘    └────────────┘
+│   Gossip   │                    │    ┌────────────┐
+└────────────┘                    │    │            │
+                                  ├──► │     ???    │──►  < L2 Chain >
+┌────────────┐    ┌────────────┐  │    │            │
+│     DA     │    │            │  │    └────────────┘
 │            ├──► │ Derivation ├──┘
 │   Watcher  │    │            │
 └────────────┘    └────────────┘
@@ -108,33 +110,118 @@ are imported into the L2 execution layer via the Engine API.
 ┌────────────┐
 │L2 Sequencer│
 │            ├────────────────────┐
-│   Gossip   │                    │    ┌────────────┐    ┌────────────┐
-└────────────┘                    │    │            │    │            │
-                                  ├──► │ Engine API │──► │  L2 Chain  │
-┌────────────┐    ┌────────────┐  │    │            │    │            │
-│     DA     │    │            │  │    └────────────┘    └────────────┘
+│   Gossip   │                    │    ┌────────────┐
+└────────────┘                    │    │            │
+                                  ├──► │ Engine API │──►  < L2 Chain >
+┌────────────┐    ┌────────────┐  │    │            │
+│     DA     │    │            │  │    └────────────┘
 │            ├──► │ Derivation ├──┘
 │   Watcher  │    │            │
 └────────────┘    └────────────┘
 ```
 
+The [Holocene Hardfork][holocene] introduced steady block derivation.
+This change allows a payload to be replaced with a deposits-only block
+to allow the L2 chain to progress even if an invalid payload is derived.
 
+Steady block derivation has significant architectural impacts for the
+rollup node. With Holocene, the derivation component needs to be updated
+if a payload is replaced with a deposits-only block. This requires the
+Engine API component to send a message to the derivation component,
+introducing an edge in the modular component graph.
 
-
-
+[holocene]: https://specs.optimism.io/protocol/holocene/derivation.html
 
 ```
 ┌────────────┐
 │L2 Sequencer│
 │            ├───┐
-│   Gossip   │   │   ┌────────────┐   ┌────────────┐   ┌────────────┐
-└────────────┘   │   │            │   │            │   │            │
-                 ├──►│ Derivation │──►│ Engine API │──►│   State    │
-┌────────────┐   │   │            │   │            │   │            │
-│     DA     │   │   └────────────┘   └┬───────────┘   └┬───────────┘
-│            ├───┘              ▲      │                │
-│   Watcher  │                  └──────┴────────────────┘
+│   Gossip   │   │   ┌────────────┐   ┌────────────┐
+└────────────┘   │   │            │   │            │
+                 ├──►│ Derivation │──►│ Engine API │──►  < L2 Chain >
+┌────────────┐   │   │            │   │            │
+│     DA     │   │   └────────────┘   └──────┬─────┘
+│            ├───┘          ▲                │
+│   Watcher  │              └────────────────┘
 └────────────┘
 ```
 
+### A Modular Architecture
 
+The components described above are all critical to the rollup node.
+Whether these components are part of the architecture is not up for discussion.
+What this document addresses is how the components communicate. Namely, do
+components share memory or use an actor=based architecture with message-passing.
+The remainder of this section will provide reasoning to choose the latter.
+
+In an actor-based system, each component is constructed as an "Actor". There's
+a Derivation Actor, DA Watcher Actor, P2P Actor (L2 sequencer gossip),
+and Engine Actor.
+
+Instead of having some top-level object "own" components, actors are spawned
+as threads, and communication between actors happens through channels with
+messages. In this architecture, a top-level layer "orchestrates" the various
+actor to handle wiring up communication between actors. The primary benefit
+of using an actor-based system is tasks can actually be parallelized. As opposed
+to kona's derivation pipeline which uses an ownership model where each stage
+in the derivation pipeline owns the previous stage. Because of this ownership,
+derivation pipeline work is single-threaded and blocking. Pipeline stages cannot
+make progress in parallel.
+
+If the orchestration layer is called "Rollup Node", a full modular architecture
+for the Kona Rollup Node looks like the following.
+
+
+```
+      ┌────────────────────────────────────────────────────────────────────┐
+      │                                                                    │
+  ┌───┤                        Rollup Node Service                         │
+  │   │                                                                    │
+  │   └──────────────────────────┬────────────────┬─────────────────┬──────┘
+  │                              │                │                 │
+  │   ┌────────────┐             │                │                 │
+  │   │L2 Sequencer│             │                │                 │
+  ├─► │            ├───┐         ▼                ▼                 ▼
+  │   │   Gossip   │   │   ┌────────────┐   ┌────────────┐     ┌───────────┐
+  │   └────────────┘   │   │            │   │            │     │           │
+  │                    ├──►│ Derivation │──►│ Engine API │     │ Rpc Actor │
+  │   ┌────────────┐   │   │            │   │            │     │           │
+  │   │     DA     │   │   └────────────┘   └──────┬─────┘     └───────────┘
+  └─► │            ├───┘          ▲                │
+      │   Watcher  │              └────────────────┘
+      └────────────┘
+```
+
+
+# Alternatives Considered
+
+Instead of allowing actors to "pass messages" between each other, it was
+considered to route all messages through the orchestration service.
+
+Concretely, this would look like a large-variant enum that holds all
+message types. Actors would then only send and receive messages from the
+"Rollup Node Service" orchestrator. This more closely resembles the `op-node`
+architecture where "derivers" are registered via a "registry". Various
+event types are emitted and broadcasted to rollup node components.
+
+While this works effectively for the `op-node` it introduces significant
+overhead and risk for Kona's Rollup Node. Since the `kona-node` is
+parallized, mishandling or even spontaneous flakes where messages are dropped,
+can result in an unrecoverable deadlock. By establishing messaging channels
+directly between actors, there's less "surface area" for message passing
+to be improperly configured.
+
+# Risks & Uncertainties
+
+Actor-based systems aren't a free lunch. Where parallelization is introduced,
+so is the ability for actors to become stuck in a deadlock. Given the cycle
+between the Engine Actor and Derivation Actor, this is a real risk. You can
+imagine the Derivation Actor isn't reset when a holocene deposits-only block
+is created. Meanwhile, the Engine Actor is waiting for safe blocks from the
+derivation pipeline.
+
+In a similar way, the `op-node`'s event system architecture also has a risk
+of deadlock. With strongly typed messages and explicit well-tested message
+handling and emission, this risk is mitigated. One way to extend this testing
+to the Kona Rollup Node is to support node action tests like proof action
+tests support running the `kona-proof`.
