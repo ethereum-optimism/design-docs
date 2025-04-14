@@ -171,7 +171,6 @@ make progress in parallel.
 If the orchestration layer is called "Rollup Node", a full modular architecture
 for the Kona Rollup Node looks like the following.
 
-
 ```
       ┌────────────────────────────────────────────────────────────────────┐
       │                                                                    │
@@ -192,6 +191,52 @@ for the Kona Rollup Node looks like the following.
       └────────────┘
 ```
 
+Notice, the "Rpc Actor" doesn't have communication lines drawn to other actors.
+This is because the JSON RPC server has rpc modules that it registers which
+handle various rpc requests. In effect, each actor registers its rpc module
+with the Rpc Actor at construction. The rpc modules in turn grab or perform
+actions on other actors via message passing. Effectively, the Rpc Actor
+messages with all other actors.
+
+### Sequencer vs Validator Mode
+
+Up to this point, Kona's rollup node architecture has been considered
+from the perspective of a _validator_ node. That is, a rollup node
+that only derives the l2 chain, but doesn't _build_ (aka "sequence")
+the L2 chain. In order to extend support for sequencing the L2 chain,
+the rollup node needs to accept transactions, build l2 blocks, and
+broadcast these blocks as gossip over the p2p network.
+
+Part of the architecture to consider is being able to plug in
+"block building" through a simple API. Similar to the `op-node`
+allowing sequencing to be toggled on and off, the `kona-node` should
+support sequencing via a toggle cli argument.
+
+While sequencing is optional, the most kona-native route would be to
+create a sequencer actor that responds to various events. This extends
+the architecture as follows.
+
+```
+      ┌────────────────────────────────────────────────────────────────────────────────────┐
+      │                                                                                    │
+  ┌───┤                                 Rollup Node Service                                │
+  │   │                                                                                    │
+  │   └──────────────────────────┬────────────────┬────────────────┬────────────────┬──────┘
+  │                              │                │                │                │
+  │   ┌────────────┐             │                │                │                │
+  │   │L2 Sequencer│             │                │                │                │
+  ├─► │            ├───┐         ▼                ▼                ▼                ▼
+  │   │   Gossip   │   │   ┌────────────┐   ┌────────────┐   ┌───────────┐    ┌───────────┐
+  │   └────────────┘   │   │            │   │            │   │           │    │           │
+  │                    ├──►│ Derivation │──►│ Engine API │   │ Sequencer │    │ Rpc Actor │
+  │   ┌────────────┐   │   │            │   │            │   │           │    │           │
+  │   │     DA     │   │   └────────────┘   └──────┬─────┘   └───────────┘    └───────────┘
+  └─► │            ├───┘          ▲                │
+      │   Watcher  │              └────────────────┘
+      └────────────┘
+
+
+```
 
 # Alternatives Considered
 
