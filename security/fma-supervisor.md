@@ -91,6 +91,9 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
     - Other Node Operators can adopt similar redundancy measures, but may follow their own infrastructure designs . Operators should treat the Supervisor as consensus critical, and manage it similar to how they would manage their L1 source.
     - The impact if a Sequencer's Supervisor goes down and cannot be replaced is an Interop Liveness failure, where the block building
     won't include interop messages. This is higher impact, as it avoidably harms UX by dropping interop messages which were presumably valid.
+- Action Items
+    - Monitor for a lack of Interop Messages in blocks, as an indicator that the Supervisor driving block building is down.
+    Can also be used to monitor for other chains' percieved interop liveness.
 
 ## FM1b: Supervisor Is Corrupted
 
@@ -124,6 +127,12 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
     - When promoting local-unsafe to cross-unsafe, the Supervisor can additionally detect if the data it is stalled on is already cross-safe or not. If it is, it can proactively notify the Sequencer that the current chain is hopeless to be valid, creating a more eager reorg point.
     - The Batcher can decline to post beyond the current cross-unsafe head. This will avoid the publishing of bad data so the sequencer may reorg it out, saving the replacement based reorg. If it went on long enough, the Batcher would prevent any new data from being posted to L1, effectively creating a safe-head stall until the sequencer resolved the issue. This *could* be a preferred scenario for some chains.
     - We need to develop and use production-realistic networks in large scale testing to exercise failure cases and get confidence that the system behaves and recovers as expected.
+- Action Items
+    - Develop Monitoring for any messages where are discovered to be invalid in a block.
+    Operators should be vigilant when this happens.
+    - Additional Monitoring should be developed around ETH transfers per day, or other market behaviors
+    (to be scoped)
+
 
 ## FM2b: Supervisor Doesn’t Catch Block Invalidation of Safe Data
 
@@ -137,6 +146,16 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
     - Even Higher Impact, Low Likelihood.
 - Recovery
     - Within the 12h Safe Head window, if the sequencer is repaired and rewound, it could correctly interpret the batch data to replace a block, and then would have the job of rebuilding the chain from that point. All users would need to upgrade to a version without this derivation bug, and resync the chain from the failed position. Operators who *did not* upgrade and resync would be left on a dead branch that is no longer being updated.
+- Action Items
+    - Improved testing is required across the board for cross-head promotion, as this is the area most likely to
+    break consensus.
+    - Implement an ETH rate limit which prevents more than X Eth from being transferred in a single transaction.
+    This should limit the blast radius of any undiscovered bugs.
+    - Implement a pause mechanism which declines interop transactions from being included in block building.
+        - This pause mechanism should be triggerable via admin API
+        - And also should be responsive to automated Alert/Monitoring based triggers.
+        - Once paused, unpause should be manual to start with.
+    - Optionally: Implement a matching Batcher pause to avoid publishing invalid blocks in batches where avoidable.
 
 ## FM3: The Supervisor Issues a Reset to the Sequencer
 
@@ -258,17 +277,29 @@ Across all these Failure Modes, the following are explicitly identified improvem
     - High volume indexing for performance.
     - Chaos-Monkey style testing for Correctness.
 - Smarter behaviors for existing components:
-    - Batcher to only submit up-to cross-unsafe.
-    - Sequencer to look for cross-unsafe stalls to initiate reorg.
-    - Admin APIs to sideline interop messages during incidents.
-    - Conductor to consider Supervisor liveness for Leadership Transfers.
-    - Standard Mode should be implemented to allow operators to run a single Node to validate.
-        - Standard Mode should check with multiple Supervisors to avoid deception.
+    - Batcher 
+        - Only submit up-to cross-unsafe.
+        - Optionally: pause on interop failure, to avoid further publishing of invalid messages.
+    - Sequencer
+        - Look for cross-unsafe stalls to initiate unsafe reorg, avoiding L1 publishing of invalid message.
+        - Pause interop (reject all interop Messages) when an invalid message is included in the chain.
+        - Admin APIs to initiate pause during incidents.
+    - Node
+        - Standard Mode should be implemented to allow operators to run a single Node to validate.
+            - Standard Mode should check with multiple Supervisors to avoid deception.
+            - Standard Mode only needs to check with Supervisor when no Interop Messages are present.
 - Operational
+    - Conductor to consider Supervisor liveness for Leadership Transfers.
     - Monitoring: we have metrics and logs, and need to build and maintain further dashboards.
     We also need to build monitoring tools which go beyond metrics and can potentially challenge Supervisor
-    - Alerts: we need to develop meaningful alert criteria to respond immediately to failure early.
     outputs (similar to Alternative Implementations)
+        - Monitoring the total amount of ETH moving
+        - Monitoring the volume of Interop Messages being accepted/rejected
+        - Monitoring the total number of Interop Messages per block (0 may indicate liveness issue)
+        - Monitoring which confirms DB correctness against other sources (like RPC to a node)
+    - Alerts: we need to develop meaningful alert criteria to respond immediately to failure early.
+        - Any Invalid Message in a block is an alert
+        - Supervisor crashes are an alert
     - Runbooks: at a minimum we need to further document how to operate a reorg, or how to respond when the Supervisor
     fails in various ways. Alerts should all have runbooks.
 
