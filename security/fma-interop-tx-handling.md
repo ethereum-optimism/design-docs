@@ -81,6 +81,10 @@ having to take on new compute.
     - Has no effect on our ability to process other transactions. Supervisor effects are described in
     the Supervisor FMA.
     - Negative UX and Customer Perception from building invalid block content.
+- Action Items
+    - Monitor for all invalid messages, as a percentage of all incoming messages.
+    - Critically monitor for *any* messages which will cause a reorg (ie an invalid message which was included
+    in a block)
 
 ## FM2: Checks Discard Valid Message
 - Description
@@ -92,6 +96,9 @@ having to take on new compute.
     - More Negative UX and Custoemr Perception if Interop Messages aren't making it into the chain.
     - Failed transactions would cause customers to redrive transactions, potentially overwhelming
     infrastructure capacity.
+- Action Items
+    - Monitor for a lack of interop messages in blocks. If there is a suspicious lack of them, it may indicate
+    a failure in the filtering.
 
 ## FM3a: Transaction Volume causes DOS Failures of Proxyd
 - Description
