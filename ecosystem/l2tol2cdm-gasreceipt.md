@@ -63,7 +63,9 @@ Support can be enumerated in 2 parts.
 
 With nested cross domain calls, there's no way to correlate the subsequent messages with the original `tx.origin`, as each message has a unique message hash associated with it. By introducing a new field, "headers" or "context" that are appropriately propogated as nested cross domain calls are made, we can introduce contextual information unrelated to the cross domain message itself.
 
-    event SentMessage(uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes message, bytes context);
+```solidity
+event SentMessage(uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes message, bytes context);
+```
 
 This added context should be versioned such that the propogated information can evolve over time to fit various needs. In this first iteration, we propose encoding the root-most `messageHash`, the `tx.origin` of that root call, and `call depth` of the cross domain message. This information is made availble in transient storage when relaying a message so that any further outbound messages simply forwards the appropriate context, rather than repopoulate an entirely new one.
 
@@ -104,7 +106,9 @@ We include the `block.basefee` and not the `tx.gasprice`, so that the priority f
 
 New Event:
 
-    event RelayedMessageGasReceipt(bytes32 indexed msgHash, bytes32 indexed rootMsgHash, uint256 indexed depth, address indexed txOrigin, uint256 baseFee, uint256 gasUsed)
+```solidity
+event RelayedMessageGasReceipt(bytes32 indexed msgHash, bytes32 indexed rootMsgHash, uint256 indexed depth, address indexed txOrigin, uint256 baseFee, uint256 gasUsed)
+```
 
 ```solidity
 function relayMessage(...) {
