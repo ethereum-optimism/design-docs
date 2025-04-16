@@ -208,13 +208,16 @@ the rollup node needs to accept transactions, build l2 blocks, and
 broadcast these blocks as gossip over the p2p network.
 
 Part of the architecture to consider is being able to plug in
-"block building" through a simple API. Similar to the `op-node`
-allowing sequencing to be toggled on and off, the `kona-node` should
-support sequencing via a toggle cli argument.
+"block building" through a simple API. The `op-node` separates
+the sequencer logic from the rest of the node driver, allowing
+it to toggle sequencing on and off via a simple CLI flag. Kona
+can take this one step further. Using a minimal API, the
+`kona-node` should allow sequencing to be toggled on and off,
+but also let users easily slot in their own block building and
+sequencing logic using the given API.
 
-While sequencing is optional, the most kona-native route would be to
-create a sequencer actor that responds to various events. This extends
-the architecture as follows.
+Consider sequencing for the `kona-node`. A new "Sequencer"
+actor would be introduced, extending the architecture as follows.
 
 ```
       ┌────────────────────────────────────────────────────────────────────────────────────┐
@@ -224,19 +227,35 @@ the architecture as follows.
   │   └──────────────────────────┬────────────────┬────────────────┬────────────────┬──────┘
   │                              │                │                │                │
   │   ┌────────────┐             │                │                │                │
-  │   │L2 Sequencer│             │                │                │                │
+  │   │     DA     │             │                │                │                │
   ├─► │            ├───┐         ▼                ▼                ▼                ▼
-  │   │   Gossip   │   │   ┌────────────┐   ┌────────────┐   ┌───────────┐    ┌───────────┐
+  │   │   Watcher  │   │   ┌────────────┐   ┌────────────┐   ┌───────────┐    ┌───────────┐
   │   └────────────┘   │   │            │   │            │   │           │    │           │
   │                    ├──►│ Derivation │──►│ Engine API │   │ Sequencer │    │ Rpc Actor │
   │   ┌────────────┐   │   │            │   │            │   │           │    │           │
-  │   │     DA     │   │   └────────────┘   └──────┬─────┘   └───────────┘    └───────────┘
-  └─► │            ├───┘          ▲                │
-      │   Watcher  │              └────────────────┘
-      └────────────┘
-
-
+  │   │L2 Sequencer│   │   └────────────┘   └──────┬─────┘   └─┬───┬─────┘    └───────────┘
+  └─► │            ├───┘          ▲                │   ▲       │   │
+      │   Gossip   │              └────────────────┘   └───────┘   │
+      └────────────┘                                               │
+            ▲                                                      │
+            └──────────────────────────────────────────────────────┤
+                                                                   │
+                                                                   ▼
+                                                             ┌───────────┐
+                                                             │           │
+                                                             │ Conductor │
+                                                             │           │
+                                                             └───────────┘
 ```
+
+Similarly to the `op-node`, the `kona-node` should make use of the
+Conductor abstraction (the `op-conductor` is the implementation).
+The conductor API allows the sequencer actor to commit unsafe
+payloads to the L2 chain. It also acts as an auxiliary service to
+the Rollup Node, performing leader election and chain reconciliation.
+Regardless, consensus and `op-conductor` guarantees are periphery
+to this document. The key idea here is for `kona-node` to use the
+same `op-conductor` abstraction.
 
 # Alternatives Considered
 
