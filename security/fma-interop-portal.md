@@ -61,6 +61,12 @@ for game validity and state, incorrect data leads directly to `OptimismPortal` m
 - Monitoring already exists for the correctness and age of the Anchor State.
 - Monitoring already exists for the correctness of resolved dispute games.
 
+#### Action Items
+
+- [ ] Update monitoring to take `SystemConfig` or `OptimismPortal` instead of `AnchorStateRegistry`
+      or `DisputeGameFactory` as input because these contracts will change, leading to a mismatch
+      between the monitor and the actual onchain state.
+
 #### Recovery Path(s)
 
 - Depends heavily on the nature of the bug.
@@ -73,9 +79,10 @@ for game validity and state, incorrect data leads directly to `OptimismPortal` m
 
 #### Description
 
-The process for migrating ETH funds from an old `ETHLockbox` to a new one, coordinated by the
-`OptimismPortal` and `ETHLockbox`, involves complex logic. A bug in this logic could leave the
-system in a state that impacts either safety or liveness.
+The processes for migrating ETH funds from the `OptimismPortal` to the `ETHLockbox` or to migrate
+from an old `ETHLockbox` to a new one, coordinated by the `OptimismPortal` and `ETHLockbox`,
+involves complex logic. A bug in this logic could leave the system in a state that impacts either
+safety or liveness.
 
 #### Risk Assessment
 
@@ -98,6 +105,13 @@ system in a state that impacts either safety or liveness.
 - Depends on the specific bug.
 - May require deploying a fixed version of the contracts and performing a subsequent migration.
 - Manual fund recovery via governance intervention might be necessary if funds are locked.
+
+#### Action Items
+
+- [ ] Ensure that betanet will include testing that (1) a withdrawal after the migration works and
+      (2) lockbox balances to confirm that entire balance is transferred properly.
+- [ ] Follow up with Proofs to understand what's being solved for with a migration that does not
+      rely on a trusted input.
 
 ### FM3: Disruptions During `superRootsActive` Transition
 
@@ -135,6 +149,11 @@ after the switch.
 - Minor bugs might be worked around by tweaking specific proving parameters or pushing updates to
   offchain tooling.
 
+#### Action Items
+
+- [ ] Update Viem to auto-switch between proof modes.
+- [ ] Make sure that devrel/comms is loud about the changes.
+
 ### FM4: Incorrect Toggling of `superRootsActive`
 
 #### Description
@@ -167,6 +186,10 @@ Roots).
 - Corrective administrative action to toggle the flag back to the appropriate state.
 - Communication to users about the temporary disruption and resolution.
 - Investigation into how the incorrect toggling occurred.
+
+#### Action Items
+
+- [ ] Add a warning to the `portal.migrate()` function.
 
 ### FM5: Further Contract Changes Required for Full Interop
 
@@ -210,3 +233,7 @@ The current changes might prove insufficient to launch the desired interop funct
 - Evaluate if a reduced scope for the initial interop launch is feasible, deferring features that
   require the missing contract changes.
 - Delay the launch of interop features until the necessary follow-up contract upgrades are completed.
+
+#### Action Items
+
+- [ ] Make sure that Proofs is aware of the requirements/goals here.
