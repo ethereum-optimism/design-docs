@@ -5,7 +5,7 @@
 | Created at          | 2025-01-10                    |
 | Initial Reviewers   | Kelvin Fichter, Michael Amadi |
 | Needs Approval From | Kelvin Fichter                |
-| Status              | Implementing Actions          |
+| Status              | Final                         |
 
 ## Introduction
 
@@ -61,16 +61,12 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 
 - [x] Check this box to confirm that these items have been considered and updated if necessary.
 
-See [relevant FMAs to SuperchainETHBridge, To Do]
-
-- [ ] Check this box to confirm that these items have been considered and updated if necessary.
-
 ## Action Items
 
 - [x] Resolve all the comments.
-- [ ] FM1, FM2: Establish a balance monitoring measure in `ETHLiquidity` (optional).
-- [ ] Ensure the support team is aware of these failure modes and prepared to respond.
-- [ ] **Ensure that the actions items specified in each FMAs on which SuperchainETHBridge depends are completed.**
+- [x] FM1, FM2: Establish a balance monitoring measure in `ETHLiquidity` (tracked in [Interop Monitoring issue](https://github.com/ethereum-optimism/optimism/issues/15178)).
+- [x] Ensure the support team is aware of these failure modes and prepared to respond.
+- [x] **Ensure that the actions items specified in each FMAs on which SuperchainETHBridge depends are completed.**
 
 ## Audit Requirements
 
