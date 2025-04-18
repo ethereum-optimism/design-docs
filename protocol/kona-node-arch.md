@@ -151,7 +151,7 @@ introducing an edge in the modular component graph.
 The components described above are all critical to the rollup node.
 Whether these components are part of the architecture is not up for discussion.
 What this document addresses is how the components communicate. Namely, do
-components share memory or use an actor=based architecture with message-passing.
+components share memory or use an actor-based architecture with message-passing.
 The remainder of this section will provide reasoning to choose the latter.
 
 In an actor-based system, each component is constructed as an "Actor". There's
