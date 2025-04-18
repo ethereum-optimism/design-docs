@@ -5,7 +5,7 @@
 | Created at          | 2025-02-05                   |
 | Initial Reviewers   | Mark Tyneway                 |
 | Needs Approval From | Matt Solomon, Kelvin Fichter |
-| Status              | Implementing Actions |
+| Status              | Final                        |
 
 ## Introduction
 
@@ -90,12 +90,12 @@ See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/
 
 ## Action Items
 
-- [ ] FM1: Document gas schedule dependencies
-- [ ] FM1: Implement comprehensive gas schedule testing
-- [ ] FM2: Create storage layout documentation
-- [ ] FM2: Implement slots collision tests
-- [ ] FM3: Document EVM warming behavior dependencies and transaction-scoped assumptions
-- [ ] FM3: Implement comprehensive slot warming behavior tests including multi-transaction tests
+- [x] FM1: Document gas schedule dependencies ([Access List Assumptions](https://github.com/ethereum-optimism/specs/blob/main/specs/interop/predeploys.md#assumptions))
+- [x] FM1: Implement comprehensive gas schedule testing ([CrossL2Inbox tests suite](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/test/L2/CrossL2Inbox.t.sol))
+- [x] FM2: Create storage layout documentation ([Access List Assumptions](https://github.com/ethereum-optimism/specs/blob/main/specs/interop/predeploys.md#assumptions))
+- [x] FM2: Implement slots collision tests ([CrossL2Inbox tests suite](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/test/L2/CrossL2Inbox.t.sol))
+- [x] FM3: Document EVM warming behavior dependencies and transaction-scoped assumptions ([Access List Assumptions](https://github.com/ethereum-optimism/specs/blob/main/specs/interop/predeploys.md#assumptions))
+- [x] FM3: Implement comprehensive slot warming behavior tests including multi-transaction tests ([CrossL2Inbox tests suite](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/test/L2/CrossL2Inbox.t.sol))
 
 ## Audit Requirements
 
