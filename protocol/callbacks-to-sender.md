@@ -10,11 +10,11 @@
 
 ## Purpose
 
-To help developers better manage `sender`'s state consistency that is contingent on whether `target`'s execution is successful or reverted.
+To help developer experience by enabling atomicity on cross-chain state changes between `sender` on `source` and `target` on `destination`.
 
 ## Summary
 
-This feature introduces an overload of `sendMessage()` with custom `onSuccess` and/or `onRevert` callbacks which is automatically invoked by `L2ToL2CrossDomainMessenger` after relaying message to `target`.
+This feature introduces an overload of `sendMessage()` with custom `onSuccess` and/or `onRevert` callbacks which is automatically invoked by `L2ToL2CrossDomainMessenger` after relaying message to `target`, depending on the outcome.
 
 This enables cross-chain state changes to be atomic without introducing logical coupling between `sender` and `target` (i.e. `target` does not need to know the implementation details on `sender`). Also, this is all achieved through the same single user transaction to `sendMessage()`.
 
