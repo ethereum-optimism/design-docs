@@ -102,24 +102,28 @@ All superchain interop cross domain messages are relayed via the `L2ToL2CrossDom
 
 We include the `block.basefee` and not the `tx.gasprice`, so that the priority fee (included in gasPrice) set by the relaying entity is not included and only the minimum execution costs are computed.
 
-- **Question**: _Should we simply emit the computed cost here rather than the individual parts? Would emitting the gasPrice be useful for someone else building on top?_
+- **Question**: _Should we simply emit individual parts instead of the computed cost? Would emitting the baseFee & gasPrice be useful for someone else building on top?_
 
 New Event:
 
 ```solidity
-event RelayedMessageGasReceipt(bytes32 indexed msgHash, bytes32 indexed rootMsgHash, uint256 indexed depth, address indexed txOrigin, uint256 baseFee, uint256 gasUsed)
+event RelayedMessageGasReceipt(bytes32 indexed msgHash, bytes32 indexed rootMsgHash, uint256 indexed depth, address indexed txOrigin, address relayer, uint256 cost)
 ```
 
 ```solidity
 function relayMessage(...) {
     uint256 _gasLeft = gasLeft()
     _ = target.call{ value: msg.value }(message);
-    uint256 gasUsed = _gasLeft - gasLeft();
+    uint256 gasUsed = (_gasLeft - gasLeft()) + RELAY_MESSAGE_OVERHEAD;
+
+    address relayer = msg.sender;
+    uint256 cost = block.basefee * gasUsed;
 
     // there will always be populated context when relaying.
     (,,bytes ctx memory) = crossDomainMessageContext();
     (bytes32 rootMsgHash, address txorigin, uint256 depth) = _decodeContext(ctx);
-    emit RelayedMessageGasReceipt(msgHash, rootMsgHash, depth, txorigin, block.basefee, gasUsed + RELAY_MESSAGE_OVERHEAD);
+
+    emit RelayedMessageGasReceipt(msgHash, rootMsgHash, depth, txorigin, relayer, cost);
 }
 ```
 
