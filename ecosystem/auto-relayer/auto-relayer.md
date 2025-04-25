@@ -130,7 +130,7 @@ For claiming refunds from the gas tank for relayers, a queue based approach will
 Each EOA will handle one transaction at a time. Once the tx has been confirmed and the receipt has been fetched, then the EOA will be released to handle another transaction.
 
 ### Stuck transactions
-If a transaction is attempted, but the gas is not set high enough and the transaction becomes stuck in the mempool, then the EOA used by the worker will be marked as being in a stuck state. A separate job will be created that will be responsible for canceling the stuck transaction. Once unstuck, the EOA will be marked as healthy and will be free to start picking up relay transactions from the queue again.
+If a transaction is attempted, but the gas is not set high enough and the transaction becomes stuck in the mempool, then the EOA used by the worker will be marked as being in a stuck state and the pending message will be placed back on the queue so that the transaction can be attempted again. A separate job will be created that will be responsible for canceling the stuck transaction. Once unstuck, the EOA will be marked as healthy and will be free to start picking up relay transactions from the queue again.
 
 ### Transaction Reverts
 **_Open question: if a relay transaction reverts, how should we surface this to the user and what should the retry strategy be?_**
