@@ -127,7 +127,7 @@ For claiming refunds from the gas tank for relayers, a queue based approach will
 4. Updates whether the claim succeeded or failed in the `Refunds` table in  `event-log-indexer-postgres`.
 
 ### Nonce management
-Each EOA will handle one transaction at a time. Once the transaction has been confirmed and the receipt has been fetched, then the EOA will be released to handle another transaction.
+Each EOA will handle one transaction at a time. Once the transaction has been confirmed and the receipt has been fetched, then the EOA will be released to handle another transaction. If a transaction gets stuck, then that worker is marked as stuck and then placed on a job queue which handles canceling the stuck transaction and then marking the worker as healthy, so that it can begin picking up new transactions again.
 
 ### Stuck transactions
 If a transaction is attempted, but the gas is not set high enough and the transaction becomes stuck in the mempool, then the EOA used by the worker will be marked as being in a stuck state and the pending message will be placed back on the queue so that the transaction can be attempted again. A separate job will be created that will be responsible for canceling the stuck transaction. Once unstuck, the EOA will be marked as healthy and will be free to start picking up relay transactions from the queue again.
