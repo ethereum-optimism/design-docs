@@ -16,18 +16,18 @@ This document outlines the architecture of an offchain service that will automat
 
 The following components are needed to autorelay `L2toL2CrossDomainMessenger` messages:
 - Indexer - indexes `L2toL2CrossDomainMessenger` messages. This is needed for finding new messages that need to be relayed and for tracking messages that have already been relayed.
-- Tx relayer processor - this handles sending `L2toL2CrossDomainMessenger#relayMessage` txs.
+- Tx relayer processor - this handles sending `L2toL2CrossDomainMessenger#relayMessage` transactions.
 - Gas refund processor - refunds the gas paid by the tx sender using the [gas receipt](https://github.com/ethereum-optimism/design-docs/pull/266/) of the relay tx and the [fee vault](https://github.com/ethereum-optimism/design-docs/pull/272)
 - Relayer API - supports any API calls from external consumers. For example: status of messages, relay metadata (successes, failures, retries, etc.), relayer management. 
 
 ## Problem Statement + Context
 
-In order to perform an interop action that requires a message sent from the source chain to be executed on a destination chain, two txs are required - one for initiating the message on the source and a second for executing the message on the destination. Developers seeking to build seamless interoperable UX in their apps, will integrate with the auto-relayer in order to deliver a smooth user experience where crosschain transactions are auto-executed.
+In order to perform an interop action that requires a message sent from the source chain to be executed on a destination chain, two transactions are required - one for initiating the message on the source and a second for executing the message on the destination. Developers seeking to build seamless interoperable UX in their apps, will integrate with the auto-relayer in order to deliver a smooth user experience where crosschain transactions are auto-executed.
 
 The following considerations must be taken into account when building the autorelayer:
 - Scalable: the service needss to be able to scale to meet the needs of many apps and to handle a high transaction throughput. Thus it must be designed in such a way that it can be scaled to meet increased demands.
-- Robust: applications will be depending on these txs to go through, therefore, this service must be reliable and therefore, monitoring and graceful error handling is important.
-- Speed: Applications will expect a "single" tx experience, therefore, the relayer should strive to relay txs as quickly as they become available.
+- Robust: applications will be depending on these transactions to go through, therefore, this service must be reliable and therefore, monitoring and graceful error handling is important.
+- Speed: Applications will expect a "single" tx experience, therefore, the relayer should strive to relay transactions as quickly as they become available.
 - Cost Efficient: the service must optimize both operational costs and users fees to ensure economic viability for operators and affordability for users.
 
 ## Proposed Solution
@@ -112,7 +112,7 @@ db: `relayer-postgres`
 The most significant source of resource usage for the database will be the indexing of all `SentMessage` and `RelayMessage` events from the `L2toL2CrossDomainMessenger`. Initially we will store all of these events without a retention period, however, as resource usage increases we can make optimizations to remove messages that have expired or are no longer needed because they have been relayed.
 
 ### Tx submission
-For submitting relay txs a queue based approach will be utilized. The queue will be configured with n workers that will have access to funded EOA's that can be used for submitting txs. The tx flow will be as follows:
+For submitting relay transactions a queue based approach will be utilized. The queue will be configured with `n` workers that will have access to a dedicate EOA that will be used for submitting transactions. The tx flow will be as follows:
 1. Tx Relayer Processor polls for a batch of unrelayed messages from the `event-log-indexer-postgres`.
 2. The messages are placed on the queue and grouped by `rootMessageHash`
 3. Worker takes a message off the queue and runs validation checks (i.e. simulation, gas tank balance, etc) on it prior to submitting it on chain
@@ -120,7 +120,7 @@ For submitting relay txs a queue based approach will be utilized. The queue will
 5. If the relay succeeded, adds an entry for a pending refund to the `Refunds` table in  `event-log-indexer-postgres`.
 
 ### Gas refunding
-For claiming refunds from the gas tank for relayers, a queue based approach will be utilized. The queue will be configured with n workers that will have access to funded EOA's that can be used for claiming refunds. It is important that these workers use different EOA's than the workers used for submitting relay txs in order to avoid congestion. The flow will be as follows:
+For claiming refunds from the gas tank for relayers, a queue based approach will be utilized. The queue will be configured with `n` workers that will have access to a dedicate EOA that can be used for claiming refunds. It is important that these workers use different EOA's than the EOA's used by the workers for submitting relay transactions in order to avoid congestion. The flow will be as follows:
 1. Gas Refund Processor polls for a batch of pending refunds from the `Refunds` table in `event-log-indexer-postgres`.
 2. Pending refund jobs are placed on the queue.
 3. Worker processes a job and submits a claim tx for the given message, using the message identifier.
