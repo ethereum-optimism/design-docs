@@ -10,7 +10,9 @@
 
 ## Purpose
 
-This document outlines the architecture of an offchain service that will automatically relay messages sent through the `L2toL2CrossDomainMessenger#sendMessage` function to the appropriate destination chain.
+This document outlines the architecture of an offchain service that will automatically relay messages sent through the `L2toL2CrossDomainMessenger#sendMessage` function to the appropriate destination chain. 
+
+**Disclaimer: to keep this document focused, this is  scoped to focus only on relays of `L2toL2CrossDomainMessenger` messages, follow on design docs will explore relaying of other transaction types.**
 
 ## Summary
 
