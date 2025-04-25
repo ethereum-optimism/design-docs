@@ -151,7 +151,7 @@ In order to make sure that this is running efficiently the following will be mon
 - Balance on each wallet
 - Drip transaction failures
 
-This approach provides easier management of funds. Instead of having to individually fund each wallet, just have to make sure one contract on each chain is funded.
+This approach provides easier management of funds because only one contract on each chain needs to remain funded instead of having to individually fund each wallet used by the relayer.
 
 ### Logging and Alerting
 The following metrics will be used in order to track the overall health of the relayer and to configure alerting:
