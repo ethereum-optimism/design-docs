@@ -108,6 +108,11 @@ db: `relayer-postgres`
 | result | enum |
 | relayer | string |
 
+### Libraries
+- [Ponder](https://github.com/ponder-sh/ponder) for indexing of onchain events.
+- [Bullmq](https://github.com/taskforcesh/bullmq) for message queue.
+- Postgres database. 
+
 ### Resource Usage
 
 #### Database Resource Usage
@@ -127,6 +132,13 @@ For claiming refunds from the gas tank for relayers, a queue based approach will
 2. Pending refund jobs are placed on the queue.
 3. Worker processes a job and submits a claim transaction for the given message, using the message identifier.
 4. Updates whether the claim succeeded or failed in the `Refunds` table in  `event-log-indexer-postgres`.
+
+### Indexing
+Ponder will be used for indexing. The following events will be indexed by ponder:
+- `SentMessage`: Emitted by `L2toL2CrossDomainMessenger` whenever a message is sent to a destination.
+- `RelayedMessageGasReceipt`: Emitted by `L2toL2CrossDomainMessenger` whenever a message is relayed.
+- `Claim`: Emitted by `L2ToL2CrossDomainGasTank` when a refund is claimed.
+- `Deposit`: Emitted by `L2ToL2CrossDomainGasTank` when funds are deposited.
 
 ### Nonce management
 Each EOA will handle one transaction at a time. Once the transaction has been confirmed and the receipt has been fetched, then the EOA will be released to handle another transaction. If a transaction gets stuck, then that worker is marked as stuck and then placed on a job queue which handles canceling the stuck transaction and then marking the worker as healthy, so that it can begin picking up new transactions again.
