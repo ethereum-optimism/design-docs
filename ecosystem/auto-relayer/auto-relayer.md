@@ -168,6 +168,7 @@ The following metrics will be used in order to track the overall health of the r
 
 ### Gas Price
 **_Open question: do we need to allow a max gas price to be specified per message?_**
+
 **_Open question: are we okay with the relayer paying the priority fee and not being refunded for it?_**
 
 The gas fee charged by the relayer is based on `block.basefee` and not the `tx.gasprice` (see [#266](https://github.com/ethereum-optimism/design-docs/pull/266/files)), which means that the priority fee set by the relayer will not be charged to the user. In later iterations of this service, we will consider exploring a priority fee mechanism, where users can leverage a priority fee in order to increase the speed at which their messages are relayed.
