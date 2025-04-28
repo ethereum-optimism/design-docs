@@ -95,6 +95,3 @@ An earlier proposal involving distinct "Creator" contracts for each `GameType` w
 # Risks & Uncertainties
 
 The primary risk with this proposed approach lies in the configuration of the `DisputeGameFactory.sol`. Since the factory would be responsible for providing the correct chain-specific parameters (`gameArgs`) for each `GameType`, any misconfiguration (e.g., incorrect addresses, IDs, or improperly encoded `bytes`) would result in incorrectly configured `FaultDisputeGame` proxies being created. Careful deployment and verification procedures for setting `gameArgs` would be crucial.
-
-Additionally, while using a single canonical implementation would reduce deployment overhead and potential for divergent implementations, it also concentrates risk. A bug in the single `FaultDisputeGame.sol` implementation would affect all chains using it, compared to the current model where a bug might be isolated to a specific chain's deployment. Thorough auditing and testing of the canonical implementation would be paramount.
-
