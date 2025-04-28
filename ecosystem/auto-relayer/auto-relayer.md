@@ -179,6 +179,7 @@ The following metrics will be used in order to track the overall health of the r
 - memory available on tx relayer processor redis
 - memory available on gas refund processor redis
 - time between message sent and message relayed
+- balance of Drippie contracts
 
 ### Gas Price
 **_Open question: do we need to allow a max gas price to be specified per message?_**
