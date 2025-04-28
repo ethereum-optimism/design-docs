@@ -1,6 +1,6 @@
 # Purpose
 
-The current fault-proof system requires a redeployment of the `DisputeGame.sol`, `DisputeGameFactory.sol`, and `AnchorStateRegistry.sol`. Due to chain-specific immutable variables (like `_weth`, `_anchorStateRegistry`, `_l2ChainId`) in its constructor. This necessitates redeploying associated `DisputeGameFactory.sol` and `AnchorStateRegistry.sol` contracts as well. This document proposes changes to simplify the Fault Dispute Game contract setup, enabling reuse of a single implementation across chains by externalizing chain-specific configuration.
+The current fault-proof system requires a redeployment of the `DisputeGame.sol`, `DisputeGameFactory.sol`, and `AnchorStateRegistry.sol` for new L2 chains due to chain-specific immutable variables (like `_weth`, `_anchorStateRegistry`, `_l2ChainId`) in their constructor. This document proposes changes to simplify the Fault Dispute Game contract setup, enabling reuse of a single implementation across chains by moving the chain-specific configuration from immutable variables stored as immutable variables to variables stored as part of the payload for clones with immutable args (CWIA).
 
 # Summary
 
@@ -16,7 +16,7 @@ An important nuance here is that each `FaultDisputeGame.sol` deployment has both
 
 # Proposed Solution
 
-To address this, it is proposed that the `FaultDisputeGame.sol` contract be modified to remove chain-specific immutable variables (like `WETH`, `ANCHOR_STATE_REGISTRY`, `L2_CHAIN_ID`, etc.). Instead, these configuration parameters should be read dynamically from the `clones-with-immutable-args` (CWIA) data payload.
+The `FaultDisputeGame.sol` contract be modified to remove chain-specific immutable variables (like `WETH`, `ANCHOR_STATE_REGISTRY`, `L2_CHAIN_ID`, etc.). Instead, these configuration parameters should be read dynamically from the `clones-with-immutable-args` (CWIA) data payload.
 
 The `DisputeGameFactory.sol` should be updated to facilitate this. It would include a `gameArgs` mapping (`GameType => bytes`) to store the necessary chain-specific configuration data for each game type. When `create()` is called, the factory would retrieve the appropriate `gameArgs` for the requested `GameType`, concatenate it with the game-specific data (`rootClaim`, `extraData`, etc.), and pass this combined `bytes` payload to the `clone` function.
 
