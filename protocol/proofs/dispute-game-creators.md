@@ -95,3 +95,5 @@ An earlier proposal involving distinct "Creator" contracts for each `GameType` w
 # Risks & Uncertainties
 
 The primary risk with this proposed approach lies in the configuration of the `DisputeGameFactory.sol`. Since the factory would be responsible for providing the correct chain-specific parameters (`gameArgs`) for each `GameType`, any misconfiguration (e.g., incorrect addresses, IDs, or improperly encoded `bytes`) would result in incorrectly configured `FaultDisputeGame` proxies being created. Careful deployment and verification procedures for setting `gameArgs` would be crucial.
+
+An additional risk worth noting is the increased cost for deployment of the CWIA proxies due to appending additional bytes data to the end of the proxy. We are increasing the bytecode size of these proxies by roughly 250 bytes.  This implies an increase in deployment cost of about 200 gas / byte * 250 bytes or about 50,000 gas.
