@@ -23,7 +23,7 @@
 
 ## Introduction
 
-This document covers _[project name, high-level summary of the project, and scope of this analysis]._
+This document covers an upgrade to the OP Stack that includes a number of changes to the pausing system to prepare the stack to match the stage framework changes that L2Beat will do in the middle of 2025. The scope of this audit contest includes the contracts that are being modified as part of this proposed upgrade as well as any other contract whose behavior would be impacted by the modifications. Bugs found as part of this contest that are not part of any modified code (i.e., bugs that exist in the currently deployed production smart contracts) should be reported via the Optimism Immunefi program.
 
 Below are references for this project:
 
@@ -38,9 +38,8 @@ Below are references for this project:
 - **Description:** If the system's pause mechanism fails or is not properly implemented, the system cannot be paused in case of emergencies, potentially leading to continued operation during critical issues.
 - **Risk Assessment:** High impact, low likelihood
 - **Mitigations:** 
-  1. Implement robust pause mechanism with multiple authorized addresses
-  2. Testing of pause functionality
-  3. Clear documentation of pause procedures
+  1. Testing of pause functionality
+  2. Clear documentation of pause procedures
 - **Detection:** 
   - Monitoring of pause-related events
 - **Recovery Path(s)**: 
@@ -53,9 +52,8 @@ Below are references for this project:
 - **Description:** If the system's unpause mechanism fails, the system remains paused indefinitely, causing service disruption and potential loss of user access.
 - **Risk Assessment:** High impact, low likelihood
 - **Mitigations:**
-  1. Implement robust unpause mechanism
-  2. Testing of unpause functionality
-  3. Clear documentation of unpause procedures
+  1. Testing of unpause functionality
+  2. Clear documentation of unpause procedures
 - **Detection:**
   - Monitoring of unpause-related events
 - **Recovery Path(s)**:
@@ -75,8 +73,7 @@ Below are references for this project:
   - Post-upgrade monitoring and verification
   - Verify proxy and implementation contracts through automated checks in the superchain-ops task
 - **Recovery Path(s)**:
-  - If upgrade fails, system may need to be rolled back
-  - Emergency fix deployment may be required
+  - If upgrade fails, system may need to be upgraded again
 
 ### Generic items we need to take into account:
 
