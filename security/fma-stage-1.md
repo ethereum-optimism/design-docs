@@ -103,9 +103,9 @@ The following contracts require an audit before production:
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
-- [ ] FM1: Provide tests.
+- [x] FM1: Provide tests.
 - [ ] FM1: Provide monitoring solutions.
-- [ ] FM2: Provide tests.
+- [x] FM2: Provide tests.
 - [ ] FM2: Provide monitoring solutions.
-- [ ] FM3: Provide tests.
+- [x] FM3: Provide tests.
 - [x] Schedule audit and prepare docs
