@@ -8,6 +8,7 @@
   - [[FM1: System Cannot Be Paused]](#fm1-system-cannot-be-paused)
   - [[FM2: System Cannot Be Unpaused]](#fm2-system-cannot-be-unpaused)
   - [[FM3: Upgrade Process Bug]](#fm3-upgrade-process-bug)
+  - [[FM4: Invalid identifier on pause]](#fm4-invalid-identifier-on-pause)
 - [Audit Requirements](#audit-requirements)
 - [Action Items](#action-items)
 
@@ -23,7 +24,7 @@
 
 ## Introduction
 
-This document covers an upgrade to the OP Stack that includes a number of changes to the pausing system to prepare the stack to match the stage framework changes that L2Beat will do in the middle of 2025. The scope of this audit contest includes the contracts that are being modified as part of this proposed upgrade as well as any other contract whose behavior would be impacted by the modifications. Bugs found as part of this contest that are not part of any modified code (i.e., bugs that exist in the currently deployed production smart contracts) should be reported via the Optimism Immunefi program.
+This document covers an upgrade to the OP Stack that includes a number of changes to the pausing system to prepare the stack to match the stage framework changes that L2Beat will do in the middle of 2025.
 
 Below are references for this project:
 
@@ -75,6 +76,18 @@ Below are references for this project:
 - **Recovery Path(s)**:
   - If upgrade fails, system may need to be upgraded again
 
+
+### FM4: Invalid identifier on pause
+- **Description:** If somehow the identifier used in the pause mechanism of the superchain config receives an invalid value, the pause mechanism will not be triggered for the right cluster of the superchain.
+- **Risk Assessment:** Medium impact, low likelihood
+- **Mitigations:**
+  1. Always call the pause function through the SystemConfig contract, that gets the identifier (EthLockbox) from the OptimismPortal2 contract.
+- **Detection:**
+  - Post-upgrade monitoring and verification
+- **Recovery Path(s)**:
+  1. Unpausing the invalid identifier
+  2. Pausing the correct identifier
+
 ### Generic items we need to take into account:
 
 See [fma-generic-contracts.md](https://github.com/ethereum-optimism/design-docs/blob/main/security/fma-generic-contracts.md).
@@ -110,4 +123,5 @@ Below is what needs to be done before launch to reduce the chances of the above 
 - [ ] FM2: Provide monitoring solutions.
 - [ ] FM2: Demonstrate pause functionality in a production environment.
 - [x] FM3: Provide tests.
+- [x] FM4: Provide tests.
 - [x] Schedule audit and prepare docs
