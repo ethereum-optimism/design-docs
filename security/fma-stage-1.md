@@ -105,7 +105,9 @@ Below is what needs to be done before launch to reduce the chances of the above 
 
 - [x] FM1: Provide tests.
 - [ ] FM1: Provide monitoring solutions.
+- [ ] FM1: Demonstrate pause functionality in a production environment.
 - [x] FM2: Provide tests.
 - [ ] FM2: Provide monitoring solutions.
+- [ ] FM2: Demonstrate pause functionality in a production environment.
 - [x] FM3: Provide tests.
 - [x] Schedule audit and prepare docs
