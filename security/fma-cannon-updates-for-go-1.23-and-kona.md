@@ -58,32 +58,60 @@ Below are references for this project:
 
 **_Use one sub-header per failure mode, so the full set of failure modes is easily scannable from the table of contents._**
 
-### FM1: [Name of Failure Mode 1]
+### FM1: Toggles are incorrectly deployed or implemented causing features to be incorrectly toggled off
 
-- **Description:** _Details of the failure mode go here. What the causes and effects of this failure?_
-- **Risk Assessment:** _Simple low/medium/high rating of impact (severity) + likelihood._
-- **Mitigations:** _What mechanisms are in place, or what should we add, to:_
-  1. _reduce the chance of this occurring?_
-  2. _reduce the impact of this occurring?_
+- **Description:** A [feature toggle](https://github.com/ethereum-optimism/optimism/pull/15487) (actually it toggles the supported version of the VM, not individual features) was added. The contract could be deployed with the wrong version.
+- **Risk Assessment:** low
+- **Mitigations:**
+  1. The version number is checked in the constructor, and currently it's required to be 7 (the latest version) so we shouldn't be able to deploy MIPS64.sol with the wrong version.
+  2. This logic is fairly simple, it's just a check against the version number to enable features, so it's easy to reason about and low risk of being implemented incorrectly.
 - **Detection:** _How do we detect if this occurs?_
 - **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
 
-### FM2: [Name of Failure Mode 2]
+### FM2: Stack depth-related refactoring with new dclo/dclz instructions introduced a bug
 
-- **Description:** _Details of the failure mode go here. What the causes and effects of this failure?_
+- **Description:** Arguments were consolidated into a struct to avoid "stack too deep" issues. 
+- **Risk Assessment:** low
+  **Mitigations:** 
+  1. We have comprehensive differential testing on all VM instructions, which should catch any potential refactoring-related bugs
+  2. This is a trivial refactoring
+- **Detection:** We rely on our tests.
+- **Recovery Path(s)**: It would require fixing the bug and upgrading the contract.
+
+### FM3: New dclo/dclz instructions are incorrectly implemented
+
+- **Description:** There are two new instructions, there could be a bug in the implementation. They aren't used by op-program, but would be used if we ever deployed Kona on Cannon.
+- **Risk Assessment:** low
+  **Mitigations:** 
+  1. These instructions aren't emitted by the Go compiler, so behavior should not affect the VM when running op-program
+  2. If we ever do deploy Kona on Cannon we will do more testing, including running it on mainnet data for weeks in VM Runner.
+- **Detection:** The program would crash if it used those instructions and they were incorrectly implemented.
+- **Recovery Path(s)**: It would require fixing the bug and upgrading the contract.
+
+### FM4: Incomplete Go 1.23 support (missing syscalls)
+
+- **Description:** It's possible that the Go 1.23 compiler uses additional syscalls that we haven't noticed and they aren't implemented.
+- **Risk Assessment:** low
+  **Mitigations:**
+  1. We have been running op-challenger-runner on production data for several weeks with the new VM
+- **Detection:** We rely on our tests.
+- **Recovery Path(s)**: It would require fixing the bug and upgrading the contract.
+
+### FM5: eventfd noop insufficient for Go 1.23 suppport
+
+- **Description:** the eventfd syscall was implemented as a noop, because it was determined that it won't be used by op-program even though there is a reference to it in the binary.
 - **Risk Assessment:** _Simple low/medium/high rating of impact (severity) + likelihood._
   **Mitigations:** _What mechanisms are in place, or what should we add, to:_
-  1. _reduce the chance of this occurring?_
-  2. _reduce the impact of this occurring?_
-- **Detection:** _How do we detect if this occurs?_
-- **Recovery Path(s)**: _How do we resolve this? Is it a simple, quick recovery or a big effort? Would recovery require a governance vote or a hard fork?_
+  1. We have been running op-challenger-runner on production data for several weeks with the new VM
+- **Detection:** We rely on our tests.
+- **Recovery Path(s)**: It would require fixing the bug and upgrading the contract.
 
 ### Generic items we need to take into account:
 
 See [generic hardfork failure modes](./fma-generic-hardfork.md) and [generic smart contract failure modes](./fma-generic-contracts.md).
 Incorporate any applicable failure modes with FMA-specific mitigations and detections directly into this document.
 
-- [ ] Check this box to confirm that these items have been considered and updated if necessary.
+- [x] Check this box to confirm that these items have been considered and updated if necessary.
 
 ## Action Items
 
