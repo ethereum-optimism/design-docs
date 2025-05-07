@@ -73,10 +73,6 @@ The `_args` bytes payload passed to `setImplementation` and stored in `gameArgs`
 bytes memory exampleArgs = abi.encodePacked(
     GameType gameType,              // uint8 (e.g., uint8(0))
     Claim absolutePrestate,         // bytes32
-    uint256 maxGameDepth,           // uint256 (e.g., uint256(2 ** 3))
-    uint256 splitDepth,             // uint256 (e.g., uint256(2 ** 2))
-    Duration clockExtension,        // uint64/Duration (e.g., Duration.wrap(3 hours))
-    Duration maxClockDuration,      // uint64/Duration (e.g., Duration.wrap(3.5 days))
     IBigStepper vm,                 // address
     IDelayedWETH weth,               // address
     IAnchorStateRegistry registry,  // address
