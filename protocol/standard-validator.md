@@ -80,9 +80,53 @@ The `StandardValidator` should correctly handle certain allowable/expected devia
 A non-exhaustive list includes:
 
 - `absolutePrestate`: this value varies for each chain. The [current design](https://github.com/ethereum-optimism/optimism/blob/e62c14e64f08ae3cd82973b41315d5797810569b/packages/contracts-bedrock/src/L1/StandardValidator.sol#L61) accepts this value as an input, so no change is needed.
-- Various roles: the default roles should be hardcoded into the StandardValidator, but calls to `validate()` should optionally override them.
-  - note: The [guardian](https://github.com/ethereum-optimism/optimism/blob/e62c14e64f08ae3cd82973b41315d5797810569b/packages/contracts-bedrock/src/L1/StandardValidator.sol#L138) is not currently checked, and the paused state should not be checked.
-- The Permissionless Dispute Game: [should be optional](https://github.com/ethereum-optimism/optimism/blob/e62c14e64f08ae3cd82973b41315d5797810569b/packages/contracts-bedrock/src/L1/StandardValidator.sol#L368).
+- Various roles: the default roles should be hardcoded into the StandardValidator, but calls to
+  `validate()` should optionally override them.
+  - note: The
+    [guardian](https://github.com/ethereum-optimism/optimism/blob/e62c14e64f08ae3cd82973b41315d5797810569b/packages/contracts-bedrock/src/L1/StandardValidator.sol#L138)
+    is not currently checked, and the paused state should not be checked.
+- The Permissionless Dispute Game: [should be
+  optional](https://github.com/ethereum-optimism/optimism/blob/e62c14e64f08ae3cd82973b41315d5797810569b/packages/contracts-bedrock/src/L1/StandardValidator.sol#L368).
+
+A small mock up of the implementation approach to allow overridng specific values, focusing on the
+`guardian` value is below:
+
+```solidity
+contract StandardGuardianValidator {
+  struct ValidationInput {
+    IProxyAdmin proxyAdmin;
+    ISystemConfig sysCfg;
+    uint256 l2ChainID;
+  }
+
+  struct ValidationOverrides {
+    address guardian;
+  }
+
+  address immutable GUARDIAN;
+  ISuperchainConfig immutable SUPERCHAIN_CONFIG;
+
+  constructor(address _guardian, ISuperchainConfig _superchainConfig) public {
+    GUARDIAN = _guardian;
+    SUPERCHAIN_CONFIG = _superchainConfig;
+  }
+
+  function expectedGuardian(ValidationOverrides memory _overrides) public view returns (address) {
+    if (_overrides.guardian != address(0)) {
+      return _overrides.guardian;
+    }
+    return GUARDIAN;
+  }
+
+  function validate(
+    bool _allowFailure
+    ValidationInput memory _input,
+    ValidationOverrides memory _overrides
+  ) public view returns (string memory _errors) {
+    _errors = internalRequire(superchainConfig.guardian() == expectedGuardian(_overrides), "SPRCFG-10", _errors);
+  }
+}
+```
 
 ### Post-upgrade 16 work
 
