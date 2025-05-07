@@ -71,7 +71,6 @@ The `_args` bytes payload passed to `setImplementation` and stored in `gameArgs`
 ```solidity
 // Example _args construction (conceptual, order based on implementation tests)
 bytes memory exampleArgs = abi.encodePacked(
-    GameType gameType,              // uint8 (e.g., uint8(0))
     Claim absolutePrestate,         // bytes32
     IBigStepper vm,                 // address
     IDelayedWETH weth,               // address
