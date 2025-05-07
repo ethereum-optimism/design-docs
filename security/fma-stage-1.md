@@ -7,8 +7,9 @@
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
   - [[FM1: System Cannot Be Paused]](#fm1-system-cannot-be-paused)
   - [[FM2: System Cannot Be Unpaused]](#fm2-system-cannot-be-unpaused)
-  - [[FM3: Upgrade Process Bug]](#fm3-upgrade-process-bug)
-  - [[FM4: Invalid identifier on pause]](#fm4-invalid-identifier-on-pause)
+  - [[FM3: Invalid identifier on pause]](#fm3-invalid-identifier-on-pause)
+  - [[FM4: Outdated Runbooks for Pause Mechanism]](#fm4-outdated-runbooks-for-pause-mechanism)
+  - [[FM5: Unintended Unpause During Lockbox Changes / Upgrades]](#fm5-unintended-unpause-during-lockbox-changes)
 - [Audit Requirements](#audit-requirements)
 - [Action Items](#action-items)
 
@@ -47,6 +48,10 @@ Below are references for this project:
   - If pause mechanism fails, immediate governance action may be required
   - May require emergency upgrade to fix pause mechanism
   - Consider implementing backup pause mechanisms
+- **Action Item(s)**:
+  - [x] FM1: Provide tests.
+  - [ ] FM1: Provide monitoring solutions.
+  - [ ] FM1: Demonstrate pause functionality in a production environment.
 
 ### FM2: System Cannot Be Unpaused
 
@@ -61,32 +66,58 @@ Below are references for this project:
   - If unpause mechanism fails, immediate governance action may be required
   - May require emergency upgrade to fix unpause mechanism
   - Consider implementing backup unpause mechanisms
+- **Action Item(s)**:
+- [x] FM2: Provide tests.
+- [ ] FM2: Provide monitoring solutions.
+- [ ] FM2: Demonstrate pause functionality in a production environment.
 
-### FM3: Upgrade Process Bug
+### FM3: Invalid identifier on pause
 
-- **Description:** If there is a bug in the upgrade process or implementation, it could lead to incorrect behavior, or complete system failure.
-- **Risk Assessment:** High impact, medium likelihood
-- **Mitigations:**
-  1. Comprehensive testing of upgrade process
-  2. Multiple deployments before mainnet
-  3. Refer to [fma-generic-contracts](https://github.com/ethereum-optimism/design-docs/blob/main/security/fma-generic-contracts.md), items applies to this case. Any new implementation must go through the audit and testing. Upgrades should not be regular in this contract and it should maintain minimal code. Upgrade procedures and keys must follows the proper security practices.
-- **Detection:**
-  - Post-upgrade monitoring and verification
-  - Verify proxy and implementation contracts through automated checks in the superchain-ops task
-- **Recovery Path(s)**:
-  - If upgrade fails, system may need to be upgraded again
-
-
-### FM4: Invalid identifier on pause
 - **Description:** If somehow the identifier used in the pause mechanism of the superchain config receives an invalid value, the pause mechanism will not be triggered for the right cluster of the superchain.
 - **Risk Assessment:** Medium impact, low likelihood
 - **Mitigations:**
-  1. Always call the pause function through the SystemConfig contract, that gets the identifier (EthLockbox) from the OptimismPortal2 contract.
+  1. Always call the pause function through our tooling, that gets the identifier (EthLockbox) from the OptimismPortal2 contract.
 - **Detection:**
   - Post-upgrade monitoring and verification
 - **Recovery Path(s)**:
   1. Unpausing the invalid identifier
   2. Pausing the correct identifier
+- **Action Item(s)**:
+- [x] FM3: Provide tests.
+
+### FM4: Outdated Runbooks for Pause Mechanism
+
+- **Description:** If runbooks and documentation for the pause mechanism are not updated to reflect the new system architecture and pause procedures, operators may not know how or when to use the pause functionality correctly, leading to delayed or incorrect responses during emergencies.
+- **Risk Assessment:** High impact, medium likelihood
+- **Mitigations:**
+  1. Maintain up-to-date runbooks with clear procedures
+  2. Regular training sessions for operators
+- **Detection:**
+  - Review of runbook accuracy when doing changes
+  - Feedback from operator training sessions
+- **Recovery Path(s)**:
+  1. Immediate update of runbooks
+  2. Emergency communication to operators
+  3. Conduct emergency training if needed
+- **Action Item(s)**:
+  - [ ] FM4: Create comprehensive runbook for pause procedures
+  - [ ] FM4: Conduct operator training on pause procedures
+
+### FM5: Unintended Unpause During Lockbox Changes / Upgrades
+
+- **Description:** If users change their lockbox or perform upgrades while the system is paused, it could trigger an unpause of the system. This could lead to premature resumption of operations before the original issue that caused the pause has been resolved.
+- **Risk Assessment:** High impact, medium likelihood
+- **Mitigations:**
+  1. Be careful when doing lockbox changes or upgrades.
+  2. Add information to the runbooks about this.
+- **Detection:**
+  - Monitor lockbox change events during pause periods
+- **Recovery Path(s)**:
+  1. Immediate re-pause if unintended unpause occurs
+  2. Emergency communication to affected users
+  3. Implement additional safeguards to prevent future occurrences
+- **Action Item(s)**:
+  - [ ] FM5: Document pause-aware upgrade procedures
 
 ### Generic items we need to take into account:
 
@@ -114,14 +145,4 @@ The following contracts require an audit before production:
 
 ## Action Items
 
-Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
-
-- [x] FM1: Provide tests.
-- [ ] FM1: Provide monitoring solutions.
-- [ ] FM1: Demonstrate pause functionality in a production environment.
-- [x] FM2: Provide tests.
-- [ ] FM2: Provide monitoring solutions.
-- [ ] FM2: Demonstrate pause functionality in a production environment.
-- [x] FM3: Provide tests.
-- [x] FM4: Provide tests.
 - [x] Schedule audit and prepare docs
