@@ -1,63 +1,75 @@
-# Interop Monitoring
+# Interop Monitoring Service
 
 |                    |                                                    |
 | ------------------ | -------------------------------------------------- |
-| Author             | _Mark Tyneway_                                     |
+| Author             | _Mark Tyneway, Axel Kingsley_                                     |
 | Created at         | _2025-03-19_                                       |
-| Initial Reviewers  | _Reviewer Name 1, Reviewer Name 2_                 |
-| Need Approval From | _Reviewer Name_                                    |
-| Status             | _Draft_ |
 
 ## Purpose
 
-<!-- This section is also sometimes called “Motivations” or “Goals”. -->
+This document is meant to align on a strategy for monitoring interop and propose a
+Monitoring Service for Executing Messages.
 
-<!-- It is fine to remove this section from the final document,
-but understanding the purpose of the doc when writing is very helpful. -->
+## Summary + Problem Statement + Context
 
-This document is meant to align on a strategy for monitoring interop. Given assumptions in
-the [cloud topology](https://github.com/ethereum-optimism/design-docs/pull/218), it is generally
-not possible to guarantee that invalid `ExecutingMessage`s do not finalize without multiple
+Given assumptions in the [cloud topology](https://github.com/ethereum-optimism/design-docs/pull/218),
+it is generally not possible to guarantee that invalid `ExecutingMessage`s do not finalize without multiple
 implementations of `op-supervisor`. With only a single implementation, a bug becomes consensus.
 In the worst case, this can mint an infinite amount of ether. Given this risk, we need a monitoring,
 alerting and runbook for handling invalid `ExecutingMessage`s being included in the chain.
 
-## Summary
-
-<!-- Most (if not all) documents should have a summary.
-While the length will likely be proportional to the length of the full document,
-the summary should be as succinct as possible. -->
-
-We implement a monitoring service that validates all of the `ExecutingMessage` logs
-produce by the entire cluster and validates them against transaction access lists
-and remote nodes. We use this service to alert oncall engineers as well as automatically
-pausing the batcher/transaction ingress if an invalid `ExecutingMessage` is included.
-
-## Problem Statement + Context
-
-<!-- Describe the specific problem that the document is seeking to address as well
-as information needed to understand the problem and design space.
-If more information is needed on the costs of the problem,
-this is a good place to that information. -->
-
-We want to be alterted when there is an invalid `ExecutingMessage`. We implement preventative
+We want to be alterted when there is an invalid `ExecutingMessage`. We are implementing preventative
 measures, but the downside risk is existential if an invalid `ExecutingMessage` finalizes,
 so we need to have ways to detect and prevent that.
 
 ## Proposed Solution
 
-<!-- A high level overview of the proposed solution.
-When there are multiple alternatives there should be an explanation
-of why one solution was picked over other solutions.
-As a rule of thumb, including code snippets (except for defining an external API)
-is likely too low level. -->
+We should implement a monitoring service that validates all of the `ExecutingMessage` logs
+produce by the entire cluster and validates them against transaction access lists
+and remote nodes. We use this service to alert oncall engineers as well as potentially automatically
+pausing the batcher/transaction ingress if an invalid `ExecutingMessage` is included.
 
-A service is implemented that is able to observe all blocks and logs produced by the cluster.
-It is responsible for doing two things:
-- Guaranteeing that every executing message has a corresponding access list entry
-- Double checking that every executing message is valid
+This "Cross Message Monitor" should have the following features:
 
-### ExecutingMessages and Access Lists
+### Monitoring Strategies like `dispute-mon`
+
+Dispute Monitor is a service already implemented and deployed for tracking Fault Proof Disputes.
+Rather than just be a simple alert when games are invalid, it serves up various statistics that an operator
+can refer to in order to determine network health:
+- How many games are being monitored, how many of each status
+- How many Incorrect Forecasts or Incorrect Results
+- Warning and Error Logs from the Monitor
+
+Cross Message Monitor can crib directly from these statistics, but focused on Interop:
+- How many Executing Messages emitted by the CrossL2Inbox per block per chain
+- How many `Executing Message`s Messages point at each Chain in the Superchain
+- How many `Executing Message`s are known valid, per safety level
+- How many `Executing Message`s are known invalid, per safety level
+- How many `Executing Message`s are not yet known valid/invalid, per safety level
+- How many `Executing Message`s *changed validity* over time (indicating remote reorg)
+- How many `Executing Message`s were resolved via Block Replacement
+
+Almost all `Executing Message` Metrics emitted by the Cross Message Monitor should have dimensions:
+- What chain the `Executing Message` in question is on
+- What chain the `Executing Message` is referring to (the chain of the initiating message)
+- Timestamp of Block
+
+### Long Term Monitoring of `Executing Message`s
+
+Executing Messages can change validity over the course of the Unsafe Chain,
+data is not allways sufficiently available to validate `Executing Message`s, and transitive `Executing Message`s can
+cause cascades of Valid/Invalid messages.
+
+Therefore, it is insufficent to check a message just once. Instead, every Executing Message
+detected by the Cross Message Monitor will be considered an ongoing process, like games are
+for the Dispute Monitor. From the time the `Executing Message` is discovered, until the `Executing Message` is included by a
+Cross Safe block height which is now L1 finalized, the `Executing Message` should be repeatedly re-checked.
+
+This means that when the status of the `Executing Message` flips, special alerts can be emitted to indicate
+a remote reorg has likely occured. Or, when a single invalid message creates a cascade of
+invalidation, each `Executing Message` can resolve individually.
+
+### Access List Confirmation
 
 The [access list](https://github.com/ethereum-optimism/design-docs/blob/9e919c5b173fe8fc89949b012f6f70a0bc3247f6/protocol/interop-access-list.md)
 design guarantees the fact that all executing messages can be validated without the need to execute the transaction. Any calls to the `CrossL2Inbox`
@@ -68,13 +80,14 @@ Given that the decided upon approach depends strictly on the current EVM resourc
 monitoring to alert us if someone is able to trick the `CrossL2Inbox` into producing an `ExecutingMessage` when the access list entry is
 not declared. We think this is impossible, but given this is such a critical security property, it is important to monitor.
 
-### Double Checking Message Validity
+Each message can be checked for this once, when it is detected and added to the monitoring set.
+
+### Alert Behaviors
+
+Though it will need evaluation over time, we already know the sorts of operator responses we want when certain situations are detected
+by the monitor.
 
 #### Unsafe Blocks
-
-We want to utilize the cloud architecture in [this doc](https://github.com/ethereum-optimism/design-docs/pull/218) to ensure that
-no invalid `ExecutingMessage`s are ever included in a block. No matter what tradeoffs we make, it is impossible to guarantee there
-will not be a contingent reorg because an unsafe head reorg can happen after all cross chain transaction validity checks passed.
 
 We want to be able to detect when an invalid `ExecutingMessage` is included in an unsafe block and trigger an altert to the
 oncall engineering team. Additionally, we should consider pausing the batcher automatically if an invalid `ExecutingMessage`
@@ -91,42 +104,31 @@ remote chain goes through its unsafe head reorg, then it can open up its cross c
 
 #### Safe/Finalized Blocks
 
-If an invalid `ExecutingMessage` ends up in a safe block, that means that a bug becomes consensus (without multiclient).
-This is very bad. Our monitoring should be able to observe this. The worst case thing that can happen in this case is
-an attacker uses a fast liquidity bridge like Across to quickly send funds out of the cluster after the finalization of
-an invalid `ExecutingMessage` that mints a ton of ether out of thin air. If we detect an invalid `ExecutingMessage`
-finalizing to be safe/finalized, we should pause all transaction ingress to the sequencer and effectively stop producing
-blocks. This reduces the chances that the attacker is able to initiate a fast bridge out of the cluster. This strategy
-is aligned with our philosophy of favoring safety over liveness.
+If an invalid `ExecutingMessage` ends up in a safe block, it is an expectation of the Protocol that the block is Invalid,
+and must be replaced with a Deposit Only Block. This situation should page the operator to monitor the situation, and every
+individual invalid `Executing Message` in a Safe Block should be very easy to see and monitor individually. The operator is monitoring
+to ensure a Block Replacement occurs and the invalid messges are no longer known to the chain.
+
+If Cross-Validation should promote the block to Cross-Safe, this is an all-hands-on-deck consensus bug, which would naturally
+have its own alerts associated in addition to the prior expectation of an operator monitoring the situation.
 
 ### Resource Usage
 
-<!-- What is the resource usage of the proposed solution?
-Does it consume a large amount of computational resources or time? -->
+This new service will need minimal CPU/Disk and can be stateless. It will need a connection to one of each Node
+for the Superchain it is monitoring.
 
-A new service needs to be implemented and operated in the cloud. This service
-can be stateless, it mostly needs to do consistent network access to full nodes.
-The cost of the full nodes is going to be the majority of the cost in operating
-this service.
+## Summary of Solution
 
-### Single Point of Failure and Multi Client Considerations
-
-<!-- Details on how this change will impact multiple clients. Do we need to plan for changes to both op-geth and op-reth? -->
-
-This is meant to detect the single source of failure with the `op-supervisor`. Having client diversity
-for monitoring would be a nice to have.
+Create `xmsg-mon` in the image of `dispute-mon` to track all in-flight Executing Messages for a Superchain, for their entire
+Unsafe -> Safe -> Finalized lifecycle. Create Alerting against it which pages operators when Invalid Messages advance into blocks.
 
 ## Alternatives Considered
 
-<!-- List out a short summary of each possible solution that was considered.
-Comparing the effort of each solution -->
+No real alternatives considered. Monitoring should happen as a matter of course when deploying new services.
 
-No real alternatives considered.
+Having additional Cross-Validation software besides Supervisor would lessen the criticality of this software.
 
 ## Risks & Uncertainties
 
-<!-- An overview of what could go wrong.
-Also any open questions that need more work to resolve. -->
-
-- If an invalid `ExecutingMessage` finalizes, it would be a very bad look to roll back the chain. It may be the best solution
-- Need to observe the latency of validating the `ExecutingMessage`s to ensure that this is all feasible
+- The Monitoring Service may be insufficent, and we may not catch what we need to. Real experience will inform updates to this service.
+- The speed of the Monitor may be insufficent for operators to take meaningful action
