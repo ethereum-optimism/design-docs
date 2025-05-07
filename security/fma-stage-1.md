@@ -100,7 +100,7 @@ Below are references for this project:
   2. Emergency communication to operators
   3. Conduct emergency training if needed
 - **Action Item(s)**:
-  - [ ] FM4: Create comprehensive runbook for pause procedures
+  - [ ] FM4: Update the runbook for pause procedures
   - [ ] FM4: Conduct operator training on pause procedures
 
 ### FM5: Unintended Unpause During Lockbox Changes / Upgrades
@@ -117,7 +117,7 @@ Below are references for this project:
   2. Emergency communication to affected users
   3. Implement additional safeguards to prevent future occurrences
 - **Action Item(s)**:
-  - [ ] FM5: Document pause-aware upgrade procedures
+  - [ ] FM5: Update the runbooks to include pause-aware upgrade procedures
 
 ### Generic items we need to take into account:
 
