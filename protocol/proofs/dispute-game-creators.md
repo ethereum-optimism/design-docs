@@ -76,7 +76,6 @@ bytes memory exampleArgs = abi.encodePacked(
     IBigStepper vm,                 // address
     IDelayedWETH weth,               // address
     IAnchorStateRegistry registry,  // address
-    uint256 l2ChainId               // uint256 (e.g., uint256(10))
 );
 ```
 
