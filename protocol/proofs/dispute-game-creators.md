@@ -1,6 +1,6 @@
 # Purpose
 
-The current fault-proof system requires a redeployment of the `DisputeGame.sol`, `DisputeGameFactory.sol`, and `AnchorStateRegistry.sol` for new L2 chains due to chain-specific immutable variables (like `_weth`, `_anchorStateRegistry`, `_l2ChainId`) in their constructor. This document proposes changes to simplify the Fault Dispute Game contract setup, enabling reuse of a single implementation across chains by moving the chain-specific configuration from immutable variables stored as immutable variables to variables stored as part of the payload for clones with immutable args (CWIA).
+The current fault-proof system requires a redeployment of the `DisputeGame.sol`, `DisputeGameFactory.sol`, and `AnchorStateRegistry.sol` for new L2 chains due to chain-specific immutable variables (like `_anchorStateRegistry`) in their constructor. This document proposes changes to simplify the Fault Dispute Game contract setup, enabling reuse of a single implementation across chains by moving the chain-specific configuration from immutable variables stored as immutable variables to variables stored as part of the payload for clones with immutable args (CWIA).
 
 # Summary
 
@@ -25,14 +25,13 @@ This approach would allow a single canonical `FaultDisputeGame` implementation t
 **Illustrative Code Changes:**
 
 *Example: Removing immutable and adding a getter for an CWIA variable in `FaultDisputeGame.sol`*
-
 ```solidity
 // Before (Immutable State Variable):
-IDelayedWETH internal immutable WETH;
+Claim internal immutable ABSOLUTE_PRESTATE_CLAIM;
 
-// After (Removed immutable, added getter to parse the weth address from the CWIA payload):
-function weth() public pure returns (IDelayedWETH weth_) {
-    weth_ = IDelayedWETH(payable(_getArgAddress(0xF1)));
+// After (Removed immutable, added getter to parse the absolute prestate from the CWIA payload):
+function absolutePrestateClaim() public pure returns (Claim claim_) {
+    claim_ = _getArgBytes32(0xF1); // Example offset/ID for absolutePrestate
 }
 ```
 
@@ -73,7 +72,6 @@ The `_args` bytes payload passed to `setImplementation` and stored in `gameArgs`
 bytes memory exampleArgs = abi.encodePacked(
     Claim absolutePrestate,         // bytes32
     IBigStepper vm,                 // address
-    IDelayedWETH weth,               // address
     IAnchorStateRegistry registry,  // address
 );
 ```
