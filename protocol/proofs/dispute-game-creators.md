@@ -1,6 +1,6 @@
 # Purpose
 
-The current fault-proof system requires a redeployment of the `DisputeGame.sol`, `DisputeGameFactory.sol`, and `AnchorStateRegistry.sol` for new L2 chains due to chain-specific immutable variables (like `_anchorStateRegistry`) in their constructor. This document proposes changes to simplify the Fault Dispute Game contract setup, enabling reuse of a single implementation across chains by moving the chain-specific configuration from immutable variables stored as immutable variables to variables stored as part of the payload for clones with immutable args (CWIA).
+The current fault-proof system requires a redeployment of the `DisputeGame.sol`, `DisputeGameFactory.sol`, and `AnchorStateRegistry.sol` for new L2 chains due to chain-specific immutable variables (like `anchorStateRegistry`, `absolutePrestate`) in their constructor. This document proposes changes to simplify the Fault Dispute Game contract setup, enabling reuse of a single implementation across chains by moving the chain-specific configuration from immutable variables stored as immutable variables to variables stored as part of the payload for clones with immutable args (CWIA).
 
 # Summary
 
