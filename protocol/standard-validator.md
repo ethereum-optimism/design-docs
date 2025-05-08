@@ -1,12 +1,12 @@
 # Standard Validator Improvements
 
-|                    |                |
-| ------------------ | -------------- |
-| Author             | Maurelian      |
-| Created at         | 2025-05-07     |
-| Initial Reviewers  | Kelvin Fichter |
-| Need Approval From | Kelvin Fichter |
-| Status             | Draft          |
+|                    |                             |
+| ------------------ | --------------------------- |
+| Author             | Maurelian                   |
+| Created at         | 2025-05-07                  |
+| Initial Reviewers  | Matt Solomon, Blaine Malone |
+| Need Approval From | Kelvin Fichter              |
+| Status             | Draft                       |
 
 ## Purpose
 
