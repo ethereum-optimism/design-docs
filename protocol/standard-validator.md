@@ -177,9 +177,14 @@ another address.
 
 #### 2. Enhance the StandardValidator's status as source of truth.
 
-We should work to include the StandardValidator (as an OPCM component) into the [Configuration Check](https://github.com/ethereum-optimism/OPerating-manual/blob/e1b305a96a0b60515cc1111a26e73e1973d9c34e/Standard%20Rollup%20Charter.md#configuration-check)
-section of the Standard Charter, and if possible remove the links to the specs and registry which
-are currently listed there.
+There are currently 4 places that define parts of the standard config:
+
+- The [Standard Charter](https://github.com/ethereum-optimism/OPerating-manual/blob/e1b305a96a0b60515cc1111a26e73e1973d9c34e/Standard%20Rollup%20Charter.md#role-configuration-exceptions)
+- The [specs configurability section](https://specs.optimism.io/protocol/configurability.html)
+- The StandardValidator contract
+- The TOML files in the [validation/standard directory](https://github.com/ethereum-optimism/superchain-registry/tree/9095778d45a5066649890ee838f87b27062a0d4d/validation/standard) of the superchain registry
+
+We should work to remove as many as these redundant references as possible.
 
 ## Alternatives Considered
 
