@@ -167,7 +167,7 @@ contract StandardGuardianValidator {
 }
 ```
 
-### Post-upgrade 16 work
+### Post-upgrade 16 work (Target: Upgrade 18)
 
 #### 1. OPCM integration:
 
