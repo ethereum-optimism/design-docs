@@ -73,7 +73,7 @@ The `StandardValidator` should:
 - included on the OPCM as an [immutable variable](https://github.com/ethereum-optimism/optimism/blob/e62c14e64f08ae3cd82973b41315d5797810569b/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L1785-L1788)
 - listed in the [standard-versions](https://github.com/ethereum-optimism/superchain-registry/blob/0831c2509152b457d865634616925ca6240b219e/validation/standard/standard-versions-mainnet.toml#L1) toml files
 
-#### 2. Improved validations:
+#### 2. Validation Overrides:
 
 The `StandardValidator` should correctly handle certain allowable/expected deviations.
 
@@ -85,8 +85,6 @@ A non-exhaustive list includes:
   - note: The
     [guardian](https://github.com/ethereum-optimism/optimism/blob/e62c14e64f08ae3cd82973b41315d5797810569b/packages/contracts-bedrock/src/L1/StandardValidator.sol#L138)
     is not currently checked, and the paused state should not be checked.
-- The Permissionless Dispute Game: [should be
-  optional](https://github.com/ethereum-optimism/optimism/blob/e62c14e64f08ae3cd82973b41315d5797810569b/packages/contracts-bedrock/src/L1/StandardValidator.sol#L368).
 
 Note: In order to definitively differentiate between chains which satisfy the default standard configuration,
 from those which require overrides, `allowFailure` MUST be `true` if any overrides are provided,
@@ -166,6 +164,18 @@ contract StandardGuardianValidator {
   }
 }
 ```
+
+#### 3. Dispute Game handling:
+
+Various aspects of the Dispute Game are not properly handled by the StandardValidator, as it needs
+to handle different combinations of game implementations and respected game types:
+
+There are two acceptable states for `gameImpls`:
+
+1. both super games set AND no other games
+2. no super games AND permissionedDisputeGame only OR both the permissionedDisputeGame and faultDisputeGame
+
+In both cases, the `respectedGameTypes` should correspond to one of the registered game implementations.
 
 ### Post-upgrade 16 work (Target: Upgrade 18)
 
