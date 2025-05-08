@@ -51,9 +51,9 @@ The general workflow would be:
     
 ```mermaid
 flowchart LR
-    Delegate([Delegate]) -->|Submit DRAFT proposal| OPGov1[OPGov Forum]
-    Community([Community]) -->|Provide feedback| OPGov1
-    OPGov1 -->|Submit FINAL proposal| OPGov2[OPGov Forum]
+    Delegate([Delegate]) -->|Submit DRAFT proposal| OPGov[OPGov Forum]
+    Community([Community]) -->|Provide feedback| OPGov
+    OPGov -->|submitProposal once FINAL| OnChainGov[ProposalValidator]
 ```
     
 3. **On-chain Sign-Offs via Agora**: With the final proposal ready, the top 100 delegates can start signing-off on the on-chain proposal using the `proposalId` through Agora. Their sign-offs are recorded via the `approveProposal(...)` function in the `ProposalValidator` contract, that emits a `ProposalApproved` event. Agora will display the real-time signature status for each proposal.
