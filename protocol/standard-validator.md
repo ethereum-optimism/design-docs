@@ -92,6 +92,9 @@ Note: In order to definitively differentiate between chains which satisfy the de
 from those which require overrides, `allowFailure` MUST be `true` if any overrides are provided,
 and in that case the error string returned will include at least a default error such as `HAS-OVERRIDES`.
 
+Note: The initial list of overrides should be minimal, and only include values which are known to
+vary between chains based on usage in previous tasks
+
 A small mock up of the implementation approach to allow overridng specific values, focusing on the
 `guardian` value is below:
 
