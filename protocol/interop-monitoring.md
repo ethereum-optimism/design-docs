@@ -90,17 +90,20 @@ by the monitor.
 #### Unsafe Blocks
 
 We want to be able to detect when an invalid `ExecutingMessage` is included in an unsafe block and trigger an altert to the
-oncall engineering team. Additionally, we should consider pausing the batcher automatically if an invalid `ExecutingMessage`
-has been detected in an unsafe block and triggering an unsafe head reorg. It is preferable to not waste blobs and trigger
-an unsafe head reorg by batch submitting the invalid block. The problem with this is that it is indistinguishable from
-a malicious sequencer triggering a reorg to extract MEV. Either way an unsafe head reorg is going to happen, its just whether
-or not its due to the data being posted and then resulting in a replacement deposits only block or if its manually done
-by the sequencer offchain.
+oncall engineering team. It is preferable to not waste blobs and trigger an unsafe head reorg by batch submitting the invalid block as soon as possible,
+therefore the operator may want to accelerate batch submission when this alert arrives. Unless nodes on the network are 
+able to accept an Unsafe->Unsafe block replacement (and they are not), the Sequencer's only path forward is to see the 
+invalid block commited to L1, at which point it will be replaced. Doing this faster will minimize reorg sizes.
 
 We may also want to consider a way to alert partners in the interop set ahead of time that an unsafe head reorg is coming
 if an invalid `ExecutingMessage` is observed in an unsafe block. If they turn off their cross chain message ingress fast enough,
 it could be possible that they can prevent a contingent reorg. The liveness of the chain can continue with no issues until the
 remote chain goes through its unsafe head reorg, then it can open up its cross chain message ingress again.
+
+Finally, when Invalid Messages occur, it is prudent to shut off additional Executing Messages. Admin APIs should be established which:
+- Shut off Executing Message Ingress at `proxyd`
+- Force remove Executing Messages from block builder mempools.
+These triggers should occur automatically when an invalid `ExecutingMessage` is discovered at the Unsafe Block stage, in order to reduce cascades.
 
 #### Safe/Finalized Blocks
 
@@ -121,6 +124,9 @@ for the Superchain it is monitoring.
 
 Create `xmsg-mon` in the image of `dispute-mon` to track all in-flight Executing Messages for a Superchain, for their entire
 Unsafe -> Safe -> Finalized lifecycle. Create Alerting against it which pages operators when Invalid Messages advance into blocks.
+
+Furthermore, Admin APIs should be established to shut off `proxyd` and `mempool` acceptance of Executing Messages, to swiftly respond
+when the Monitoring Service detects invalid messages in blocks.
 
 ## Alternatives Considered
 
