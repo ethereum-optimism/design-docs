@@ -91,7 +91,10 @@ from those which require overrides, `allowFailure` MUST be `true` if any overrid
 and in that case the error string returned will include at least a default error such as `HAS-OVERRIDES`.
 
 Note: The initial list of overrides should be minimal, and only include values which are known to
-vary between chains based on usage in previous tasks
+vary between chains based on usage in previous tasks.
+
+Note: the charter specifically calls out the Base and Uni L1PAO as allowed on their chains only, this
+ should be reflected in the StandardValidator.
 
 A small mock up of the implementation approach to allow overridng specific values, focusing on the
 `guardian` value is below:
