@@ -66,14 +66,7 @@ that will come afterwards.
 
 ### Pre-upgrade 16 work
 
-#### 1. OPCM integration:
-
-The `StandardValidator` should:
-- be deployed by [DeployImplementations](https://github.com/ethereum-optimism/optimism/blob/e62c14e64f08ae3cd82973b41315d5797810569b/packages/contracts-bedrock/scripts/deploy/DeployImplementations2.s.sol#L39)
-- included on the OPCM as an [immutable variable](https://github.com/ethereum-optimism/optimism/blob/e62c14e64f08ae3cd82973b41315d5797810569b/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L1785-L1788)
-- listed in the [standard-versions](https://github.com/ethereum-optimism/superchain-registry/blob/0831c2509152b457d865634616925ca6240b219e/validation/standard/standard-versions-mainnet.toml#L1) toml files
-
-#### 2. Validation Overrides:
+#### 1. Validation Overrides:
 
 The `StandardValidator` should correctly handle certain allowable/expected deviations.
 
@@ -168,7 +161,7 @@ contract StandardGuardianValidator {
 }
 ```
 
-#### 3. Dispute Game handling:
+#### 2. Dispute Game handling:
 
 Various aspects of the Dispute Game are not properly handled by the StandardValidator, as it needs
 to handle different combinations of game implementations and respected game types:
