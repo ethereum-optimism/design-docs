@@ -88,6 +88,10 @@ A non-exhaustive list includes:
 - The Permissionless Dispute Game: [should be
   optional](https://github.com/ethereum-optimism/optimism/blob/e62c14e64f08ae3cd82973b41315d5797810569b/packages/contracts-bedrock/src/L1/StandardValidator.sol#L368).
 
+Note: In order to definitively differentiate between chains which satisfy the default standard configuration,
+from those which require overrides, `allowFailure` MUST be `true` if any overrides are provided,
+and in that case the error string returned will include at least a default error such as `HAS-OVERRIDES`.
+
 A small mock up of the implementation approach to allow overridng specific values, focusing on the
 `guardian` value is below:
 
@@ -118,12 +122,44 @@ contract StandardGuardianValidator {
     return GUARDIAN;
   }
 
+  /// @notice Validates the standard configuration of the L1 system.
+  /// @param _allowFailure Whether to allow the validation to fail.
+  /// @param _input The input parameters for the validation.
+  /// @param _overrides The overrides for the validation. This is an array of structs, with a maximum of one element.
+  ///                   An array is used as a means of making the overrides optional.
+  /// @return _errors The errors from the validation.
   function validate(
-    bool _allowFailure
+    bool _allowFailure,
     ValidationInput memory _input,
-    ValidationOverrides memory _overrides
+    ValidationOverrides[] memory _overrides
   ) public view returns (string memory _errors) {
-    _errors = internalRequire(superchainConfig.guardian() == expectedGuardian(_overrides), "SPRCFG-10", _errors);
+    // Initialize the overrides to an empty struct.
+    ValidationOverrides memory overrides = ValidationOverrides({});
+    string memory errors = "";
+
+    if(_overrides.length > 1) {
+      revert TooManyOverrides();
+    }
+
+    if (_overrides.length == 1) {
+      if (!_allowFailure) {
+        revert OverridesProvidedWithoutFailureAllowance();
+      }
+      _errors = "HAS-OVERRIDES";
+    }
+
+    // If overrides are provided, overwrite the empty struct with the first element of the array.
+    if (_overrides.length == 1) {
+      overrides = _overrides[0];
+    }
+
+    _errors = internalRequire(superchainConfig.guardian() == expectedGuardian(overrides), "SPRCFG-10", _errors);
+
+    if (bytes(_errors).length > 0 && !_allowFailure) {
+      revert(string.concat("StandardValidator: ", _errors));
+    }
+
+    return _errors;
   }
 }
 ```
