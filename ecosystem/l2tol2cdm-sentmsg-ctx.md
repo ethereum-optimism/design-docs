@@ -53,6 +53,7 @@ event SentMessage(uint256 indexed destination, address indexed target, uint256 i
 This proposal simply includes this field without specifying the first versioned format. By leaving it as empty for now, we can populate the first version in a later
 design that requires it.
 
+- See [RelayedMessageGasReceipt](https://github.com/ethereum-optimism/design-docs/pull/282).
 - See [incentivized message delivery](https://github.com/ethereum-optimism/design-docs/pull/272).
 
 **Note**: The context itself **MUST** be included in the pre-image of the cross domain message hash. While `CrossL2Inbox` validation ensures log integrity, we must include the context in the preimage in order for `resendMessage` which re-emits stale `SentMessage` event to gaurantee that context hasn't been tampered with.
