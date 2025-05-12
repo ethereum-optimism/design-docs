@@ -97,9 +97,9 @@ Below are references for this project:
 - **Detection:** We rely on our tests.
 - **Recovery Path(s)**: It would require fixing the bug and upgrading the contract.
 
-### FM5: eventfd noop insufficient for Go 1.23 suppport
+### FM5: eventfd or mprotect noop insufficient for Go 1.23 suppport
 
-- **Description:** the eventfd syscall was implemented as a noop, because it was determined that it won't be used by op-program even though there is a reference to it in the binary.
+- **Description:** the eventfd and mprotect syscalls were implemented as a noop, because it was determined that it won't be used by op-program even though there is a reference to it in the binary.
 - **Risk Assessment:** medium
 - **Mitigations:** 
   1. We have been running op-challenger-runner on production data for several weeks with the new VM
