@@ -14,13 +14,13 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-|                    |              |
-| ------------------ | ------------ |
-| Author             | George Knee  |
-| Created at         | 2025-03-20   |
-| Initial Reviewers  | Mark Tyneway |
-| Need Approval From | Tom Assas, Michael Amadi (Shadowing)   |
-| Status             | Implementing Actions 🛫 |
+|                    |                                      |
+| ------------------ | ------------------------------------ |
+| Author             | George Knee                          |
+| Created at         | 2025-03-20                           |
+| Initial Reviewers  | Mark Tyneway                         |
+| Need Approval From | Tom Assas, Michael Amadi (Shadowing) |
+| Status             | Implementing Actions 🛫              |
 
 ## Introduction
 
@@ -99,7 +99,7 @@ See the [generic FMA](./fma-generic-hardfork.md):
 ## Specific Action Items
 
 - [x] (BLOCKING) e2e tests must check for consistency between output roots returned from op-node and those constructed manually in the old way https://github.com/ethereum-optimism/optimism/blob/6a436fe9ac9acb215b0f4b9f87ccd3832f4d6b72/op-e2e/actions/upgrades/isthmus_fork_test.go#L286-L301
-- [ ] (non-BLOCKING) op-node could be furnished with an override to make it serve output roots in the legacy fashion; this would also aid in testing (see above item). It would even allow us to run the two systems side by side for a time before fully switching over.
+- [x] (non-BLOCKING) op-node could be furnished with an override to make it serve output roots in the legacy fashion; this would also aid in testing (see above item). It would even allow us to run the two systems side by side for a time before fully switching over. https://github.com/ethereum-optimism/optimism/pull/15150
 - [ ] (non-BLOCKING) op-geth could be made to log a critical error triggering an alert if ever the `withdrawals` list in the block body is non empty (post Isthmus)
 
 ## Generic Action Items
@@ -109,7 +109,6 @@ See the [generic FMA](./fma-generic-hardfork.md):
 - [x] (BLOCKING) We should ensure that our usual suite of alerts applies to devnets and are routed to protocol engineers signing off on the devnet completion.
 - [x] (BLOCKING): Run fuzzing on the v4 gossip p2p more than 10s (assignee: @Ethnical @geoknee) https://github.com/ethereum-optimism/optimism/pull/15068
 - [x] (BLOCKING): We tested the activation on our [devnets](https://devnets.optimism.io/interop-rc-alpha.html).
-- [ ] (non-BLOCKING): Making sure, that component that now fetch the withdrawalHash by this have also a fallback mechanism to previous Merkle Tree method in case there is a bug (assignee: @XXXXX for now).
 - [ ] (non-BLOCKING): Creating a monitoring that differential testing from the merkle tree inclusion computation and the block.header request `withdrawalRoot` (assignee: @Ethnical). Tracking -> [Monitoring Security-Issue](https://github.com/ethereum-optimism/security-pod/issues/252)
 - [ ] (non-BLOCKING): We have implemented fuzz testing in a kurtosis multi-client devnet to reduce the chance of bugs
 
