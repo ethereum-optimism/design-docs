@@ -39,11 +39,11 @@ Below are references for this project:
 
 - **Description:** If `ETHLiquidity` lacks sufficient ETH, mint calls will revert when the contract attempts to forward funds using `SafeSend`. This breaks bridging flows dependent on `relayETH`.
 - **Risk Assessment:** Medium.
-  - Potential Impact: High. Not having enough ETH balance in `ETHLiquidity` prevents relaying ETH, which would greatly degrade the user experience, as they would be temporarily stuck. The situation becomes even more serious if the affected cross-chain messages expire before the issue can be resolved, making it impossible to retry the relay and get the funds in destination chain.
+  - Potential Impact: High. Not having enough ETH balance in `ETHLiquidity` prevents relaying ETH, which would greatly degrade the user experience, as they would be temporarily stuck.
   - Likelihood: Very low. `ETHLiquidity` starts with a maximum balance (`type(uint248).max`).
 - **Mitigations:** Our current codebase includes tests to check if the `mint` request exceeds the contract’s balance ([test](https://github.com/ethereum-optimism/optimism/blob/dd37e6192c37ed4c5b18df0269f065f378c495cc/packages/contracts-bedrock/test/L2/ETHLiquidity.t.sol#L103)). Initial ETH supply in `ETHLiquidity` is `type(uint248).max` ([test](https://github.com/ethereum-optimism/optimism/blob/dd37e6192c37ed4c5b18df0269f065f378c495cc/packages/contracts-bedrock/test/L2/ETHLiquidity.t.sol#L29)) and equally set in all chains.
 - **Detection:** Perform checks on the `ETHLiquidity` balance as a preventive monitoring measure. User-filed support tickets may flag this issue in case of failure.
-- **Recovery Path(s):** Coordinate an L2 hard fork to replenish the `ETHLiquidity` contract. Investigate the causes of the depletion to determine if other factors are involved. Messages will need to be retried for relaying; otherwise, use the `expireMessage` feature if it is available and integrated into `SuperchainETHBridge`.
+- **Recovery Path(s):** Coordinate an L2 hard fork to replenish the `ETHLiquidity` contract. Investigate the causes of the depletion to determine if other factors are involved. Messages will need to be retried for relaying, leveraging the `resendMessage` feature if needed.
 
 ### FM2: Overflow during `burn` in `ETHLiquidity` due to max Balance
 
