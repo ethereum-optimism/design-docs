@@ -47,7 +47,7 @@ is likely too low level. -->
 Introudce opaque context bytes field in `SentMessage`. This field MUST be versioned such that it can evolve with new or removed fields.
 
 ```solidity
-event SentMessage(uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes message, bytes context);
+event SentMessage(uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes message, bytes originContext);
 ```
 
 This proposal simply includes this field without specifying the first versioned format. By leaving it as empty for now, we can populate the first version in a later
@@ -56,7 +56,7 @@ design that requires it.
 - See [RelayedMessageGasReceipt](https://github.com/ethereum-optimism/design-docs/pull/282).
 - See [incentivized message delivery](https://github.com/ethereum-optimism/design-docs/pull/272).
 
-**Note**: The context itself **MUST** be included in the pre-image of the cross domain message hash. While `CrossL2Inbox` validation ensures log integrity, we must include the context in the preimage in order for `resendMessage` which re-emits stale `SentMessage` event to gaurantee that context hasn't been tampered with.
+**Note**: The context itself **MUST** be included in the pre-image of the cross domain message hash. While `CrossL2Inbox` validation ensures log integrity, we must include the context in the preimage in order for `resendMessage` which re-emits stale `SentMessage` event to gaurantee that context hasn't been tampered with. The pre-image hashing process begins by computing the messagePayloadHash from the core message payload. The originContext is then constructed by encoding the ORIGIN_CONTEXT_ENCODING_VERSION alongside the messagePayloadHash. Finally, the messageHash is derived by hashing the messagePayloadHash and the originContext together.
 
 ## Resource Usage
 
