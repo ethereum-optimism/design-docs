@@ -1,11 +1,11 @@
 # FMA: Interop Support in OptimismPortal
 
-|---------------------|----------------|
-| Author              | Kelvin Fichter |
-| Created at          | 2025-04-03     |
-| Needs Approval From | Maurelian, Matt Solomon               |
-| Other Reviewers     |                |
-| Status              | Implementing Actions          |
+|---------------------|-------------------------|
+| Author              | Kelvin Fichter          |
+| Created at          | 2025-04-03              |
+| Needs Approval From | Maurelian, Matt Solomon |
+| Other Reviewers     |                         |
+| Status              | Final                   |
 
 ## Introduction
 
@@ -63,7 +63,7 @@ for game validity and state, incorrect data leads directly to `OptimismPortal` m
 
 #### Action Items
 
-- [ ] Update monitoring to take `SystemConfig` or `OptimismPortal` instead of `AnchorStateRegistry`
+- [x] Update monitoring to take `SystemConfig` or `OptimismPortal` instead of `AnchorStateRegistry`
       or `DisputeGameFactory` as input because these contracts will change, leading to a mismatch
       between the monitor and the actual onchain state.
 
@@ -108,9 +108,9 @@ safety or liveness.
 
 #### Action Items
 
-- [ ] Ensure that betanet will include testing that (1) a withdrawal after the migration works and
+- [x] Ensure that betanet will include testing that (1) a withdrawal after the migration works and
       (2) lockbox balances to confirm that entire balance is transferred properly.
-- [ ] Follow up with Proofs to understand what's being solved for with a migration that does not
+- [x] Follow up with Proofs to understand what's being solved for with a migration that does not
       rely on a trusted input.
 
 ### FM3: Disruptions During `superRootsActive` Transition
@@ -151,8 +151,8 @@ after the switch.
 
 #### Action Items
 
-- [ ] Update Viem to auto-switch between proof modes.
-- [ ] Make sure that devrel/comms is loud about the changes.
+- [x] ~~Update Viem to auto-switch between proof modes.~~ Tracked separately as part of U17.
+- [x] ~~Make sure that devrel/comms is loud about the changes.~~ Tracked separately as part of U17
 
 ### FM4: Incorrect Toggling of `superRootsActive`
 
@@ -189,7 +189,7 @@ Roots).
 
 #### Action Items
 
-- [ ] Add a warning to the `portal.migrate()` function.
+- [x] Add a warning to the `portal.migrate()` function.
 
 ### FM5: Further Contract Changes Required for Full Interop
 
@@ -236,4 +236,4 @@ The current changes might prove insufficient to launch the desired interop funct
 
 #### Action Items
 
-- [ ] Make sure that Proofs is aware of the requirements/goals here.
+- [x] Make sure that Proofs is aware of the requirements/goals here.
