@@ -122,4 +122,4 @@ Below is what needs to be done before launch to reduce the chances of the above 
 
 ## Audit Requirements
 
-_Given the failure modes and action items, will this project require an audit? See [FMAs in the SDLC](https://github.com/ethereum-optimism/pm/blob/main/src/fmas.md#determine-audit-requirements) for a reference decision making framework. Please explain your reasoning._
+These changes were audited as part of [this larger Spearbit review](https://github.com/ethereum-optimism/optimism/blob/49a80f8054cf59be69624416160cad760f09c692/docs/security-reviews/2025_05-Interop-Portal-Spearbit.pdf) and [by Coinbase Protocol Security](https://github.com/ethereum-optimism/optimism/blob/49a80f8054cf59be69624416160cad760f09c692/docs/security-reviews/2025_05-Cannon-Go-Updates-Coinbase.pdf).
