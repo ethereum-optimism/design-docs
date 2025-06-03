@@ -5,12 +5,14 @@
 
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
-  - [[Name of Failure Mode 1]](#name-of-failure-mode-1)
-  - [[Name of Failure Mode 2]](#name-of-failure-mode-2)
-- [Audit Requirements](#audit-requirements)
+  - [FM1: Toggles are incorrectly deployed or implemented causing features to be incorrectly toggled off](#fm1-toggles-are-incorrectly-deployed-or-implemented-causing-features-to-be-incorrectly-toggled-off)
+  - [FM2: Stack depth-related refactoring with new dclo/dclz instructions introduced a bug](#fm2-stack-depth-related-refactoring-with-new-dclodclz-instructions-introduced-a-bug)
+  - [FM3: New dclo/dclz instructions are incorrectly implemented](#fm3-new-dclodclz-instructions-are-incorrectly-implemented)
+  - [FM4: Incomplete Go 1.23 support (missing syscalls)](#fm4-incomplete-go-123-support-missing-syscalls)
+  - [FM5: eventfd or mprotect noop insufficient for Go 1.23 suppport](#fm5-eventfd-or-mprotect-noop-insufficient-for-go-123-suppport)
+  - [Generic items we need to take into account:](#generic-items-we-need-to-take-into-account)
 - [Action Items](#action-items)
-- [Appendix](#appendix)
-  - [Appendix A: This is a Placeholder Title](#appendix-a-this-is-a-placeholder-title)
+- [Audit Requirements](#audit-requirements)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
