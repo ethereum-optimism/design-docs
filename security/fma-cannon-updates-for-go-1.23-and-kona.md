@@ -20,9 +20,9 @@ _Italics are used to indicate things that need to be replaced._
 | ------------------ | -------------------------------------------------- |
 | Author             | Paul Dowman                                        |
 | Created at         | 2025-05-02                                         |
-| Initial Reviewers  | _Reviewer Name 1, Reviewer Name 2_                 |
-| Need Approval From | _Security Reviewer Name_                           |
-| Status             | In Review                                          |
+| Initial Reviewers  | Meredith Baxter                                    |  
+| Need Approval From | Matt Solomon                                       |  
+| Status             | Implementing Actions                               |  
 
 > [!NOTE]
 > 📢 Remember:
@@ -73,7 +73,7 @@ Below are references for this project:
 - **Description:** Arguments were consolidated into a struct to avoid "stack too deep" issues. 
 - **Risk Assessment:** low
 - **Mitigations:** 
-  1. We have comprehensive differential testing on all VM instructions, which should catch any potential refactoring-related bugs
+  1. We have comprehensive differential testing on all VM instructions between go and solidity, which should catch any potential refactoring-related bugs. In this case, the solidity code was changed but the go code was unchanged, therefore we have confidence a bug was not introduced from the refactor.  
   2. This is a trivial refactoring
 - **Detection:** We rely on our tests.
 - **Recovery Path(s)**: It would require fixing the bug and upgrading the contract.
@@ -93,8 +93,9 @@ Below are references for this project:
 - **Description:** It's possible that the Go 1.23 compiler uses additional syscalls that we haven't noticed and they aren't implemented.
 - **Risk Assessment:** low
 - **Mitigations:**
-  1. We have been running op-challenger-runner on production data for several weeks with the new VM
-- **Detection:** We rely on our tests.
+  1. We have been running `op-challenger-runner` on production data for several weeks with the new VM
+  2. We used `vm-compat`, a tool that runs in CI and detects new syscalls referenced in the op-program binary
+- **Detection:**: we will continue to watch `op-challenger-runner` and will be alerted if any mainnet blocks fail.
 - **Recovery Path(s)**: It would require fixing the bug and upgrading the contract.
 
 ### FM5: eventfd or mprotect noop insufficient for Go 1.23 suppport
@@ -118,18 +119,7 @@ Incorporate any applicable failure modes with FMA-specific mitigations and detec
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
 - [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
-- [ ] _Action item 2 (Assignee: tag assignee)_
-- [ ] _Action item 3 (Assignee: tag assignee)_
 
 ## Audit Requirements
 
 _Given the failure modes and action items, will this project require an audit? See [FMAs in the SDLC](https://github.com/ethereum-optimism/pm/blob/main/src/fmas.md#determine-audit-requirements) for a reference decision making framework. Please explain your reasoning._
-
-## Appendix
-
-### Appendix A: This is a Placeholder Title
-
-_Appendices must include any additional relevant info, processes, or documentation that is relevant for verifying and reproducing the above info. Examples:_
-
-- _If you used certain tools, specify their versions or commit hashes._
-- _If you followed some process/procedure, document the steps in that process or link to somewhere that process is defined._
