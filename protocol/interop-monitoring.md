@@ -15,8 +15,8 @@ Monitoring Service for Executing Messages.
 Given assumptions in the [cloud topology](https://github.com/ethereum-optimism/design-docs/pull/218),
 it is generally not possible to guarantee that invalid `ExecutingMessage`s do not finalize without multiple
 implementations of `op-supervisor`. With only a single implementation, a bug becomes consensus.
-In the worst case, this can mint an infinite amount of ether. Given this risk, we need a monitoring,
-alerting and runbook for handling invalid `ExecutingMessage`s being included in the chain.
+In the worst case, this can mint an infinite amount of ether. Given this risk, we need to have monitoring,
+alerting, and a runbook for handling invalid `ExecutingMessage`s being included in the chain.
 
 We want to be alterted when there is an invalid `ExecutingMessage`. We are implementing preventative
 measures, but the downside risk is existential if an invalid `ExecutingMessage` finalizes,
@@ -25,7 +25,7 @@ so we need to have ways to detect and prevent that.
 ## Proposed Solution
 
 We should implement a monitoring service that validates all of the `ExecutingMessage` logs
-produce by the entire cluster and validates them against transaction access lists
+produced by the entire cluster and validates them against transaction access lists
 and remote nodes. We use this service to alert oncall engineers as well as potentially automatically
 pausing the batcher/transaction ingress if an invalid `ExecutingMessage` is included.
 
@@ -41,15 +41,15 @@ can refer to in order to determine network health:
 - Warning and Error Logs from the Monitor
 
 Cross Message Monitor can crib directly from these statistics, but focused on Interop:
-- How many Executing Messages emitted by the CrossL2Inbox per block per chain
-- How many `Executing Message`s Messages point at each Chain in the Superchain
+- How many `Executing Message`s are emitted by the `CrossL2Inbox` per block per chain
+- How many `Executing Message`s Messages point at each Chain in the dependency set
 - How many `Executing Message`s are known valid, per safety level
 - How many `Executing Message`s are known invalid, per safety level
 - How many `Executing Message`s are not yet known valid/invalid, per safety level
 - How many `Executing Message`s *changed validity* over time (indicating remote reorg)
 - How many `Executing Message`s were resolved via Block Replacement
 
-Almost all `Executing Message` Metrics emitted by the Cross Message Monitor should have dimensions:
+Almost all `Executing Message` metrics emitted by the Cross Message Monitor should have dimensions:
 - What chain the `Executing Message` in question is on
 - What chain the `Executing Message` is referring to (the chain of the initiating message)
 - Timestamp of Block
@@ -110,7 +110,7 @@ These triggers should occur automatically when an invalid `ExecutingMessage` is 
 If an invalid `ExecutingMessage` ends up in a safe block, it is an expectation of the Protocol that the block is Invalid,
 and must be replaced with a Deposit Only Block. This situation should page the operator to monitor the situation, and every
 individual invalid `Executing Message` in a Safe Block should be very easy to see and monitor individually. The operator is monitoring
-to ensure a Block Replacement occurs and the invalid messges are no longer known to the chain.
+to ensure a Block Replacement occurs and the invalid messages are no longer part of the canonical chain.
 
 If Cross-Validation should promote the block to Cross-Safe, this is an all-hands-on-deck consensus bug, which would naturally
 have its own alerts associated in addition to the prior expectation of an operator monitoring the situation.
@@ -137,4 +137,5 @@ Having additional Cross-Validation software besides Supervisor would lessen the 
 ## Risks & Uncertainties
 
 - The Monitoring Service may be insufficent, and we may not catch what we need to. Real experience will inform updates to this service.
-- The speed of the Monitor may be insufficent for operators to take meaningful action
+- The Monitoring Service may cause a lot of RPC traffic and generate a lot of data, putting strain on the infrastructure.
+- The speed of the Monitoring Service may be insufficent for operators to take meaningful action
