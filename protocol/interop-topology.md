@@ -10,7 +10,7 @@ of a cloud deployment of an interop enabled OP Stack cluster.
 
 # Summary
 
-The creation of Interop transactions opens Optimistim Networks to new forms of undesierable activity.
+The creation of Interop transactions opens Optimism Networks to new forms of undesirable activity.
 Specifically, including an interop transaction carries two distinct risks:
 - If an interop transaction is included which is *invalid*, the block which contains it is invalid too,
 and must be replaced, causing a reorg.
@@ -164,7 +164,7 @@ at a time.
 - sequencer node mempool ingress
 - block building (as a synchronous activity)
 
-When we deploy hosts, we should currently use a "Full Validation Set" of one Supervisor plus N Managed nodes,
+When we deploy hosts for an inter-operating set of `n` chains, we should currently use a "Full Validation Set" of one Supervisor plus `n `Managed nodes,
 to maximize redundancy and independent operation of validators. When Sequencers are deployed, Conductors should manage
 individual Managed Nodes *across* Supervisors.
 
@@ -190,7 +190,7 @@ and errors on one Node may or may not end up affecting the other Nodes. While th
 the wide range of possible interplay means we don't have high confidence in Multi-Node as a redundancy solution.
 - Multi-Node is *only* a Node redundancy solution, and the Supervisor managing multiple Nodes is still a single
 point of failure. If the Supervisor fails, *every* Node under it is unable to sync also, so there must *still*
-be a diversification of Node:Supervisor. At the point where we split them up, it makes no sense to have higher quanitities
+be a diversification of Node:Supervisor. At the point where we split them up, it makes no sense to have higher quantities
 than 1:1:1 Node:Chain:Supervisor.
 
 # Risks & Uncertainties
