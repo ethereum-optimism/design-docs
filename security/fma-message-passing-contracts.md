@@ -63,18 +63,25 @@ Below are references for this project:
 - **Detection:** Monitoring tools should track every validated message to ensure it was observed and validated at the origin chain.
 - **Recovery Path(s):** The chain will eventually resolve the issue as the dependency graph advances, but the resolution could be slow, especially if the sequencer is down or equivocating, or if chains in the dependency graph stop batching. Investigate the causes of such incidents.
 
-### FM3: Valid message is initiated but never relayed in destination although is safe to include
+### FM3: Valid message is initiated but never relayed in destination due to sequencer censorship or inaction
 
-- **Description:** A user (or contract) may send a valid cross-chain message, but the final relay step—`relayMessage` or `validateMessage`—never occurs (or is dropped before to gain a safe status) even when the initiated message is included in a finalized block on the origin chain.
-- **Risk Assessment:** High.
-  - Potential Impact: Critical. Several scenarios could lead to severe consequences, including:
-    - Inability to `relayETH` in `SuperchainWETH`
-    - Inability to `relayERC20` in `SuperchainTokenBridge` to mint `SuperchainERC20`
-    - Any other contract awaiting a time-sensitive `relayMessage`.
-      If the message is not included within the expiration window, both the message and the underlying action could be considered lost.
+- **Description:** A user (or contract) may send a valid cross-chain message, but the final relay step—`relayMessage` or `validateMessage`—never occurs. This can happen even if the message is included in a finalized block on the origin chain. In some cases, a sequencer on the destination chain may intentionally choose not to relay the message (e.g., if the origin chain is not trusted or politically unfavorable to the operator).
+
+- **Consequences:**
+  - Inability to `relayETH` in `SuperchainETHBridge`
+  - Inability to `relayERC20` in `SuperchainTokenBridge` to mint `SuperchainERC20`
+  - Any other contract awaiting a time-sensitive `relayMessage`.
+
+- **Risk Assessment:** High
+  - Potential Impact: High. Time-sensitive or critical messages may never be processed.
   - Likelihood: Medium. Block builders/sequencers are generally controlled by a single entity per chain.
-- **Mitigations:** From a smart contract perspective, little can be done except allowing calls to `validateMessage` within a deposit context to improve censorship resistance. This is currently under discussion [here](https://github.com/ethereum-optimism/specs/issues/520).
+
+- **Mitigations:**
+  - Use `resendMessage` on the origin chain to re-emit the event and allow re-processing in case the time-window has expired.
+  - From a smart contract perspective, allowing calls to `validateMessage` within a deposit context to improve censorship resistance. This is currently under discussion [here](https://github.com/ethereum-optimism/specs/issues/520).
+
 - **Detection:** Monitoring tools should track whether every initiated message has been validated at the destination by checking identifiers. Support tickets filed by users reporting the issue sustain the severity of the case in some situations.
+
 - **Recovery Path(s):** Depends on sequencer/chain governor policy operations.
 
 ### FM4: Invalid Replayed Message (Replay attack) in `L2ToL2CrossDomainMessenger`
