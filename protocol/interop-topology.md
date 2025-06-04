@@ -164,7 +164,7 @@ at a time.
 - sequencer node mempool ingress
 - block building (as a synchronous activity)
 
-When we deploy hosts, we should currently use a "Full Validation Set" of one Supervisor plus N Managed nodes,
+When we deploy hosts for an inter-operating set of `n` chains, we should currently use a "Full Validation Set" of one Supervisor plus `n `Managed nodes,
 to maximize redundancy and independent operation of validators. When Sequencers are deployed, Conductors should manage
 individual Managed Nodes *across* Supervisors.
 
