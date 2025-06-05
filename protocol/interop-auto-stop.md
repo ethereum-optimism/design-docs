@@ -20,7 +20,7 @@ When an invalid interop message is included in a block (and is gossiped to the n
 In both cases, the network experiences a stall from the Block of the Invalid Message to the L1 publishing. Whether building an alternate chain or just letting Nodes derive empty Blocks,
 there are negative UX externalities that become unavoidable once the Invalid Message is included.
 
-So it then becomes very important to properly filter Interop Messages before they can be built into a block. From the [Tx Handling Topology Design Doc](./interop-topology.md), we decided to filtering:
+So it then becomes very important to properly filter Interop Messages before they can be built into a block. From the [Tx Handling Topology Design Doc](./interop-topology.md), we decided to filter:
 - On cloud ingress to proxyd
 - On ingress to all mempools
 - On regular interval on all mempools
