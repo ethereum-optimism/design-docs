@@ -100,6 +100,11 @@ A complete guide on how to evaluate, respond to, and use AutoStop must also be w
 ## Future Scope
 For the initial launch of Interop, we need a basic-yet-reliable tool, so we should avoid heavy sophistication, especially at high engineering cost.
 However, this feature could be enhanced in the future in the following ways:
+- Batcher Short-Publishing: if an invalid message is detected and we are already taking defensive measures, it may make sense to additionally
+have the Batcher intentionally publish the batch containing the invalid message as soon as possible. If the last block of the batch is the
+one containing the Invalid Message, then we minimize the amount of wasted block building is published. This also shortens the time to
+Invalid Messages being detected, as it puts the content on the L1 as soon as possible. This feature is not direclty related to Auto *Stop*,
+and could potentially be achieved by other means.
 - AutoResume (mentioned already): once we are comfortable with the dangers of Invalid Messages, we could allow the system to resume automatically.
 - Per-Chain Stopping: if the cause of instability is a specific chain, it may make sense for operators to only deny interop messages from *that* chain.
 Supervisor would have to handle a more complex AutoStop concept, and the Metrics Service would have to have more conditions before calling the API.
