@@ -22,6 +22,13 @@ directory after it is completed.
 - `governance` contains governance level features
 - `security` contains failure mode analysis documents
 
+[`doctoc`](https://www.npmjs.com/package/doctoc) is used for maintaining tables of contents.
+For an example of usage, see the [FMA Template](https://github.com/ethereum-optimism/design-docs/blob/main/assets/fma-template.md?plain=1).
+
+Usage:
+1. `npm install -g doctoc`
+2. `doctoc <filename>`
+
 ## Design Review Sessions
 
 The agendas for design doc review sessions are being tracked on 
