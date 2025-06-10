@@ -71,7 +71,7 @@ new `DeputyPauseModule` introduced in upgrade 16).
 
 ### Artifacts source
 
-By default, `op-deployer verify-bytecode` will use locally build forge-artifacts to check bytecode.
+By default, `op-deployer verify-bytecode` will use locally built forge-artifacts to check bytecode.
 In order to facilitate quickly running in CI, without having to checkout and rebuild different
 commits, the command will also accept a tag locator, with the following invocation:
 
@@ -100,7 +100,7 @@ Address flags:
 Superchain-registry flag:
 
 ```
---superchain-registry <path/to/registry/contracts/superchain-registry.json>
+--superchain-registry <path/to/registry>
 ```
 
 The argument groups should be mutually exclusive, either all of the address flags or the
