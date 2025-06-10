@@ -67,6 +67,15 @@ AutoStop is currently designed *not* to Auto-Start again. This is because we are
 an ambiguous concern. Operators should investigate and give the all-clear before resuming Interop. In the future, we should expect
 our comfort level to be high enough to support resuming service automatically.
 
+### Partner Triggers
+Because the Superchain is a collection of autonomous-yet-interdependent chains, there may be cause for *other* chain operators to
+trigger AutoStop from the outside in a way that affects all partners.
+
+To that end, we can expose the AutoStop Manual Controls through a key-protected endpoint which is shared privately to trusted partners,
+and vise-versa, so that any actor can initiate AutoStop for all chains. *Without* this feature, chains may still individually protect themselves,
+but this adds a layer of altruism. If no business relationship justifies this endpoint, or if we find it is not a productive feature,
+we can remove access to the endpoint easily.
+
 
 ### Implementation
 
