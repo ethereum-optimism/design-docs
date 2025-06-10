@@ -113,9 +113,39 @@ multiple different machines.
 
 The specific points that we should include the process are:
 
-1. Automated in superchain-registry CI (as discussed above).
-2. Included in the [contracts release checklist](https://www.notion.so/oplabs/Contracts-Release-Checklist-1f8f153ee162805e8236f022ebb8c868?source=copy_link#1f8f153ee16280998c6bfa1140a5854d) process.
-3. Additionally for consideration: run by signers during the upgrade process.
+#### 1. Automated in superchain-registry CI (as discussed above).
+
+For each `$TAG` listed in `standard-versions-[mainnet|sepolia].toml`, we should run the following
+command:
+
+```
+op-deployer verify-bytecode \
+  --dangerously-use-remote-artifacts \
+  --artifacts-locator tag://$TAG \
+  --superchain-registry .
+```
+
+#### 2. Included in the [contracts release checklist](https://www.notion.so/oplabs/Contracts-Release-Checklist-1f8f153ee162805e8236f022ebb8c868?source=copy_link#1f8f153ee16280998c6bfa1140a5854d) process.
+
+This should be run by no fewer than 3 people, on their own machines. The command used here should be
+defined in a just recipe, which will do the following:
+
+```
+cd <path/to/monorepo>
+git checkout <tag>
+cd packages/contracts-bedrock
+just build
+cd ../../op-deployer
+just build
+./bin/op-deployer verify-bytecode --superchain-registry <path/to/local/registry>
+```
+
+Recall that this invocation of `op-deployer`, without the `--artifacts-locator`, will default to
+using locally built artifacts.
+
+#### 3. Additionally for consideration: run by signers during the upgrade process.
+
+The command used here would be the same as the one used in the previous step.
 
 ### Resource Usage
 
