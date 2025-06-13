@@ -43,15 +43,27 @@ can refer to in order to determine network health:
 Executing Message Monitor can crib directly from these statistics, but focused on Interop:
 - How many `Executing Message`s are emitted by the `CrossL2Inbox` per block per chain
 - How many `Executing Message`s Messages point at each Chain in the dependency set
-- How many `Executing Message`s are known valid, per safety level
-- How many `Executing Message`s are known invalid, per safety level
-- How many `Executing Message`s are not yet known valid/invalid, per safety level
+- How many `Executing Message`s are known valid
+- How many `Executing Message`s are known invalid
+- How many `Executing Message`s are not yet known valid/invalid
 - How many `Executing Message`s *changed validity* over time (indicating remote reorg)
+
+By tracking these metrics individually, we can see at a glance the state of Cross-Validation, and identify underlying issues quickly.
+For example, if the Executing Messages on a given chain start showing up invalid, it may indicate a failure of Tx filtering.
+Or, if the *Initiating Messages* for a chain show a pattern of invalidity, it may indicate that Initiating chain is equivocating or reorging.
+
+In particular, a change between Valid and Invalid status is especially noteworthy, as it demonstrate a high likelihood of reorg.
+
+Because these metrics are dimensioned across both the Executing and Initiating side, we can tell whether the issue lies with the producer,
+or the consumer.
 
 Almost all `Executing Message` metrics emitted by the Executing Message Monitor should have dimensions:
 - What chain the `Executing Message` in question is on
 - What chain the `Executing Message` is referring to (the chain of the initiating message)
 - Timestamp of Block
+
+Additionally, we should alert when either the Monitor itself, or the underlying Node is down, to let operators know
+when we are flying blind.
 
 ### Long Term Monitoring of `Executing Message`s
 
@@ -111,6 +123,11 @@ to ensure a Block Replacement occurs and the invalid messages are no longer part
 
 If Cross-Validation should promote the block to Cross-Safe, this is an all-hands-on-deck consensus bug, which would naturally
 have its own alerts associated in addition to the prior expectation of an operator monitoring the situation.
+
+#### Clear Logs
+When issues would arise that would generate an alert, the Monitor should also be printing clearly actionable logs which can be checked.
+This would take the form of individual Invalid messages, or individual Invalid->Valid state transitions. Then operators can proceed to tirage
+with high precision data.
 
 ### Resource Usage
 
