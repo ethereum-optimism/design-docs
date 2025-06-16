@@ -120,7 +120,7 @@ Incorporate any applicable failure modes with FMA-specific mitigations and detec
 
 Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
 
-- [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
+- [x] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
 
 ## Audit Requirements
 
