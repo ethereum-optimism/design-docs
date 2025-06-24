@@ -6,7 +6,7 @@
 | Created at         | _2025-06-24_                                       |
 | Initial Reviewers  | _Protolambda, Adrian Sutton_                       |
 | Need Approval From | _Mark Tyneway_                                     |
-| Status             | _Draft / In Review / Implementing Actions / Final_ |
+| Status             | _Draft_                                            |
 
 ## Purpose
 
@@ -40,7 +40,7 @@ receives _signed [`cross-safe`][cross-safe] blocks_.
 1. When the sequencing node consults with its own [supervisor][supervisor] and determines that a block can be promoted
 to [`cross-safe`][cross-safe], it will sign the payload hash of the new [cross-safe][cross-safe] block as specified in
 ["Rollup Node P2P"](https://specs.optimism.io/protocol/rollup-node-p2p.html#block-signatures) and gossip the
-[signed payload envelope](https://specs.optimism.io/protocol/rollup-node-p2p.html#block-encoding) to peers.
+[signed payload envelope](https://specs.optimism.io/protocol/rollup-node-p2p.html#block-encoding) to peers
 over the [`cross-safe-blocksv1` topic](#new-gossip-topic).
 1. Peers observing the topic that are operating in "Following Mode" will then validate the block as specified in
 ["Rollup Node P2P"](https://specs.optimism.io/protocol/rollup-node-p2p.html#block-validation), and if validation succeeds:
