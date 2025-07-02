@@ -75,4 +75,4 @@ Pricing calldata correctly should make batcher sequencer throttling unnecessary 
 * As with all updates to `SystemConfig` and `L1Block`, the storage slots must be carefully allocated to ensure forward compatibility.
 * Future Ethereum EIPs may make this configuration obsolete.
 * Without care, it might be possible to set values so high that the system transaction cannot be executed and the chain will halt.
-
+* L1's Glamsterdam fork might include [EIP 7904](https://eips.ethereum.org/EIPS/eip-7904), which aims to reprice the entire gas schedule. The OP Stack fork that includes Glamsterdam would need to consider how rollups with customized calldata costs would transition to a new value in a coordinated way.
