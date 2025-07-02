@@ -22,8 +22,8 @@ We introduce **two new configuration values** that can be modified via the rollu
 
 | Name | Type | Default | Meaning |
 |------|------|-------------------|---------|
-| `eip7623StandardTokenCost` | `uint32` | `4` | The ratio of the cost of a non-zero byte in `tx.data` to the cost of a zero byte in `tx.data` |
-| `eip7623TotalCostFloorPerToken` | `uint32` | `10` | The cost of a zero byte in `tx.data` when calculating the total cost floor |
+| `eip7623StandardTokenCost` | `uint8` | `4` | The ratio of the cost of a non-zero byte in `tx.data` to the cost of a zero byte in `tx.data` |
+| `eip7623TotalCostFloorPerToken` | `uint24` | `10` | The cost of a zero byte in `tx.data` when calculating the total cost floor |
 
 These values are updated via a single new function in `SystemConfig`:
 
