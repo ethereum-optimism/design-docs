@@ -42,7 +42,7 @@ The `extraData` header field of each block must have the following format:
 
 Additionally,
 
-- `version` must be 1
+- `version` must be 1 (incremented from 0)
 - `denominator` must be non-zero
 - there is no additional data beyond these 10 bytes
 
