@@ -1,9 +1,10 @@
 # Configurable Calldata Gas Costs
 
-#### Metadata
+|                    |                                                    |
+| ------------------ | -------------------------------------------------- |
+| Author             | @niran                                             |
+| Created at         | 2025-06-30                                         |
 
-Authors: @niran
-Created: 2025-06-30
 
 ---
 
