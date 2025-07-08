@@ -16,24 +16,31 @@ This document proposes making calldata costs configurable by the chain operator 
 
 # Summary
 
-[EIP 7623](https://eips.ethereum.org/EIPS/eip-7623) uses `STANDARD_TOKEN_COST` and `TOTAL_COST_FLOOR_PER_TOKEN` parameters to calculate the floor cost of each transaction. This proposal makes these parameters configurable via `SystemConfig` instead of hard-coded in the client.
-
-We introduce **two new configuration values** that can be modified via the rollup's `SystemConfig` contract:
+[EIP 7623](https://eips.ethereum.org/EIPS/eip-7623) uses `STANDARD_TOKEN_COST` and `TOTAL_COST_FLOOR_PER_TOKEN` parameters to calculate the floor cost of each transaction. This proposal uses similar cost floor logic, but uses a single parameter for the cost of a fastLZ-compresses byte of calldata. This parameter is configurable via `SystemConfig` instead of hard-coded in the client.
 
 | Name | Type | Default | Meaning |
 |------|------|-------------------|---------|
-| `eip7623StandardTokenCost` | `uint8` | `4` | The ratio of the cost of a non-zero byte in `tx.data` to the cost of a zero byte in `tx.data` |
-| `eip7623TotalCostFloorPerToken` | `uint24` | `10` | The cost of a zero byte in `tx.data` when calculating the total cost floor |
+| `calldataGasPerFastLZByte` | `uint32` | `120` | The cost of a fastLZ-compressed byte of calldata |
 
 These values are updated via a single new function in `SystemConfig`:
 
 ```solidity
-function setEIP7623Params(uint32 standardTokenCost, uint32 totalCostFloorPerToken) external onlyOwner;
+function setCalldataGasPerFastLZByte(uint32 calldataGasPerFastLZByte) external onlyOwner;
 ```
 
-This function will emit a `ConfigUpdate` log-event, with a new `UpdateType`: `UpdateType.EIP7623_PARAMS`.
+This function will emit a `ConfigUpdate` log-event, with a new `UpdateType`: `UpdateType.CALLDATA_GAS_PER_FASTLZ_BYTE`.
 
-At the next fork, op-geth stops reading the compile-time constants in `FloorDataGas` and instead calls a `FloorDataGasFunc` built from the values stored in two dedicated slots of the `L1Block` contract. The values are included in the state of the rollup via the [L1 block attributes](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/isthmus/l1-attributes.md) transaction that updates the `L1Block` contract's storage.
+At the next fork, op-geth stops reading the compile-time constants in `FloorDataGas` and instead calls a `FloorDataGasFunc` built from the values stored in a dedicated slot of the `L1Block` contract. The value is included in the state of the rollup via the [L1 block attributes](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/isthmus/l1-attributes.md) transaction that updates the `L1Block` contract's storage.
+
+Instead of using zero bytes and nonzero bytes as heuristics for compressed calldata size like Ethereum does, we repurpose OP Stack's [FastLZ compression size estimation](https://specs.optimism.io/protocol/fjord/exec-engine.html#fees) from the L1 data fee calculation that was introduced in Fjord to give a more accurate estimate of the L1 blob space consumed by a transaction's calldata. This allows us to set lower gas costs for calldata and allow more of it to be used before the chain's base fee begins to rise.
+
+```
+estimatedSizeScaled = max(minTransactionSize * 1e6, intercept + fastlzCoef*fastlzSize)
+estimatedSize = estimatedSizeScaled / 1e6
+floorDataGas = estimatedSize * calldataGasPerFastLZByte
+```
+
+The default value of `calldataGasPerFastLZByte` is 120, which allows a chain with a gas target of 15M to sustain around 64 kb of calldata per block when all transactions are purely calldata. This throughput matches the entire target throughput for blobs on L1: six 128kb blobs every 12 seconds.
 
 ---
 
@@ -43,15 +50,15 @@ In Ethereum, calldata costs are determined within the calculation for intrinsic 
 
 Rollups have inherited Ethereum's intrinsic gas formula, but rollups have different constraints for the calldata that they process, particularly the L1's data availability capacity, the rollup's block time, and the rollup's gas limit. These constraints change over time, so the cost of calldata must change accordingly to use L1's data availability capacity without exceeding it. At a minimum, rollups will want to adjust their calldata costs with every L1 hard fork that changes blob capacity, which coincides well with OP Stack forks. But any time a rollup wants to change its gas limit (as `SystemConfig` already allows), it will also want to adjust its calldata costs to account for the new gas limit.
 
-Since Pectra increased L1's data availability capacity to a target of 6 128kb blobs every 12 seconds, it can handle 64 kb/s of throughput. A single rollup with a two-second block time can only accept 128kb of batches per block. At 40 gas per byte (as of Pectra's [EIP 7623](https://eips.ethereum.org/EIPS/eip-7623)), it would cost 5.12M gas per block for a rollup's calldata to use enough blobs to hit L1's blob target. Most OP Stack chains have gas targets high enough to accept far more than 128kb of calldata per block! This allows blocks to exceed the rollup's constraints without putting any pressure on the base fee to price out this congestion.
+Since Pectra increased L1's data availability capacity to a target of 6 128kb blobs every 12 seconds, it can sustain 64 kb/s of throughput. A single rollup with a two-second block time can only accept 128kb of batches per block. At 40 gas per byte (as of Pectra's [EIP 7623](https://eips.ethereum.org/EIPS/eip-7623)), it would cost 5.12M gas per block for a rollup's calldata to use enough blobs to hit L1's blob target. Most OP Stack chains have gas targets high enough to accept far more than 128kb of calldata per block! This allows blocks to exceed the rollup's constraints without putting any pressure on the base fee to price out this congestion.
 
-| Chain | Gas target | Underpricing factor |
-|-------|------------|---------------------|
-| Base | 50M | ≈ 9.8× |
-| OP Mainnet | 20M | ≈ 3.9× |
-| Ink  | 15M | ≈ 2.9× |
-| Unichain | 15M | ≈ 2.9× |
-| Mode | 15M | ≈ 2.9× | 
+| Chain | Gas target | Block time | Underpricing factor | Suggested `calldataGasPerFastLZByte` |
+|-------|------------|------------|---------------------|--------------------------------------|
+| Base | 50M | 2s | ≈ 9.8× | 390 |
+| Unichain | 15M | 1s | ≈ 5.9× | 235 |
+| OP Mainnet | 20M | 2s | ≈ 3.9× | 158 |
+| Ink  | 15M | 2s | ≈ 2.9× | 120 |
+| Mode | 15M | 2s | ≈ 2.9× | 120 |
 
 Because so many OP Stack rollups have underpriced calldata, these chains rely on [batcher sequencer throttling](https://docs.optimism.io/operators/chain-operators/configuration/batcher#batcher-sequencer-throttling) to prevent large backlogs of batches from accumulating. The downside of this approach is that it "breaks the fee market." Users must outbid each other's priority fees in a first-price auction instead of expecting all transactions willing to pay the current base fee to be included in blocks. Many applications do not expect to actively participate in priority fee auctions because EIP 1559 has been so successful at eliminating them, so they experience these periods as a denial of service. (The base fee also plummets to zero during these periods, so even when the throttle is no longer binding, it takes time for the priority fee auction to end.)
 
