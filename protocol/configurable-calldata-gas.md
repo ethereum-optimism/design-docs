@@ -16,7 +16,7 @@ This document proposes making calldata costs configurable by the chain operator 
 
 # Summary
 
-[EIP 7623](https://eips.ethereum.org/EIPS/eip-7623) uses `STANDARD_TOKEN_COST` and `TOTAL_COST_FLOOR_PER_TOKEN` parameters to calculate the floor cost of each transaction. This proposal uses similar cost floor logic, but uses a single parameter for the cost of a fastLZ-compresses byte of calldata. This parameter is configurable via `SystemConfig` instead of hard-coded in the client.
+[EIP 7623](https://eips.ethereum.org/EIPS/eip-7623) uses `STANDARD_TOKEN_COST` and `TOTAL_COST_FLOOR_PER_TOKEN` parameters to calculate the floor cost of each transaction. This proposal uses similar cost floor logic, but uses a single parameter for the cost of a FastLZ-compressed byte of calldata. This parameter is configurable via `SystemConfig` instead of hard-coded in the client.
 
 | Name | Type | Default | Meaning |
 |------|------|-------------------|---------|
