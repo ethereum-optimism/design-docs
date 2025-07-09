@@ -69,6 +69,7 @@ Pricing calldata correctly should make batcher sequencer throttling unnecessary 
 # Alternatives Considered
 
 * **Continue hard-coding gas costs**. Updating gas costs once or twice per year on a similar cadence to L1 hard forks is likely frequent enough for most chains, but it doesn't address differences in gas targets between OP Stack chains without each chain maintaining a persistent fork of the client.
+* **Continue using zero bytes and nonzero bytes as heuristics for compressed calldata size**. This would minimize the diff from standard Ethereum clients, but would underutilize the L1's data availability capacity. Since FastLZ compression is already consensus-critical within the L1 data fee calculation, repurposing it here gives us significant benefits at low cost.
 * **Full fee-abstraction** (see [`specs#73`](https://github.com/ethereum-optimism/specs/issues/73)). Only addresses fees, but we need to manipulate gas consumption for the fee market to function properly.
 * **Change the actual calldata gas cost, not just the floor**. This diverges from how the L1 community has been addressing calldata costs and impacts more transactions than are necessary to solve the problem.
 * **Adopt multidimensional metering** (see the [Ethereum Magicians thread](https://ethresear.ch/t/a-practical-proposal-for-multidimensional-gas-metering/22668)). This is likely the proper medium-term solution, but it will take time for the proposal to stabilize and to be adopted on L1.
