@@ -16,19 +16,19 @@ This document proposes making calldata costs configurable by the chain operator 
 
 # Summary
 
-[EIP 7623](https://eips.ethereum.org/EIPS/eip-7623) uses `STANDARD_TOKEN_COST` and `TOTAL_COST_FLOOR_PER_TOKEN` parameters to calculate the floor cost of each transaction. This proposal uses similar cost floor logic, but uses a single parameter for the cost of a FastLZ-compressed byte of calldata. This parameter is configurable via `SystemConfig` instead of hard-coded in the client.
+[EIP 7623](https://eips.ethereum.org/EIPS/eip-7623) uses `STANDARD_TOKEN_COST` and `TOTAL_COST_FLOOR_PER_TOKEN` parameters to calculate the floor cost of each transaction. This proposal uses similar cost floor logic, but uses a single parameter for the cost of a compressed byte of calldata, estimated using FastLZ compression. This parameter is configurable via `SystemConfig` instead of hard-coded in the client.
 
 | Name | Type | Default | Meaning |
-|------|------|-------------------|---------|
-| `calldataGasPerFastLZByte` | `uint32` | `120` | The cost of a fastLZ-compressed byte of calldata |
+|------|------|---------|---------|
+| `calldataGasPerCompressedByte` | `uint32` | `120` | The cost per estimated compressed byte of calldata |
 
 These values are updated via a single new function in `SystemConfig`:
 
 ```solidity
-function setCalldataGasPerFastLZByte(uint32 calldataGasPerFastLZByte) external onlyOwner;
+function setCalldataGasPerCompressedByte(uint32 calldataGasPerCompressedByte) external onlyOwner;
 ```
 
-This function will emit a `ConfigUpdate` log-event, with a new `UpdateType`: `UpdateType.CALLDATA_GAS_PER_FASTLZ_BYTE`.
+This function will emit a `ConfigUpdate` log-event, with a new `UpdateType`: `UpdateType.CALLDATA_GAS_PER_COMPRESSED_BYTE`.
 
 At the next fork, op-geth stops reading the compile-time constants in `FloorDataGas` and instead calls a `FloorDataGasFunc` built from the values stored in a dedicated slot of the `L1Block` contract. The value is included in the state of the rollup via the [L1 block attributes](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/isthmus/l1-attributes.md) transaction that updates the `L1Block` contract's storage.
 
@@ -37,10 +37,10 @@ Instead of using zero bytes and nonzero bytes as heuristics for compressed calld
 ```
 estimatedSizeScaled = max(minTransactionSize * 1e6, intercept + fastlzCoef*fastlzSize)
 estimatedSize = estimatedSizeScaled / 1e6
-floorDataGas = estimatedSize * calldataGasPerFastLZByte
+floorDataGas = estimatedSize * calldataGasPerCompressedByte
 ```
 
-The default value of `calldataGasPerFastLZByte` is 120, which allows a chain with a gas target of 15M to sustain around 64 kb of calldata per block when all transactions are purely calldata. This throughput matches the entire target throughput for blobs on L1: six 128kb blobs every 12 seconds.
+The default value of `calldataGasPerCompressedByte` is 120, which allows a chain with a gas target of 15M to sustain around 64 kb of calldata per block when all transactions are purely calldata. This throughput matches the entire target throughput for blobs on L1: six 128kb blobs every 12 seconds.
 
 ---
 
@@ -52,7 +52,7 @@ Rollups have inherited Ethereum's intrinsic gas formula, but rollups have differ
 
 Since Pectra increased L1's data availability capacity to a target of 6 128kb blobs every 12 seconds, it can sustain 64 kb/s of throughput. A single rollup with a two-second block time can only accept 128kb of batches per block. At 40 gas per byte (as of Pectra's [EIP 7623](https://eips.ethereum.org/EIPS/eip-7623)), it would cost 5.12M gas per block for a rollup's calldata to use enough blobs to hit L1's blob target. Most OP Stack chains have gas targets high enough to accept far more than 128kb of calldata per block! This allows blocks to exceed the rollup's constraints without putting any pressure on the base fee to price out this congestion.
 
-| Chain | Gas target | Block time | Underpricing factor | Suggested `calldataGasPerFastLZByte` |
+| Chain | Gas target | Block time | Underpricing factor | Suggested `calldataGasPerCompressedByte` |
 |-------|------------|------------|---------------------|--------------------------------------|
 | Base | 50M | 2s | ≈ 9.8× | 390 |
 | Unichain | 15M | 1s | ≈ 5.9× | 235 |
