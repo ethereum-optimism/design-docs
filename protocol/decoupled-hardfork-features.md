@@ -119,11 +119,11 @@ This would look like: `map[Hardfork]Features[]`. The TOML output is shown below.
 ```toml
 
 [hardforks]
-...
-+ jovian_time = 20000000000 # TBC
+# ... other hardforks
+jovian_time = 20000000000 # TBC
 
 [features]
-...
+# ... other hardforks
 jovian = ["minimumBaseFee", "configurableCallData", "operatorFeeFix"]
 ```
 
