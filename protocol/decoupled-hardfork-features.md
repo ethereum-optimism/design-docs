@@ -101,6 +101,35 @@ which features are active in which hardfork.
 
 ### Implementation Details
 
+#### **Rollup Config Mapping**
+
+When `RollupConfig`s are parsed from the [`superchain-regsitry`][scr], it's up to the
+client software how to interpret the configs. For example, in the [`superchain-regsitry`][scr],
+a feature may be mapped to a hardfork name. Then, in the client software, when the
+[`superchain-regsitry`][scr] is deserialized into runtime `RollupConfig` objects,
+the mapping may be translated to be a mapping from feature to the timestamp at which
+the feature is active by looking up the hardfork activation time.
+
+Alternatively, the [`superchain-regsitry`][scr] may contain a mapping from hardfork
+to set of features that are part of that hardfork, arguably making it easier to tell
+which features are part of a given hardfork.
+
+This would look like: `map[Hardfork]Features[]`. The TOML output is shown below.
+
+```toml
+
+[hardforks]
+...
++ jovian_time = 20000000000 # TBC
+
+[features]
+...
+jovian = ["minimumBaseFee", "configurableCallData", "operatorFeeFix"]
+```
+
+
+#### **Superchain Registry Example**
+
 For demonstration purposes, an updated to `superchain.toml` for the `Jovian` hardfork
 would look like the following.
 
