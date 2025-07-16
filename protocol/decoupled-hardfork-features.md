@@ -90,11 +90,13 @@ If a feature is absent from the map, it remains inactive.
     - Look up the hardfork for the feature.
     - Retrieves the hardfork's timestamp (e.g., via existing fields like `IsthmusTime`).
     - Returns true if `timestamp >= hardforkTimestamp`.
-- **Client-Level Overrides:** Extend CLI flags for direct per-feature timestamp overrides
-  (e.g., `--override.feature.eip4844=isthmus` or `--override.feature.eip4844.timestamp=123456`),
-  similar to current hardfork overrides.
 - **Superchain Compatibility:** For chains with `superchain_time`, inherit mappings from
   a central registry, but allow per-chain overrides.
+- **(OPTIONAL) Client-Level Overrides:** Extend CLI flags for direct per-feature timestamp
+  overrides (e.g., `--override.feature.eip4844=isthmus` or
+  `--override.feature.eip4844.timestamp=123456`), similar to current hardfork overrides.
+  Notice that CLI overrides are completely optional and are left to the discretion of
+  individual implementations.
 
 These changes allow *both* chain operators and client/protocol developers to customize
 which features are active in which hardfork.
@@ -245,6 +247,49 @@ max_sequencer_drift = 600
 ```
 
 # Alternatives Considered
+
+### **Feature Fallbacks**
+
+This is an added alternative first suggested on github by @ajsutton. Most
+of the ideas here are adapted from @ajsutton.
+
+"Feature Fallbacks" is an alternative approach to feature decoupling
+that avoids making any changes at all to the superchain registry. Instead,
+feature fallbacks happen at the client implementation level where
+individual features within a hardfork have their own activation selectors
+on the `RollupConfig` that fallback to their hardforks.
+
+For example, an activation check for the operator fee that is part of the
+Isthmus hardfork could look like the following.
+
+```
+func IsOperatorFeeEnabled() {
+  return IsIsthmusEnabled()
+}
+```
+
+> [!NOTE]
+>
+> Notice that with this approach, the method could just be modified to
+> return false if the feature needs to be disabled for some reason.
+
+It's worth noting that this is less flexible for testing since the features
+are not configurable through the `RollupConfig` programmatically, but there's
+no risk of misconfiguration. This approach is typically used on L1 though
+because the features that are actually in a hardfork doesn't change often.
+
+Feature fallbacks like this make sense if this decoupling only exists during
+development of the hard fork. Once the hardfork scope is finalized, individual
+feature toggles are removed from the implementation, locking in what's part
+of the hardfork. The benefit of this approach is that no changes to the
+superchain registry are required. On the flipside, it adds work on the backend
+to remove individual feature toggles. One consideration is development may
+revert to previous bad habits, where the feature toggle is never added to begin
+with because it's considered "well scoped enough" or "fairly committed to".
+
+On the flipside, adding features to the superchain registry would make sense
+if the intent is to keep features decoupled from hard forks permanently.
+
 
 ### **Individual Feature Timestamps**
 
