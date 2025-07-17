@@ -69,13 +69,13 @@ superchain governance.
     - Overrides in the `op-node` exist [here][op-overrides]. In the `kona-node`,
       [here][kona-overrides].
 
-# Proposed Solution: Client Decoupling
+# Proposed Solution: Client Side Decoupling
 
-Client Decoupling.
-
-Decouplt features from hardforks at the client level. Make no changes to the
+Decouple features from hardforks at the client level. Make no changes to the
 superchain registry. Instead, allow clients to implement a feature mapping
 or hardcoded activation methods for individual features within a hardfork.
+
+CLI flags can be used to toggle features on or off.
 
 This allows features to be developed independently from a hardfork,
 allowing the finalized set of features to not impede on protocol development.
@@ -102,7 +102,7 @@ not be able to affect feature activation.
 
 ### Implementation Methods
 
-There are essentially two implementation options here.
+Two implementation options are provided here.
 
 #### Option A: Fallback Activation Methods
 
