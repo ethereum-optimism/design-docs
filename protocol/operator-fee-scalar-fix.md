@@ -30,7 +30,7 @@ operatorFee = operatorFeeConstant + operatorFeeScalar * gasUsed / 1e6
 The `1e-6` multiplier on the `operatorFeeScalar` is not useful for operators as it results in a fee that is too low to be useful. This design doc proposes the following change to the operator fee formula.
 
 ```
-operatorFee = operatorFeeConstant + operatorFeeScalar * gasUsed * 10
+operatorFee = operatorFeeConstant + operatorFeeScalar * gasUsed * 100
 ```
 
 <!-- Most (if not all) documents should have a summary.
@@ -63,19 +63,19 @@ is likely too low level. -->
 We propose the following change to the operator fee formula.
 
 ```
-operatorFee = operatorFeeConstant + operatorFeeScalar * gasUsed * 10
+operatorFee = operatorFeeConstant + operatorFeeScalar * gasUsed * 100
 ```
 
 Where `operatorFeeScalar` and `operatorFeeConstant` remain `u32` and `u64` respectively.
 
 Examine the following to get a sense of the range of fees this formula supports. For the dollar cost column, we assume an ETH price of 2.5k.
 
-| Gas Used | `operatorFeeScalar` | `operatorFeeScalar * gasUsed * 10` | Dollar Cost |
+| Gas Used | `operatorFeeScalar` | `operatorFeeScalar * gasUsed * 100` | Dollar Cost |
 |----------|-------------------|----------------------------------|-------------|
-| 30,000,000 | 1 | 0.3 gwei | $0.00000075 |
-| 30,000,000 | 2^32 | 1.29e9 gwei | $3,225.00 |
-| 1,000,000 | 1 | 0.01 gwei | $0.000000025 |
-| 1,000,000 | 2^32 | 4.29e7 gwei | $107.25 |
+| 30,000,000 | 1 | 3 gwei | $0.0000075 |
+| 30,000,000 | 2^32 | 1.29e10 gwei | $32,250.00 |
+| 1,000,000 | 1 | 0.1 gwei | $0.00000025 |
+| 1,000,000 | 2^32 | 4.29e8 gwei | $1,072.50 |
 
 Given that the current scalar component fees are negligible, all `operatorFeeScalar` values are set to 0 upon upgrade. Then, chain operators will be responsible for adjusting them according to the new formula. The `operatorFeeConstant` will not change upon transition.
 
