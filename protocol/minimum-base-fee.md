@@ -17,7 +17,7 @@ We introduce a new configuration value that can be modified via `SystemConfig`:
 
 | Name             | Type    | Default | Meaning |
 |------------------|---------|---------|---------|
-| `minBaseFeeLog2` | `uint8` | `0`     | The log2 of the minimum base fee that can be charged for a transaction |
+| `minBaseFeeLog2` | `uint8` | `0`     | The log2 of the minimum base fee that can be charged for a transaction. 0 disables the minimum base fee entirely. |
 
 These values are updated via a new function in `SystemConfig`:
 
