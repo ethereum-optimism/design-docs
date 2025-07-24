@@ -76,21 +76,21 @@ Priority fee auctions occur when blocks are near the gas limit or when the base 
 
 It can also be argued that **scaled** rollups will run well below their gas target in typical conditions, which makes the "gas target" more of a "congestion threshold." Ethereum's base fees are _congestion_ fees, and scaled rollups should rarely be congested: their maximum capacity should be much higher than typical usage. A minimum base fee would be charged in the vast majority of cases, and higher fees would only be charged when the rollup needs to discourage transactions near its capacity. In this scenario, we would need to think of congestion often starting from base fees that are the lowest the chain will allow. Today, that's 1 wei, which takes far too long to adjust to the market prices that are needed to prevent first-price auctions using priority fees.
 
-When the base fee is at or near its minimum value, it can only increase as fast as the `BASE_FEE_MAX_CHANGE_DENOMINATOR` of EIP 1559 allows. Ethereum has this value set to `8`. The maximum the base fee can increase in one block is `(ELASTICITY_MULTIPLIER - 1) / BASE_FEE_MAX_CHANGE_DENOMINATOR`, which is `(2 - 1) / 8 = 1/8` or 12.5%. That produces a doubling time of 5.9 blocks at 12 seconds each, or 71 seconds. On Base, the denominator is `50`, which produces a maximum increase per block of 2% and a doubling time of 35 blocks at 2 seconds each, or 70 seconds. Base's elasticity was recently changed from `2` to `3`, which gives a maximum increase per block of 4% and a doubling time of 17.7 blocks at 2 seconds each, or 35 seconds.
+When the base fee is at or near its minimum value, it can only increase as fast as the `BASE_FEE_MAX_CHANGE_DENOMINATOR` of EIP 1559 allows. Ethereum has this value set to `8`. The maximum the base fee can increase in one block is `(ELASTICITY_MULTIPLIER - 1) / BASE_FEE_MAX_CHANGE_DENOMINATOR`, which is `(2 - 1) / 8 = 1/8` or 12.5%. That produces a doubling time of 5.9 blocks at 12 seconds each, or 71 seconds. On OP Mainnet, the denominator is `250`, which produces a maximum increase per block of 0.4% and a doubling time of 17.7 blocks at 2 seconds each, or 35be seconds. On Base, the denominator is `50`, which produces a maximum increase per block of 2% and a doubling time of 35 blocks at 2 seconds each, or 70 seconds. Base's elasticity was recently changed from `2` to `3`, which gives a maximum increase per block of 4% and a doubling time of 17.7 blocks at 2 seconds each, or 35 seconds.
 
 The current prevailing base fee on Base today is slightly below 0.001 gwei. It takes 411 blocks (13.7 minutes) for the base fee to increase from 1 wei to 0.001 gwei if every block is completely full at the gas limit. (In practice, we see 70% full blocks in these scenarios, so the fees take even longer to increase.) If we could configure a minimum base fee of 0.0001 gwei, we could speed up the fee adjustment (and the corresponding end of the priority fee auction) to 59 blocks, or a little under two minutes. We could even eliminate the priority fee auctions that occur while the chain is adjusting from the minimum to the typical market fee price by setting the minimum to that price to begin with. [Arbitrum One sets a minimum of 0.01 gwei](https://docs.arbitrum.io/how-arbitrum-works/gas-fees#child-chain-gas-pricing). At recent ETH prices around $2500, any of these three minimum base fees (which correspond to `2**20` through `2**24`) would be much less than one cent for a USDC transfer (about 40,500 gas). As ETH prices change, rollup operators will want to adjust the minimum base fee accordingly.
 
-| log2(minBaseFee) | Minimum Base Fee (gwei) | USDC Transfer Cost (ETH) | Cost (USD, ~$2,500/ETH) |
-| ---------------- | ----------------------- | ------------------------ | ----------------------- |
-| 19 | 0.000524288 | 2.12e-8 | $0.0000531 |
-| 20 | 0.001048576 | 4.25e-8 | $0.000106 |
-| 21 | 0.002097152 | 8.49e-8 | $0.000212 |
-| 22 | 0.004194304 | 1.70e-7 | $0.000425 |
-| 23 | 0.008388608 | 3.40e-7 | $0.000849 |
-| 24 | 0.016777216 | 6.79e-7 | $0.00170 |
-| 25 | 0.033554432 | 1.36e-6 | $0.00340 |
-| 26 | 0.067108864 | 2.72e-6 | $0.00679 |
-| 27 | 0.134217728 | 5.44e-6 | $0.0136 |
+| log2(minBaseFee) | Minimum Base Fee (gwei) | USDC Transfer Cost (ETH) | Cost (USD, ~$2,500/ETH) | Time Saved on OP Mainnet (minutes) |
+| ---------------- | ----------------------- | ------------------------ | ----------------------- | ----------------------------------- |
+| 19 | 0.000524288 | 2.12e-8 | $0.0000531 | 11.2 |
+| 20 | 0.001048576 | 4.25e-8 | $0.000106 | 11.8 |
+| 21 | 0.002097152 | 8.49e-8 | $0.000212 | 12.4 |
+| 22 | 0.004194304 | 1.70e-7 | $0.000425 | 13.0 |
+| 23 | 0.008388608 | 3.40e-7 | $0.000849 | 13.6 |
+| 24 | 0.016777216 | 6.79e-7 | $0.00170 | 14.2 |
+| 25 | 0.033554432 | 1.36e-6 | $0.00340 | 14.8 |
+| 26 | 0.067108864 | 2.72e-6 | $0.00679 | 15.3 |
+| 27 | 0.134217728 | 5.44e-6 | $0.0136 | 15.9 |
 
 # Backwards Compatibility
 
