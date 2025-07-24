@@ -62,7 +62,7 @@ Since Pectra increased L1's data availability capacity to a target of 6 128kb bl
 
 Because so many OP Stack rollups have underpriced calldata, these chains rely on [batcher sequencer throttling](https://docs.optimism.io/operators/chain-operators/configuration/batcher#batcher-sequencer-throttling) to prevent large backlogs of batches from accumulating. The downside of this approach is that it "breaks the fee market." Users must outbid each other's priority fees in a first-price auction instead of expecting all transactions willing to pay the current base fee to be included in blocks. Many applications do not expect to actively participate in priority fee auctions because EIP 1559 has been so successful at eliminating them, so they experience these periods as a denial of service. (The base fee also plummets to zero during these periods, so even when the throttle is no longer binding, it takes time for the priority fee auction to end.)
 
-Pricing calldata correctly should make batcher sequencer throttling unnecessary and eliminate the priority fee auctions we see today when calldata is congested.
+Pricing calldata correctly should make batcher sequencer throttling occur rarely and eliminate the priority fee auctions we see today when a single OP Stack chain's calldata exceeds the L1's data availability capacity.
 
 ---
 
