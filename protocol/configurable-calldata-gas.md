@@ -66,6 +66,14 @@ Pricing calldata correctly should make batcher sequencer throttling occur rarely
 
 ---
 
+# Backwards Compatibility
+
+This change is the first OP Stack change where gas costs diverge from L1. Developers can no longer use gas estimates portably from one chain to another. This includes `anvil` and `hardhat` users, who will see different gas estimates in development environments from what they would see on a real OP Stack chain.
+
+While calldata gas is calculated outside of the EVM, this change can still break any tooling that doesn't use `eth_estimateGas` against the rollup's RPC endpoint to estimate the cost of a transaction. Since gas estimates are tied to the state of the chain, we don't expect to find many tools that implement their own gas estimation logic that would break in this way.
+
+---
+
 # Alternatives Considered
 
 * **Continue hard-coding gas costs**. Updating gas costs once or twice per year on a similar cadence to L1 hard forks is likely frequent enough for most chains, but it doesn't address differences in gas targets between OP Stack chains without each chain maintaining a persistent fork of the client.
