@@ -92,6 +92,10 @@ The current prevailing base fee on Base today is slightly below 0.001 gwei. It t
 | 26 | 0.067108864 | 2.72e-6 | $0.00679 |
 | 27 | 0.134217728 | 5.44e-6 | $0.0136 |
 
+# Backwards Compatibility
+
+We expect this change to have little impact on applications. Applications estimate the base fee component of their costs by looking at the previous block's base fee and potentially adding a margin of [12.5%](https://ethereum.org/en/developers/docs/gas/#base-fee) or [100%](https://www.blocknative.com/blog/eip-1559-fees) for base fee increases caused by congestion. 
+
 # Alternatives Considered
 
 * **Hard-code a minimum base fee** (like [EIP 7762](https://eips.ethereum.org/EIPS/eip-7762)). This is the simplest solution, but it doesn't give the chain operator any flexibility to adjust the minimum base fee. Establishing a Superchain-wide consensus on a minimum base fee seems difficult, especially if the value will have to wait for the next fork to be changed.
