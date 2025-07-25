@@ -273,7 +273,7 @@ The developers will present several changes with respect to an OP Stack chain th
 
 **Maintain the old design.**
 
-The old design required an token to exist in L1 priorly. This also needed to introduce a `depositERC20Transaction` as well as the `GasToken` library that contains the relevant gas token functions to derive in L2. This design restricts native asset management by only minting new assets through a `depositTransaction`, digested by the `op-node` through a system transaction (type 126).
+The old design required a token to exist in L1 previously. This also needed to introduce a `depositERC20Transaction` as well as the `GasToken` library that contains the relevant gas token functions to derive in L2. This design restricts native asset management by only minting new assets through a `depositTransaction`, digested by the `op-node` through a system transaction (type 126).
 
 **Modify derivation rules to allow custom minting rules.**
 
