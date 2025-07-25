@@ -289,8 +289,8 @@ As an alternative to the proposed architecture, both predeploys might be merged 
 
 ## Risks & Uncertainties
 
-- Any minters granteed to interact with the `LiquidityController` require proper audits to ensure native asset logic can’t be broken in production, as the recovery would be costly.
-    - There are two potential paths to minimize the impact: adding rate limits, or minters to withdraw the needed supply and virtually “close” or don’t need to use the `CustomAssetLiquidity` anymore.
+- Any minters granted to interact with the `LiquidityController` require proper audits to ensure native asset logic can’t be broken in production, as the recovery would be costly.
+    - There are two potential paths to minimize the impact: adding rate limits, or allowing minters to withdraw the needed supply and virtually “close” or don’t need to use the `NativeAssetLiquidity` anymore.
 - There is an open discussion on how to support tokens that have other than 18 decimals. This is a concern for the minter that is placed on top of the `LiquidityController`.
     - One possible solution might be adding `decimals()` in the `LiquidityController`, or fully handling it through the minters.
 - Existing OP Stack chains using old designs would need to upgrade to the new version, the solution of which is actively being architected.
