@@ -65,6 +65,7 @@ PayloadAttributesV3: {
     noTxPool: bool
     gasLimit: QUANTITY or null
     eip1559Params: DATA (8 bytes) or null
+    minBaseFeeLog2: u8
 }
 ```
 
