@@ -47,7 +47,7 @@ Additionally,
 - there is no additional data beyond these 10 bytes
 
 Note that `extraData` has a maximum capacity of 32 bytes (to fit in the L1 beacon-chain `extraData` data-type) and its
-format may be modified/extended by future upgrades.
+format may be modified/extended by future upgrades. Furthermore, when decoding `extraData`, it makes a best-effort for every block in the chain's history, including before the minimum base fee was enabled.
 
 ## Minimum Base Fee in `PayloadAttributesV3`
 
@@ -64,7 +64,7 @@ PayloadAttributesV3: {
     transactions: array of DATA
     noTxPool: bool
     gasLimit: QUANTITY or null
-    eip1559Params: DATA (9 bytes) or null
+    eip1559Params: DATA (8 bytes) or null
 }
 ```
 
