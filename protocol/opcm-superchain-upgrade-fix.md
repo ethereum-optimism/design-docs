@@ -53,7 +53,7 @@ and [op-contracts/v4.0.0](https://github.com/ethereum-optimism/optimism/blob/54c
 
 The check basically says that, if the implementation of the superchainConfig is not the same as the implementation the OPCM has stored, then upgrade it.
 
-To upgrade the superchainConfig, the superchainProxyAdmin will need to call the OPCM's `upgrade()` function and optionally pass in values to upgrade any other chain's contracts as long as they're that chain's proxyAdmin.
+To upgrade the superchainConfig, the superchainProxyAdminOwner will need to call the OPCM's `upgrade()` function and optionally pass in values to upgrade any other chain's contracts as long as it controls that chain's proxyAdmin.
 
 ## Problem Statement + Context
 
