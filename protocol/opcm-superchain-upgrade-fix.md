@@ -5,6 +5,7 @@
 - [[Project Name]: Design Doc](#project-name-design-doc)
   - [Summary](#summary)
   - [Problem Statement + Context](#problem-statement--context)
+  - [Customer Requirements and Expected Behavior](#customer-requirements-and-expected-behavior)
   - [Proposed Solution](#proposed-solution)
   - [Requirements and Expected behaviour](#requirements-and-expected-behaviour)
   - [Failure Mode Analysis](#failure-mode-analysis)
@@ -77,6 +78,22 @@ When it calls the OPCM's `upgrade()` function, the check above (if (superchainPr
 - If the ProxyAdmin is not the SuperchainConfig's ProxyAdmin, it will revert. This essentially means that all upgrades from that OPCM is not possible any longer. Of course unless the SuperchainProxyAdminOwner calls upgrade which would upgrade the SuperchainConfig to Impl1 (effectively a downgrade) and make it possible for other chains to upgrade but for obvious reasons downgrading the SuperchainConfig is not the best course of action.
 - If however it's ProxyAdmin is the SuperchainConfig's ProxyAdmin, it will upgrade the SuperchainConfig to impl1 (old implementation) and then upgrade ChainC's L1 contracts.
 
+## Customer Requirements and Expected Behavior
+
+| Scenario Number | ChainAPAO == superchainPAO?  | Target version is latest? | SuperchainConfig already on latest? | Expected Behavior                                                                                                                                                                                                     |
+| --------------- | ---------------------------- | ------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1               | Yes                          | Yes                       | Yes                                 | Upgrades ChainA's L1 contracts, Function returns successfully                                                                                                                                                         |
+| 2               | Yes                          | Yes                       | No                                  | Upgrades SuperchainConfig to latest version, Upgrades ChainA's L1 contracts, Function returns successfully                                                                                                            |
+| 3a              | No (Caller is ChainAPAO)     | Yes                       | Yes                                 | Upgrades ChainA's L1 contracts, Function returns successfully                                                                                                                                                         |
+| 3b              | No (Caller is SuperchainPAO) | Yes                       | Yes                                 | Nothing happens, Function returns successfully                                                                                                                                                                        |
+| 4a              | No (Caller is ChainAPAO)     | Yes                       | No                                  | Function reverts since it will try to upgrade the SuperchainConfig to the latest version with the wrong owner                                                                                                         |
+| 4b              | No (Caller is SuperchainPAO) | Yes                       | No                                  | Upgrades SuperchainConfig to latest version, Function returns successfully                                                                                                                                            |
+| 5               | Yes                          | No                        | Yes                                 | It should revert since it will firstly attempt to upgrade to a former implementation, currently it does not revert and it upgrades the SuperchainConfig to the target version and also upgrades ChainA's L1 contracts |
+| 6               | Yes                          | No                        | No                                  | It should ideally only work if we are upgrading to a newer version, currently it does not revert and it upgrades the SuperchainConfig to the target version and also upgrades ChainA's L1 contracts                   |
+| 7a               | No (Caller is ChainAPAO)     | No                        | Yes                                 | Upgrades ChainA's L1 contracts, Function returns successfully                                                                                                                                                         |
+| 7b               | No (Caller is SuperchainPAO) | No                        | Yes                                 | Function reverts since it has already been upgraded                                                                                                                                                                   |
+| 8a               | No (Caller is ChainAPAO)     | No                        | No                                  | Function reverts since it will try to upgrade the SuperchainConfig to the latest version with the wrong owner                                                                                                         |
+| 8b               | No (Caller is SuperchainPAO) | No                        | No                                  | Upgrades SuperchainConfig to latest version, Function returns successfully
 
 ## Proposed Solution
 
