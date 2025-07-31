@@ -289,11 +289,11 @@ The old design required a token to exist in L1 previously. This also needed to i
 
 **Modify derivation rules to allow custom minting rules.**
 
-Since tx type 126 only allows native assets mints through a `depositTransaction`, customizing this feature to be flexible enough would require major changes on derivation rules, `op-node`, and execution clients to permit new supply creation.
+Since tx type 126 only allows native assets mints through a `depositTransaction`, customizing this feature to be flexible enough would require major changes on derivation rules, `op-node`, and execution clients to permit new supply creation. Adding new tx types or new precompiles would cause issues such as divergence in current software, unnecessary breaking of existing tooling, and additional maintenance.
 
 **Modify the execution environment and client software.**
 
-EVM-equivalence means the native asset doesn’t have any custom feature other than the described in the EVM specs. It could be possible for the native asset to be modified to allow features such as blacklisting, whitelisting, staking, and voting at the cost of losing EVM equivalence. This would likely affect the current proof systems and fundamental APIs such as `depositTransaction`.
+EVM-equivalence means the native asset doesn’t have any custom feature other than the described in the EVM specs. It could be possible for the native asset to be modified to allow features such as blacklisting, whitelisting, staking, and voting at the cost of losing EVM equivalence. This would likely affect the current proof systems and fundamental APIs such as `depositTransaction`. This alternative would case similar issues on software maintenance and existing toolings, as stated above.
 
 **Merge `NativeAssetLiquidity` and `LiquidityController`.**
 
