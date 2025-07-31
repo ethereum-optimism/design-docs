@@ -67,6 +67,13 @@ contract NativeAssetLiquidity {
 	  if (msg.sender != Predeploys.LIQUIDITY_CONTROLLER) revert Unauthorized();
 	  new SafeSend{ value: _amount }(payable(msg.sender));
 	}
+
+	// Burn an arbitrary amount of native supply forever, ideally to be called only once
+	function burn(uint256 _amount) external {
+	  if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert Unauthorized();
+
+	  // Add burn logic here, similar to L2ToL1MessagePasser
+	  Burn.eth(_amount);
 }
 ```
 
@@ -152,7 +159,7 @@ Since native assets are pre-minted from genesis, the chain governor can decide h
 - Introduce an ERC20 in L2 that contains utility functions (governance, DeFi); meanwhile, their native asset version serves as the medium to pay for gas.
 - Do not depend on an existing asset, emulating how some L1 currently works.
 
-The design allows for the inclusion of any desired features, such as rate limits, emission schedules, and a max. cap the supply, coupled with any bridge mechanism, etc. The architecture also doesn’t restrict the use of any token framework (e.g., OFT, xERC20, SuperchainERC20, etc.) to be coupled with the native asset eventually.
+The design allows for the inclusion of any desired features, such as rate limits, emission schedules, and a max. cap the supply, coupled with any bridge mechanism, etc. The architecture also doesn’t restrict the use of any token framework (e.g., OFT, xERC20, SuperchainERC20, etc.) to be coupled with the native asset eventually. Note that the `burn` function in `NativeAssetLiquidity` allows the chain governor to burn any extra supply during the chain’s deployment, enabling them to maintain only the desired supply of the native asset on the chain.
 
 Existing CGT chains using the old design can perform a hard fork to set such contracts and seed the native asset liquidity.
 
@@ -192,6 +199,7 @@ sequenceDiagram
     Governor->>Controller: mint(initialSupply)
     Controller->>Liquidity: withdraw()
     Liquidity-->>Governor: native asset
+    Governor->>Liquidity: burn unneeded supply (optional)
     Governor->>Deployer: transfer native asset
     Deployer->>Deployer: deploy core contracts (cgtBridge...)
 
@@ -290,7 +298,7 @@ As an alternative to the proposed architecture, both predeploys might be merged 
 ## Risks & Uncertainties
 
 - Any minters granted to interact with the `LiquidityController` require proper audits to ensure native asset logic can’t be broken in production, as the recovery would be costly.
-    - There are two potential paths to minimize the impact: adding rate limits, or allowing minters to withdraw the needed supply and virtually “close” or don’t need to use the `NativeAssetLiquidity` anymore.
+    - There are two potential paths to minimize the impact: adding rate limits, and burn the unneeded supply during chain's deployment.
 - There is an open discussion on how to support tokens that have other than 18 decimals. This is a concern for the minter that is placed on top of the `LiquidityController`.
     - One possible solution might be adding `decimals()` in the `LiquidityController`, or fully handling it through the minters.
 - Existing OP Stack chains using old designs would need to upgrade to the new version, the solution of which is actively being architected.
