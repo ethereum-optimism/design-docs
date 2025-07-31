@@ -13,13 +13,13 @@ Enable OP Stack chains to use an asset other than ETH as their native fee curren
 
 ## Summary
 
-The proposed Custom Gas Token upgrade lets any OP Stack chain introduce its native asset as the gas currency with almost no core-code intrusion: a single `isCustomGasToken()` flag turns off ETH transfers flows in all bridging methods, while two new pre-deploys, `NativeAssetLiquidity`, a contract with pre-minted assets, and `LiquidityController`, an owner-governed mint/burn router, hand supply control to chain governors or authorized “minter” contracts that can plug in anything from ERC-20 converters to third-party bridges or emission schedules. Wrapped-asset compatibility is preserved, and the entire system launches at genesis by funding the vault and letting the governor release an initial working balance. Overall, the design keeps the OP Stack lean, token-agnostic and future-proof while unlocking custom economics and flexibility to make the native asset expressive in its manner.
+The proposed Custom Gas Token upgrade lets any OP Stack chain introduce its native asset as the gas currency with almost no core-code intrusion: a single `isCustomGasToken()` flag turns off ETH transfer flows in all bridging methods, while two new pre-deploys, `NativeAssetLiquidity`, a contract with pre-minted assets, and `LiquidityController`, an owner-governed mint/burn router, hand supply control to chain governors or authorized “minter” contracts that can plug in anything from ERC-20 converters to third-party bridges or emission schedules. Wrapped-asset compatibility is preserved, and the entire system launches at genesis by funding the vault and letting the governor release an initial working balance. Overall, the design keeps the OP Stack lean, token-agnostic, and future-proof while unlocking custom economics and flexibility to make the native asset expressive in its manner.
 
 ## Problem Statement + Context
 
-The prior CGT design anchored the gas token to an L1 ERC‑20, hard‑coding bridge paths, and cluttering core contracts with token metadata. These restrictions make it hard to handle properly the following scenarios:
+The prior CGT design anchored the gas token to an L1 ERC‑20, hard‑coding bridge paths, and cluttering core contracts with token metadata. These restrictions make it hard to handle the following scenarios properly:
 
-- Integrates with a token that doesn’t live in L1.
+- Integrates with a token that doesn’t live on L1.
 - Launch chains whose native asset does not yet exist or have an ERC20 representation somewhere.
 - Experiment with custom supply management or economics.
 - Implement any novel or non-conventional bridging mechanisms.
@@ -50,7 +50,7 @@ As a consequence, native asset mints and burns are decoupled from system transac
 
 **`NativeAssetLiquidity` and `LiquidityController` Predeploys**
 
-A very large amount of native asset is pre-minted and stored in `NativeAssetLiquidity`, which is managed through the `LiquidityController`, which has the rights to withdraw and deposit to this contract.
+A very large amount of native assets is pre-minted and stored in `NativeAssetLiquidity`, which is managed through the `LiquidityController`, which has the rights to withdraw and deposit to this contract.
 
 A code example of both contracts would look like this:
 
@@ -152,7 +152,7 @@ Since native assets are pre-minted from genesis, the chain governor can decide h
 - Introduce an ERC20 in L2 that contains utility functions (governance, DeFi); meanwhile, their native asset version serves as the medium to pay for gas.
 - Do not depend on an existing asset, emulating how some L1 currently works.
 
-The design allows for including any desired features, such as rate limits, emission schedules, max. cap the supply, coupled with any bridge mechanism, etc. The architecture also doesn’t restrict the use of any token framework (e.g., OFT, xERC20, SuperchainERC20, etc.) to be coupled with the native asset eventually.
+The design allows for the inclusion of any desired features, such as rate limits, emission schedules, and a max. cap the supply, coupled with any bridge mechanism, etc. The architecture also doesn’t restrict the use of any token framework (e.g., OFT, xERC20, SuperchainERC20, etc.) to be coupled with the native asset eventually.
 
 Existing CGT chains using the old design can perform a hard fork to set such contracts and seed the native asset liquidity.
 
@@ -205,7 +205,7 @@ Chain Governors must define the `SYMBOL` and `NAME` of the `WNA` in `LiquidityCo
 
 As the native asset isn’t enshrined to a bridge from the start, respective asset representation in L2 and LX becomes possible as the Chain governors’ discretion.
 
-For example, if the ERC20 already lives in L1, a `*CGTStandardBridge*` set of contracts might allow depositing the ERC20 and releasing native assets to the user. This design makes any other kind of bridging (from any blockchain and security model) possible.
+For example, if the ERC20 already lives in L1, a `CGTStandardBridge` set of contracts might allow depositing the ERC20 and releasing native assets to the user. This design makes any other kind of bridging (from any blockchain and security model) possible.
 
 ```mermaid
 graph TD
@@ -295,7 +295,7 @@ As an alternative to the proposed architecture, both predeploys might be merged 
     - One possible solution might be adding `decimals()` in the `LiquidityController`, or fully handling it through the minters.
 - Existing OP Stack chains using old designs would need to upgrade to the new version, the solution of which is actively being architected.
 - The design is proposed to facilitate its standardization, but the discussion regarding enabling interoperability is still open.
-    - For example, `ETHLiquidity` and `NativeAssetLiquidity` might share the same address, and ERC20 version of the native asset might be created with a deterministic method to enable interoperability through a `SuperchainERC20` version.
+    - For example, `ETHLiquidity` and `NativeAssetLiquidity` might share the same address, and the ERC20 version of the native asset might be created with a deterministic method to enable interoperability through a `SuperchainERC20` version.
     - A new `SuperchainWETH` version might be introduced to enable interoperability for the ETH transfer.
 - `L1FeeVault` might not receive the amount in value to pay for data availability, since the mismatch is corrected via `minBaseFee` and `operatorFees`. The introduction of parameters or oracles is actively being discussed.
 - Native asset custom features are in early research phase, but the design is minimal enough not to block a future upgrade of this kind.
@@ -309,7 +309,7 @@ Since this design aims to be a better, minimal —yet-flexible— version of the
 | Item | Old Design | New Design |
 | --- | --- | --- |
 | Approach | L1 token is used as gas asset. | The native asset exists in its own and may be convertible into an ERC20. |
-| Native asset is bridgeable? | Yes, through `DepositERC20Transaction` and native withdrawals. | Yes, but not enshrined in core contracts. The chain governor must implement custom logic to enable it, e.g., coupling bridging with the `LiquidityController`. |
+| Native asset is bridgeable? | Yes, through `depositERC20Transaction` and native withdrawals. | Yes, but not enshrined in core contracts. The chain governor must implement custom logic to enable it, e.g., coupling bridging with the `LiquidityController`. |
 | Token Implementation Flexibility | Restricted to 18 decimals and transfer properties. | There are potentially no limitations, as long as it is coupled adequately with `NativeAssetLiquidity`. |
 | WETH predeploy | Reserved for the wrapped version of the custom gas token, taking metadata from `L1Block` (`SystemConfig`). | Reserved for the wrapped version of the custom gas token. Metadata is taken from `L1Block` (`LiquidityController`). |
 | Native Asset Supply | Held in `OptimismPortal`, originating from the original L1 token contract. | Minted at genesis via `NativeAssetLiquidity`. Manageable under any rules, through the controller, which may depend on an existing ERC20. |
