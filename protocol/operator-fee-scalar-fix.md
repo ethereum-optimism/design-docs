@@ -76,6 +76,8 @@ Examine the following to get a sense of the range of fees this formula supports.
 | 30,000,000 | 2^32 | 1.29e10 gwei | $32,250.00 |
 | 1,000,000 | 1 | 0.1 gwei | $0.00000025 |
 | 1,000,000 | 2^32 | 4.29e8 gwei | $1,072.50 |
+| 21,000 | 1 | 0.0021 gwei | $0.00000000525 |
+| 21,000 | 2^32 | 9.01e6 gwei | $22.53 |
 
 Given that the current scalar component fees are negligible, all `operatorFeeScalar` values are set to 0 upon upgrade. Then, chain operators will be responsible for adjusting them according to the new formula. The `operatorFeeConstant` will not change upon transition.
 
