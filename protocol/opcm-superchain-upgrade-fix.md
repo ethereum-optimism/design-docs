@@ -65,7 +65,7 @@ This works for the most part but has a flaw. Assume the following:
 
 If ChainA's proxyAdminOwner (also the SuperchainConfig's ProxyAdminOwner) calls the OPCM's `upgrade()` function, the check above (if (superchainProxyAdmin.getProxyImplementation(address(superchainConfig)) != impls.superchainConfigImpl)) will be true and it will upgrade the SuperchainConfig to Impl1 and also upgrade ChainA's L1 contracts.
 
-If ChainB's proxyAdminOwner calls the OPCM's `upgrade()` function, the check above (if (superchainProxyAdmin.getProxyImplementation(address(superchainConfig)) != impls.superchainConfigImpl)) will be false and so it will not enter the if block (if it did it will revert since ChainB's proxyAdminOwner is not the SuperchainConfig's ProxyAdminOwner). So it will skip this and go ahead to upgrade ChainB's L1 contracts.
+If ChainB's `proxyAdminOwner` calls the OPCM's `upgrade()` function, the check above (`if (superchainProxyAdmin.getProxyImplementation(address(superchainConfig)) != impls.superchainConfigImpl)`) will be `false` and so it will not enter the if block (if it did it will revert since ChainB's `proxyAdminOwner` is not the SuperchainConfig's ProxyAdminOwner). So it will skip this and go ahead to upgrade ChainB's L1 contracts.
 
 Now the a problem arises here:
 - The SuperchainConfig's implementation is Impl1
