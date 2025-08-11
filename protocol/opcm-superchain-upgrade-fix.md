@@ -65,7 +65,7 @@ This works for the most part but has a flaw. Assume the following:
 
 If ChainA's proxyAdminOwner (also the SuperchainConfig's ProxyAdminOwner) calls the OPCM's `upgrade()` function, the check above (if (superchainProxyAdmin.getProxyImplementation(address(superchainConfig)) != impls.superchainConfigImpl)) will be true and it will upgrade the SuperchainConfig to Impl1 and also upgrade ChainA's L1 contracts.
 
-If ChainB's `proxyAdminOwner` calls the OPCM's `upgrade()` function, the check above (`if (superchainProxyAdmin.getProxyImplementation(address(superchainConfig)) != impls.superchainConfigImpl)`) will be `false` and so it will not enter the if block (if it did it will revert since ChainB's `proxyAdminOwner` is not the SuperchainConfig's ProxyAdminOwner). So it will skip this and go ahead to upgrade ChainB's L1 contracts.
+If ChainB's `proxyAdminOwner` calls the OPCM's `upgrade()` function, the check above (if (`superchainProxyAdmin.getProxyImplementation(address(superchainConfig)) != impls.superchainConfigImpl)`) will be false and so it will not enter the if block (if it did it will revert since ChainB's `proxyAdminOwner` is not the SuperchainConfig's `ProxyAdminOwner`). So it will skip this and go ahead to upgrade ChainB's L1 contracts.
 
 Now the a problem arises here:
 - The SuperchainConfig's implementation is Impl1
@@ -73,7 +73,7 @@ Now the a problem arises here:
 - The OPCM's `upgrade()` function is called and the SuperchainConfig's implementation is upgraded to Impl2
 - A new chain, ChainC comes in or is behind and has to use the old OPCM first
 
-When it calls the OPCM's `upgrade()` function, the check above (`if (superchainProxyAdmin.getProxyImplementation(address(superchainConfig)) != impls.superchainConfigImpl)`) will be true and it will attempt to upgrade the SuperchainConfig which:
+When it calls the OPCM's `upgrade()` function, the check above (if (`superchainProxyAdmin.getProxyImplementation(address(superchainConfig)) != impls.superchainConfigImpl)`) will be true and it will attempt to upgrade the SuperchainConfig which:
 - If the ProxyAdmin is not the SuperchainConfig's ProxyAdmin, it will revert. This essentially means that all upgrades from that OPCM is not possible any longer. Of course unless the SuperchainProxyAdminOwner calls upgrade which would upgrade the SuperchainConfig to Impl1 (effectively a downgrade) and make it possible for other chains to upgrade but for obvious reasons downgrading the SuperchainConfig is not the best course of action.
 - If however it's ProxyAdmin is the SuperchainConfig's ProxyAdmin, it will upgrade the SuperchainConfig to impl1 (old implementation) and then upgrade ChainC's L1 contracts.
 
@@ -96,7 +96,7 @@ When it calls the OPCM's `upgrade()` function, the check above (`if (superchainP
 
 ## Proposed Solution
 
-A proposed solution for this is to change the check to version comparisons. We can hardcode an expected version for the SuperchainConfig and compare it to the actual version. If the actual version is equal to the expected version, we can upgrade the SuperchainConfig. Otherwise we continue the execution.
+A proposed solution for this is to change the check to version comparisons. We can hardcode an expected previous version for the SuperchainConfig and compare it to the actual version. If the actual version is equal to the expected previous version, we can upgrade the SuperchainConfig. Otherwise we continue the execution.
 
 While at it, it is proposed to also add support for different superchainConfigs i.e different Superchains. The proposed solution also allows for this.
 
