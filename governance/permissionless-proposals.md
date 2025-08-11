@@ -74,6 +74,9 @@ flowchart LR
     F -->|moveToVote| G[ProposalValidator]
     G -->|propose| H[OPGov]
 ```
+6. **Rejection**: If a proposal is not approved or fails to reach the required delegate approvals within the configured window, it must be re-submitted in a subsequent voting cycle and re-collect approvals.
+
+7. Vetoes and cancellations: Veto is executed at the governor/timelock layer, not in `ProposalValidator`. If a veto is signaled (e.g. by the Citizens’ House) or a security veto is required, the designated authority (the `manager` or the `timelock` controlled by the Security Council) calls `OptimismGovernor.cancel(...)` before execution. This sets the proposal state to Canceled and, if already queued, also cancels the timelock operation. For Optimistic proposal types, queue/execute is blocked by the module, so the veto is operational (do not proceed off-chain).
 
 Detailed flows for each Proposal Type can be seen [here](https://www.figma.com/board/V0zh1Lg5QqhGfhVrJaIJVu/Permissionless-Proposals-DRAFT?node-id=0-1&p=f&t=sFuVhRioJR1kAIzV-0).
 
