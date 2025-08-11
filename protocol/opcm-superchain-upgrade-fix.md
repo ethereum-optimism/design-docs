@@ -73,7 +73,7 @@ Now the a problem arises here:
 - The OPCM's `upgrade()` function is called and the SuperchainConfig's implementation is upgraded to Impl2
 - A new chain, ChainC comes in or is behind and has to use the old OPCM first
 
-When it calls the OPCM's `upgrade()` function, the check above (if (superchainProxyAdmin.getProxyImplementation(address(superchainConfig)) != impls.superchainConfigImpl)) will be true and it will attempt to upgrade the SuperchainConfig which:
+When it calls the OPCM's `upgrade()` function, the check above (`if (superchainProxyAdmin.getProxyImplementation(address(superchainConfig)) != impls.superchainConfigImpl)`) will be true and it will attempt to upgrade the SuperchainConfig which:
 - If the ProxyAdmin is not the SuperchainConfig's ProxyAdmin, it will revert. This essentially means that all upgrades from that OPCM is not possible any longer. Of course unless the SuperchainProxyAdminOwner calls upgrade which would upgrade the SuperchainConfig to Impl1 (effectively a downgrade) and make it possible for other chains to upgrade but for obvious reasons downgrading the SuperchainConfig is not the best course of action.
 - If however it's ProxyAdmin is the SuperchainConfig's ProxyAdmin, it will upgrade the SuperchainConfig to impl1 (old implementation) and then upgrade ChainC's L1 contracts.
 
