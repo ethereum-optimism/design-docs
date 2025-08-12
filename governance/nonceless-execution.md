@@ -2,9 +2,11 @@
 
 |                    |                                                    |
 | ------------------ | -------------------------------------------------- |
-| Author             | _Author Name_                                      |
+| Author             | Alberto Cuesta Cañada                              |
 | Created at         | _YYYY-MM-DD_                                       |
-| Initial Reviewers  | _Reviewer Name 1, Reviewer Name 2_                 |
+| Initial Reviewers  | [ ] John Mardlin                                   |
+|                    | [ ] Kelvin Fichter                                 |
+|                    | [ ] Matt Solomon                                   |
 | Need Approval From | _Reviewer Name_                                    |
 | Status             | _Draft / In Review / Implementing transactions / Final_ |
 
@@ -17,10 +19,8 @@ Let governance multisigs execute approved transactions without being blocked by 
 We add a Safe-compatible module that enables unordered execution. Instead of one nonce that forces everything to run in sequence, each approved transaction has its own identifier. Once it has enough signatures, it can be executed in any order. Signature thresholds stay the same. Executions are public and cannot be replayed.
 
 ## Problem Statement + Context
-
-- Nonce contention: a single stuck transaction can block unrelated work.
-- Operational latency: urgent changes wait behind unrelated items in the queue.
-- Throughput: we need to run unrelated transactions at the same time without extra coordination.
+Transaction ordering is a huge hassle that sucks up our time, and causes delays and rework.
+<Add more context>
 
 ## Proposed Solution
 
@@ -59,10 +59,12 @@ Introduce a Safe module that allows unordered execution of approved transactions
 
 ## Risks & Uncertainties
 
+- Although this has very little impact on signing flows, it does significantly change transaction execution (and approval with nested safes). Hard to say how heavily it would impact on the superchain-ops repo.
+- Is this something that can be adopted piecemeal, ie. could we manage with safes that do and do not use this module? I think we could likely autodetect when a Safe supports nonceless execution, but more branches is still harder to maintain.
 - Unexpected effects due to unordered changes.
-  - Mitigation: review, simulation, change windows, and clear runbooks.
 
 ## References
 
+- [Unordered Execution of Safe Transactions](https://www.notion.so/oplabs/Unordered-execution-of-Safe-transactions-20ef153ee1628054ade1e7e8beeadfef#20ef153ee162800689d1cd1268c85f91)
 - Nonceless execution module (Safe-compatible): [UnorderedExecutionModule.sol](https://github.com/ethereum-optimism/optimism/blob/28f44ab50b01fb59f875c7b85d216cdce713b6dd/packages/contracts-bedrock/src/safe/UnorderedExecutionModule.sol#L1)
-- Slides overview: [Nonceless Execution (Google Slides)](https://docs.google.com/presentation/d/1utbGigIbMRA7JGcKZ9ZcUgMCdIPpLDJSwWmxNF9hBJM/edit?slide=id.g3734216eca8_4_32#slide=id.g3734216eca8_4_32) 
+- [Nonceless Execution Overview (Google Slides)](https://docs.google.com/presentation/d/1utbGigIbMRA7JGcKZ9ZcUgMCdIPpLDJSwWmxNF9hBJM/edit?slide=id.g3734216eca8_4_32#slide=id.g3734216eca8_4_32) 
