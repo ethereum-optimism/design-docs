@@ -3,12 +3,12 @@
 |                    |                                                    |
 | ------------------ | -------------------------------------------------- |
 | Author             | Alberto Cuesta Cañada                              |
-| Created at         | _YYYY-MM-DD_                                       |
+| Created at         | 2025-08-12                                         |
 | Initial Reviewers  | [ ] John Mardlin                                   |
 |                    | [ ] Kelvin Fichter                                 |
 |                    | [ ] Matt Solomon                                   |
 | Need Approval From | _Reviewer Name_                                    |
-| Status             | _Draft / In Review / Implementing transactions / Final_ |
+| Status             | Draft                                              |
 
 ## Purpose
 
@@ -40,13 +40,6 @@ Introduce a Safe module that allows unordered execution of approved transactions
 - Changing thresholds or governance ownership models.
 - Adding new signing tools or UIs.
 - Redesigning incident response.
-
-## Success Criteria
-
-- Liveness: independent approved transactions can execute without waiting on others.
-- Safety: no increase in unauthorized execution risk; replay attempts are rejected.
-- Usability: no extra steps for signers; current approval workflows still work.
-- Observability: clear on-chain signals for monitoring and post-mortems.
 
 ## Resource Usage
 
