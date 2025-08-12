@@ -19,16 +19,12 @@ Let governance multisigs execute approved transactions without being blocked by 
 We add a Safe-compatible module that enables unordered execution. Instead of one nonce that forces everything to run in sequence, each approved transaction has its own identifier. Once it has enough signatures, it can be executed in any order. Signature thresholds stay the same. Executions are public and cannot be replayed.
 
 ## Problem Statement + Context
-Transaction ordering is a huge hassle that sucks up our time, and causes delays and rework.
-<Add more context>
+
+Transaction ordering is a huge hassle that sucks up our time and causes delays and rework. When governance needs to execute multiple independent transactions, they get stuck waiting for each one to complete before the next can begin. This creates unnecessary bottlenecks where urgent fixes wait behind routine updates, and coordination overhead grows with every additional transaction in the queue.
 
 ## Proposed Solution
 
-Introduce a Safe module that allows unordered execution of approved transactions:
-- Unordered execution: transactions do not compete on a global nonce; each executes as soon as it is fully approved.
-- Threshold-preserving: existing signature thresholds and signer sets continue to apply.
-- Replay safety: each transaction is uniquely identified and cannot be executed more than once.
-- Auditability: authorized transactions and executions are visible on-chain and traceable to their approvals.
+Introduce a Safe module that allows unordered execution of approved transactions. Transactions do not compete on a global nonce and each executes as soon as it is fully approved. Existing signature thresholds and signer sets continue to apply. Each transaction is uniquely identified and cannot be executed more than once, while authorized transactions and executions remain visible on-chain and traceable to their approvals.
 
 ## Scope
 
@@ -37,18 +33,15 @@ Introduce a Safe module that allows unordered execution of approved transactions
 
 ## Non-goals
 
-- Changing thresholds or governance ownership models.
-- Adding new signing tools or UIs.
-- Redesigning incident response.
+This change does not involve changing thresholds or governance ownership models, adding new signing tools or UIs, or redesigning incident response.
 
 ## Resource Usage
 
-- On-chain: similar cost to current multisig execution, with small module overhead.
-- Operational: less coordination overhead; faster handling of urgent items.
+On-chain costs are similar to current multisig execution with small module overhead. Operationally, this reduces coordination overhead and enables faster handling of urgent items.
 
 ## Alternatives Considered
 
-- Status quo (nonce ordering): no implementation effort, but it negatively impacts operations and UX due to the coordination and planning required.
+The status quo of nonce ordering requires no implementation effort but negatively impacts operations and UX due to the coordination and planning required.
 
 ## Risks & Uncertainties
 
