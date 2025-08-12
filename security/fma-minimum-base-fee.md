@@ -95,6 +95,15 @@ It is possible that the state growth derived from the additional parameter would
 
 - Check how a state growth figure was obtained for the operator fee, and do the same for MinBaseFee
 
+Since this feature adds a single extra byte to every block, activating it will result in an extra 16MB (approximately) of DB growth for all full or archive nodes (storing the full history of the chain).
+Assuming a 2s block time, this is calculated as 
+
+```
+(1 byte / 2 seconds) x 365 days × 24 hours × 60 minutes × 60 seconds = 15,768,000 bytes in 1 year.
+```
+
+This is a small increase in DB growth rate, and therefore does not require any additional mitigations at this time. There is no impact on state growth with this feature, since it is affects blocks (history) and not state.
+
 ## Audit Requirements
 
 Following the [Audit Framework](https://gov.optimism.io/t/op-labs-audit-framework-when-to-get-external-security-review-and-how-to-prepare-for-it/6864), MinBaseFee is a **Low Complexity and Medium Risk** feature, requiring at least an Internal Audit.
