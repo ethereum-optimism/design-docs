@@ -118,8 +118,8 @@ For example, an activation check for the operator fee that is part of the
 Isthmus hardfork could look like the following.
 
 ```
-func IsOperatorFeeEnabled() {
-  return IsIsthmusEnabled()
+func IsOperatorFee() {
+  return IsIsthmus()
 }
 ```
 
@@ -127,6 +127,12 @@ func IsOperatorFeeEnabled() {
 >
 > Notice that with this approach, the method could just be modified to
 > return false if the feature needs to be disabled for some reason.
+
+
+> [!NOTE]
+>
+> For brevity, activation booleans should read `isFeature` or `isFork`
+> rather than `isFeatureEnabled` or `isForkEnabled`.
 
 This approach could add additional work on the backend if individual
 feature activation methods are removed in favor of using a hardfork
@@ -188,7 +194,7 @@ for superchain coordination.
 
 > [!NOTE]
 >
-> In practice features are never actually “bound” to a specific hardfork at the clien
+> In practice features are never actually “bound” to a specific hardfork at the client
 > level since they can be disabled or enabled via cli flags or a custom rollup config.
 
 This approach:
