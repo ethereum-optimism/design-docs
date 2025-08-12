@@ -13,7 +13,7 @@ Enable OP Stack chains to use an asset other than ETH as their native fee curren
 
 ## Summary
 
-The proposed Custom Gas Token upgrade lets any OP Stack chain introduce its native asset as the gas currency with almost no core-code intrusion: a single `isCustomGasToken()` flag turns off ETH transfer flows in all bridging methods, while three new pre-deploys, `NativeAssetLiquidity`, a contract with pre-minted assets, `LiquidityController`, an owner-governed mint/burn router, and `L2CGTBridge`, an reserved address that contains a contract with the API calls, hand supply control to chain governors or authorized “minter” contracts that can plug in anything from ERC-20 converters to third-party bridgind models or emission schedules. Wrapped-asset compatibility is preserved, and the entire system launches at genesis by funding the vault and letting the governor release an initial working balance. Overall, the design keeps the OP Stack lean, token-agnostic, and future-proof while unlocking custom economics and flexibility to make the native asset expressive in its manner.
+The proposed Custom Gas Token upgrade lets any OP Stack chain introduce its native asset as the gas currency with almost no core-code intrusion: a single `isCustomGasToken()` flag turns off ETH transfer flows in all bridging methods, while two new pre-deploys, `NativeAssetLiquidity`, a contract with pre-minted assets, and `LiquidityController`, an owner-governed mint/burn router that manages the supply, are designed to couple with any release mechainsm, from ERC-20 converters to third-party bridging models or emission schedules. Wrapped-asset compatibility is preserved, and the entire system launches at genesis by funding the vault and letting the governor release an initial working balance. Overall, the design keeps the OP Stack lean, token-agnostic, and future-proof while unlocking custom economics and flexibility to make the native asset expressive in its manner.
 
 ## Problem Statement + Context
 
@@ -48,7 +48,7 @@ In L2 placed in `L1Block`, it will block `initiateWithdrawal` call, which contai
 
 As a consequence, native asset mints and burns are decoupled from system transactions (deposits) in normal operations, and those are moved into the application layer with the new introduced predeploys.
 
-**`NativeAssetLiquidity`, `LiquidityController` and `L2CGTBridge` Predeploys**
+**`NativeAssetLiquidity` and `LiquidityController` Predeploys**
 
 A very large amount of native assets is pre-minted and stored in `NativeAssetLiquidity`, which is managed through the `LiquidityController`, which has the rights to withdraw and deposit to this contract.
 
@@ -151,8 +151,6 @@ sequenceDiagram
 
 ```
 
-To simplify the deployment process, the `L2CGTBridge` is a reserved address that contains a proxy contract, which the chain governor can point to the implementation of their conversion or bridging logic. For example, `L2CGTBridge` could point to the `ERC20Converter` implementation or to the bridge implementation if the asset is being bridged from L1 or another chain.
-
 ### Native Asset Value
 
 Since native assets are pre-minted from genesis, the chain governor can decide how to assign value or give it meaning. This is done by understanding where the supply originates and how it reflects in `NativeAssetLiquidity` and `LiquidityController` management. There are at least three main cases:
@@ -179,7 +177,7 @@ To accurately charge the fees for execution and data availability, chain governo
 
 ### Chain Deployment
 
-During the deployment in genesis, the CGT version comes up with the `isCustomGasToken()` flag activated, adding the new `NativeAssetLiquidity`, `LiquidityController` and `L2CGTBridge` predeploy contracts.
+During the deployment in genesis, the CGT version comes up with the `isCustomGasToken()` flag activated, adding the new `NativeAssetLiquidity` and `LiquidityController` predeploy contracts.
 
 The deployment flow should look like this:
 
@@ -189,7 +187,6 @@ sequenceDiagram
     participant OP Stack  as OP Stack
     participant Liquidity as NativeAssetLiquidity
     participant Controller as LiquidityController
-    participant Bridge as L2CGTBridge
     participant Governor  as ProxyAdmin Owner
     participant Deployer  as Address1, Address2,...
 
@@ -198,14 +195,13 @@ sequenceDiagram
     Genesis->>OP Stack: Genesis core actions
     Genesis->>Liquidity: create & pre-fund native supply
     Genesis->>Controller: create and assign a minter
-    Genesis->>Bridge: create and deploy implementation (last one is optional)
     end
     Governor->>Controller: mint(initialSupply)
     Controller->>Liquidity: withdraw()
     Liquidity-->>Governor: native asset
     Governor->>Liquidity: burn unneeded supply (optional)
     Governor->>Deployer: transfer native asset
-    Deployer->>Deployer: deploy core contracts (cgtBridge...)
+    Deployer->>Deployer: deploy external contracts (a bridge, a converter...)
 
 ```
 
@@ -217,7 +213,7 @@ Chain Governors must define the `SYMBOL` and `NAME` of the `WNA` in `LiquidityCo
 
 As the native asset isn’t enshrined to a bridge from the start, respective asset representation in L2 and LX becomes possible as the Chain governors’ discretion.
 
-For example, if the ERC20 already lives in L1, a `CGTBridge` set of contracts might allow depositing the ERC20 and releasing native assets to the user. This design makes any other kind of bridging (from any blockchain and security model) possible.
+For example, if the ERC20 already lives in L1, a hypothetical _`CGTBridge` set of contracts_ might allow depositing the ERC20 and releasing native assets to the user. This design makes any other kind of bridging (from any blockchain and security model) possible.
 
 ```mermaid
 graph TD
@@ -229,7 +225,7 @@ graph TD
     %% -------- Ethereum L1 (horizontal flow) --------
     subgraph "Ethereum L1"
         direction LR
-        L1Bridge(L1CGTBridge)
+        L1Bridge(_L1CGTBridge_)
         L1Messenger(L1CrossDomainMessenger)
         OptimismPortal(OptimismPortal)
     end
@@ -238,7 +234,7 @@ graph TD
     subgraph "CGT Chain L2"
         direction LR
         L2Messenger(L2CrossDomainMessenger)
-        L2Bridge(L2CGTBridge)
+        L2Bridge(_L2CGTBridge_)
         LiquidityController(LiquidityController)
         NativeAssetLiquidity(NativeAssetLiquidity)
     end
@@ -321,7 +317,7 @@ Since this design aims to be a better, minimal —yet-flexible— version of the
 | Item | Old Design | New Design |
 | --- | --- | --- |
 | Approach | L1 token is used as gas asset. | The native asset exists in its own and may be convertible into an ERC20. |
-| Native asset is bridgeable? | Yes, through `depositERC20Transaction` and native withdrawals. | Yes, but not enshrined in core contracts, and instead offer the reserved address for a `L2CGTBridge`. The chain governor must implement custom logic to enable it, e.g., coupling bridging with the `LiquidityController`. |
+| Native asset is bridgeable? | Yes, through `depositERC20Transaction` and native withdrawals. | Yes, but not enshrined in core contracts. The chain governor must implement custom logic to enable it, e.g., coupling bridging with the `LiquidityController`. |
 | Token Implementation Flexibility | Restricted to 18 decimals and transfer properties. | There are potentially no limitations, as long as it is coupled adequately with `NativeAssetLiquidity`. |
 | WETH predeploy | Reserved for the wrapped version of the custom gas token, taking metadata from `L1Block` (`SystemConfig`). | Reserved for the wrapped version of the custom gas token. Metadata is taken from `L1Block` (`LiquidityController`). |
 | Native Asset Supply | Held in `OptimismPortal`, originating from the original L1 token contract. | Minted at genesis via `NativeAssetLiquidity`. Manageable under any rules, through the controller, which may depend on an existing ERC20. |
