@@ -41,9 +41,9 @@ NoncelessExecutionModule is a singleton that exists at a known address on all ch
 ### Nonceless Module Execution
 Normal owner-signed executions use `execTransaction(...)`, which include the Safe’s nonce in the EIP-712 digest owners sign. This function requires the current nonce and increments it on success, with the purpose of providing replay protection and enforcing a single global ordering.
 
-Module execution bypass this interface and can execute anything at anytime, without touching the nonce. We take advantage of this by building an alternative replay protection mechanism in the module and using the Safe logic to handle signature verification. Signers should be able to sign transaction using any of the usual means.
+Module execution uses `execTransactionFromModule(...)` and doesn't use nonces. We use this function to an alternative execution pathway in the module with a custom replay protection mechanism. We still use the Safe logic to handle signature verification, signers should be able to sign transaction using any of the usual means.
 
-For replay protection we would use a bytes32 hash, rather than a uint256 value. Any hash can be executed at any time as long as it has the required signatures, and it hasn't been used before. Executed hashes would be stored in the module to enable replay protection.
+For replay protection we would use and store a bytes32 hash for each transaction, rather than a uint256 value. Any hash can be executed at any time as long as it has the required signatures, and it hasn't been used before.
 
 ## Non-goals
 
