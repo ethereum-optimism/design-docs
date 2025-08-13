@@ -60,7 +60,7 @@ flowchart LR
     
 3. **On-chain approvals via Agora**: With the final proposal submitted, the top 100 delegates can start approving the on-chain proposal using the `proposalId` through Agora. Their approvals are recorded via the `approveProposal(...)` function in the `ProposalValidator` contract, that emits a `ProposalApproved` event. Agora will display the real-time signature status for each proposal.
 4. **Move to vote via** `ProposalValidator`**:** Once the required number of approvals is reached, the "Approve Proposal" button in Agora changes to "Move To Vote". Any user can click this button to call `moveToVote(...)` on the `ProposalValidator`. If the proposal meets the necessary rules, such as having the required top 100 delegate approvals, being submitted within the correct time window, not going over the distribution rate limit, and adhering to any proposal type-specific threshold it will be moved to the Governor for voting. This is done by internally calling `proposeWithModule(...)` **within `moveToVote(...)`.
-5. **Governor:** If the `ProposalValidator` checks that the proposal is approved, it forwards the proposal to the OP Governor contract. Then, the voting time begins as usual.
+5. **Governor:** The `ProposalValidator` checks that the proposal is approved, it forwards the proposal to the OP Governor contract. Then, the voting time begins as usual.
 
 ```mermaid
 flowchart LR
