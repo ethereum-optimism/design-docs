@@ -67,13 +67,6 @@ contract NativeAssetLiquidity {
 	  if (msg.sender != Predeploys.LIQUIDITY_CONTROLLER) revert Unauthorized();
 	  new SafeSend{ value: _amount }(payable(msg.sender));
 	}
-
-	// Burn an arbitrary amount of native supply forever, ideally to be called only once
-	function burn(uint256 _amount) external {
-	  if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert Unauthorized();
-
-	  // Add burn logic here, similar to L2ToL1MessagePasser
-	  Burn.eth(_amount);
 }
 ```
 
@@ -159,7 +152,7 @@ Since native assets are pre-minted from genesis, the chain governor can decide h
 - Introduce an ERC20 in L2 that contains utility functions (governance, DeFi); meanwhile, their native asset version serves as the medium to pay for gas.
 - Do not depend on an existing asset, emulating how some L1 currently works.
 
-The design allows for the inclusion of any desired features, such as rate limits, emission schedules, and a max. cap the supply, coupled with any bridge mechanism, etc. The architecture also doesn’t restrict the use of any token framework (e.g., OFT, xERC20, SuperchainERC20, etc.) to be coupled with the native asset eventually. Note that the `burn` function in `NativeAssetLiquidity` allows the chain governor to burn any extra supply during the chain’s deployment, enabling them to maintain only the desired supply of the native asset on the chain.
+The design allows for the inclusion of any desired features, such as rate limits, emission schedules, and a max. cap the supply, coupled with any bridge mechanism, etc. The architecture also doesn’t restrict the use of any token framework (e.g., OFT, xERC20, SuperchainERC20, etc.) to be coupled with the native asset eventually.
 
 Existing CGT chains using the old design can perform a hard fork to set such contracts and seed the native asset liquidity.
 
@@ -199,13 +192,12 @@ sequenceDiagram
     Governor->>Controller: mint(initialSupply)
     Controller->>Liquidity: withdraw()
     Liquidity-->>Governor: native asset
-    Governor->>Liquidity: burn unneeded supply (optional)
     Governor->>Deployer: transfer native asset
     Deployer->>Deployer: deploy external contracts (a bridge, a converter...)
 
 ```
 
-By default, the `ProxyAdmin` owner can release the supply at the beginning and distribute the minimal supply needed to ensure the CGT-specific contracts related to their use case are deployed.
+By default, the `ProxyAdmin` owner can release the supply at the beginning and distribute the minimal supply needed to ensure the CGT-specific contracts related to their use case are deployed. The chain governor may also opt to withdraw any excess native supply and burn it to reduce the total supply recorded in the chain’s state, for example by using the `burn()` function held in `L2ToL1MessagePasser`.
 
 Chain Governors must define the `SYMBOL` and `NAME` of the `WNA` in `LiquidityController`.
 
@@ -320,7 +312,7 @@ Since this design aims to be a better, minimal —yet-flexible— version of the
 | Native asset is bridgeable? | Yes, through `depositERC20Transaction` and native withdrawals. | Yes, but not enshrined in core contracts. The chain governor must implement custom logic to enable it, e.g., coupling bridging with the `LiquidityController`. |
 | Token Implementation Flexibility | Restricted to 18 decimals and transfer properties. | There are potentially no limitations, as long as it is coupled adequately with `NativeAssetLiquidity`. |
 | WETH predeploy | Reserved for the wrapped version of the custom gas token, taking metadata from `L1Block` (`SystemConfig`). | Reserved for the wrapped version of the custom gas token. Metadata is taken from `L1Block` (`LiquidityController`). |
-| Native Asset Supply | Held in `OptimismPortal`, originating from the original L1 token contract. | Minted at genesis via `NativeAssetLiquidity`. Manageable under any rules, through the controller, which may depend on an existing ERC20. |
+| Native Asset Supply | Held in `OptimismPortal`, originating from the original L1 token contract. | Minted at genesis via `NativeAssetLiquidity`. Manageable under any rules, through the controller, which may depend on an existing ERC20 or any kind of release mechanism. |
 | LX-LY/Deposit and Withdrawal Experience | Simple, via `OptimismPortal` and `L2ToL1MessagePasser`, respectively, analogous to ETH in standard chains. | Depending on the specific implementation, it could rely on a custom bridge built on top of OP Stack, a third-party bridge, or no bridge at all. |
 | Token Upgradability / Chain Adaptability | No changes are recommended after chain deployment. | Allows upgrades and adaptability, since the native asset is not tied to an L1 token or specific bridge mechanism. |
 | Ease of Deployment | Choose a L1 Token and deploy the chain as usual. | Deploy the chain as usual, and chain governors must deploy the relevant contracts to manage the native asset. |
