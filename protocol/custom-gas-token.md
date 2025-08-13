@@ -72,22 +72,26 @@ contract NativeAssetLiquidity {
 
 ```solidity
 contract LiquidityController {
+	// Authorized addresses to manage liquidity of NativeAssetLiquidity
+	mapping(address => bool) public minters;
 
-	mapping(address => bool) minters;
-
-	function authorizeMinter(address _minter) external onlyOwner {
+	function authorizeMinter(address _minter) external {
+		if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert Unauthorized();
 		minters[_minter] = true;
+		(...)
 	}
 	// Authorized minter can unlock native asset
-	function mint(address _to, uint256 _amount) external onlyMinter {
-		NALiquidity.withdraw(uint256 _amount);
-		...
+	function mint(address _to, uint256 _amount) external {
+		if (!minters[msg.sender]) revert Unauthorized();
+		INativeAssetLiquidity(Predeploys.NATIVE_ASSET_LIQUIDITY).withdraw(_amount);
+		(...)
 	}
 	
 	// Authorized minter can lock native asset 
-	function burn() external payable onlyMinter {
-		NALiquidity.deposit{value: msg.value}();
-		...
+	function burn() external payable {
+		if (!minters[msg.sender]) revert Unauthorized();
+        INativeAssetLiquidity(Predeploys.NATIVE_ASSET_LIQUIDITY).deposit{ value: msg.value }();
+		(...)
 	}
 	
 	function gasPayingAssetName() external view returns (string name) {}
@@ -103,10 +107,14 @@ Chain Governors will be responsible for granting minter rights in the `Liquidity
 contract ERC20Converter {
 
   // Lock or burn the appointed ERC20 and get msg.value
-	function getNativeAsset(address _to, uint256 amount) external {}
+	function getNativeAsset(address _to, uint256 amount) external {
+		(...)
+	}
 
 	// Send msg.value and unlock or mint the ERC20
-	function getERC20(address _to) external payable {}
+	function getERC20(address _to) external payable {
+		(...)
+	}
 }
 ```
 
