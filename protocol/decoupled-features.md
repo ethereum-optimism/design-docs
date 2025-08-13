@@ -245,7 +245,7 @@ The "minimum base fee" (h.f MinBaseFee) feature was the first feature which we t
 Some unforeseen issues cropped up which are recorded here to provide extra guidance on how
 to implement decoupled features in future. 
 
-The implementation of the MinBaseFee feature calls for i) some business logic changes and ii) some API and data structure
+The [specification of the MinBaseFee feature](https://github.com/ethereum-optimism/specs/pull/747) calls for i) some business logic changes and ii) some API and data structure
 changes. It so happens that the business logic changes can be considered mostly independently of any other feature or
 hardfork: Right at the end of the block sealing process, just modify an existing numerical field according to some 
 modified rules. However, the API and data structure changes can _not_ easily be specified (let alone implemented) without
