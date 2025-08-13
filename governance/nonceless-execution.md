@@ -10,26 +10,40 @@
 | Need Approval From | _Reviewer Name_                                    |
 | Status             | Draft                                              |
 
-## Purpose
-
-Let governance multisigs execute approved transactions without being blocked by a single global nonce. Allow independent transactions to run in any order while keeping the same signature thresholds and replay protection.
-
-## Summary
-
-We add a Safe-compatible module that enables unordered execution. Instead of one nonce that forces everything to run in sequence, each approved transaction has its own identifier. Once it has enough signatures, it can be executed in any order. Signature thresholds stay the same. Executions are public and cannot be replayed.
-
 ## Problem Statement + Context
 
-Transaction ordering is a huge hassle that sucks up our time and causes delays and rework. When governance needs to execute multiple independent transactions, they get stuck waiting for each one to complete before the next can begin. This creates unnecessary bottlenecks where urgent fixes wait behind routine updates, and coordination overhead grows with every additional transaction in the queue.
+Safe accounts maintain a single, monotonically increasing `nonce` that is included in the EIP-712 typed data each owner signs and is checked during `execTransaction`. The contract only accepts execution for the current nonce; upon success it increments the nonce by 1. This enforces a single global queue: at any time exactly one nonce is executable. Owners may propose alternate transactions for that same nonce as replacements, but nothing with a future nonce can be executed until the current one is finalized. If execution reverts, the nonce is unchanged and the queue remains blocked. This ordering provides replay protection and simple reasoning, but it also couples otherwise independent actions and makes execution latency of one item the bottleneck for all others.
+
+Operationally, this single-queue design turns independent governance actions into a serialized pipeline: urgent remediations can be blocked behind planned items, execution failures stall the queue, and coordination and development costs grow as we scale.
+
+## Customer Description
+
+The customers for this design doc are any participants in the multisig accounts that would utilize this module, as well as any 3rd parties who rely on the security properties of these accounts.
+
+### Customer Reviewers
+- Coinbase (potentially impacted 3rd party)
+- Uniswap (potentially impacted 3rd party)
+- Security Council
+- Optimism Foundation
+
+## Requirements and Constraints
+- Enable unordered execution securely.
+- Transaction executions are public.
+- Avoid replay of executed transactions.
+- Keep code as minimal as possible to avoid complex logic in Safe modules.
+- Reduce mental overhead for Safe owners and multisig leads.
 
 ## Proposed Solution
 
-Introduce a Safe module that allows unordered execution of approved transactions. Transactions do not compete on a global nonce and each executes as soon as it is fully approved. Existing signature thresholds and signer sets continue to apply. Each transaction is uniquely identified and cannot be executed more than once, while authorized transactions and executions remain visible on-chain and traceable to their approvals.
+### Singleton
+NoncelessExecutionModule is a singleton that exists at a known address on all chains and has no constructor parameters. Any Safe on any network can choose to enable the module within the Safe. No configuration is required.
 
-## Scope
+### Nonceless Module Execution
+Normal owner-signed executions use `execTransaction(...)`, which include the Safe’s nonce in the EIP-712 digest owners sign. This function requires the current nonce and increments it on success, with the purpose of providing replay protection and enforcing a single global ordering.
 
-- Enable unordered execution for governance multisigs.
-- Preserve existing thresholds, ownership, and incident response processes.
+Module execution bypass this interface and can execute anything at anytime, without touching the nonce. We take advantage of this by building an alternative replay protection mechanism in the module and using the Safe logic to handle signature verification. Signers should be able to sign transaction using any of the usual means.
+
+For replay protection we would use a bytes32 hash, rather than a uint256 value. Any hash can be executed at any time as long as it has the required signatures, and it hasn't been used before. Executed hashes would be stored in the module to enable replay protection.
 
 ## Non-goals
 
@@ -45,6 +59,7 @@ The status quo of nonce ordering requires no implementation effort but negativel
 
 ## Risks & Uncertainties
 
+- The computed transaction hashes need to not collide with an already used nonce. Using keccak256 hashes should be enought to avoid that.
 - Although this has very little impact on signing flows, it does significantly change transaction execution (and approval with nested safes). Hard to say how heavily it would impact on the superchain-ops repo.
 - Is this something that can be adopted piecemeal, ie. could we manage with safes that do and do not use this module? I think we could likely autodetect when a Safe supports nonceless execution, but more branches is still harder to maintain.
 - Unexpected effects due to unordered changes.
