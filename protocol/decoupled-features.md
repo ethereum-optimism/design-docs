@@ -266,7 +266,7 @@ which _also_ seeks to extend the `block.ExtraData` field with a new byte of data
 
 Is it possible to specify such features in a _relative_ manner? For example, we could simply state that MinBaseFee adds an extra byte to the end of `block.extraData`, regardless of how many bytes it has. This seems like a very bad idea, since the block schema is part of the public API of the OPStack, and it would make building against that API extremely painful if the semantics of that schema depend on the ordering of this feature compared to other features. Getting from a relative specification of the hardfork to an absolute one (as is necessary for consumers of the API) would then require a much greater mental overhead and would be error prone. 
 
-While features may be toggled entirely independently, but those that modify APIs should not be. In those cases, we are left with having to specify an ordering of certain features, which means optimistically tying them to a specific hard fork. It is inevitable that rescheduling or disabling such features will be painful, and unfortunately feature toggles aren't really helping in that scenario.
+While features may be toggled entirely independently, but those that modify APIs may not be. In those cases, we are left with having to specify an ordering of certain features, which means optimistically tying them to a specific hard fork. It is inevitable that rescheduling or disabling such features will be painful, and unfortunately feature toggles aren't really helping in that scenario.
 
 
 
