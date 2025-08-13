@@ -13,7 +13,7 @@ Enable OP Stack chains to use an asset other than ETH as their native fee curren
 
 ## Summary
 
-The proposed Custom Gas Token upgrade lets any OP Stack chain introduce its native asset as the gas currency with almost no core-code intrusion: a single `isCustomGasToken()` flag turns off ETH transfer flows in all bridging methods, while two new pre-deploys, `NativeAssetLiquidity`, a contract with pre-minted assets, and `LiquidityController`, an owner-governed mint/burn router that manages the supply, are designed to couple with any release mechainsm, from ERC-20 converters to third-party bridging models or emission schedules. Wrapped-asset compatibility is preserved, and the entire system launches at genesis by funding the vault and letting the governor release an initial working balance. Overall, the design keeps the OP Stack lean, token-agnostic, and future-proof while unlocking custom economics and flexibility to make the native asset expressive in its manner.
+The proposed Custom Gas Token upgrade lets any OP Stack chain introduce its native asset as the gas currency with almost no core-code intrusion: a single `isCustomGasToken()` flag turns off ETH transfer flows in all bridging methods, while two new pre-deploys, `NativeAssetLiquidity`, a contract with pre-minted assets, and `LiquidityController`, an owner-governed mint/burn router that manages the supply, are designed to couple with any release mechanism, from ERC-20 converters to third-party bridging models or emission schedules. No bridge or token is enshrined in the protocol; any bridge/adapter lives entirely at the app layer and is authorized only as a minter on `LiquidityController`, coupled after genesis. Overall, the design keeps the OP Stack lean, token-agnostic, and future-proof while unlocking custom economics and flexibility to make the native asset expressive in its manner.
 
 ## Problem Statement + Context
 
@@ -104,7 +104,7 @@ contract LiquidityController {
 }
 ```
 
-Chain Governors will be responsible for giving rights to any minter into the `LiquidityController`, which has the total flexibility to decide to couple into any new or existing ERC20, bridges, or novel tokenomics mechanisms. For example, Chain governors might allow 1:1 exchanges between the native asset and a desired ERC20 representation:
+Chain Governors will be responsible for granting minter rights in the `LiquidityController`, which has full flexibility to integrate with any new or existing ERC20 wrappers, bridges, or novel tokenomics mechanisms. As an early example, a Chain Governor might grant an _`ERC20Converter`_ the minter role, enabling 1:1 exchanges between the native asset and a desired ERC20 representation:
 
 ```solidity
 contract ERC20Converter {
@@ -117,7 +117,7 @@ contract ERC20Converter {
 }
 ```
 
-The flow would look like this:
+The flow between the predeploys and the external contract as a minter would look like this:
 
 ```mermaid
 sequenceDiagram
@@ -165,7 +165,7 @@ Existing CGT chains using the old design can perform a hard fork to set such con
 
 ### Wrapped Native Asset
 
-The `WETH` (now `WNA`) predeploy would stay the same as their old version, to preserve backward compatibility with existing chains.
+The `WETH` (now `WNA`) predeploy would stay the same as its old version, to preserve backward compatibility with existing chains.
 
 To align with the new design, the metadata, specifically the `name()` and `symbol()` functions, will now be sourced from the `LiquidityController` instead of the `SystemConfig` contract used in the previous design. These functions will return the name and symbol of the wrapped native asset, prefixed with "W" and "Wrapped".
 
@@ -209,9 +209,9 @@ By default, the `ProxyAdmin` owner can release the supply at the beginning and d
 
 Chain Governors must define the `SYMBOL` and `NAME` of the `WNA` in `LiquidityController`.
 
-### ERC20 Coupling and Bridging
+### ERC20 Coupling and External Bridging
 
-As the native asset isn’t enshrined to a bridge from the start, respective asset representation in L2 and LX becomes possible as the Chain governors’ discretion.
+As the native asset isn’t enshrined to any token or bridge mechanism from the start and is instead managed through external contracts, its representation in L2 and LX can be defined at the Chain Governor’s discretion.
 
 For example, if the ERC20 already lives in L1, a hypothetical _`CGTBridge` set of contracts_ might allow depositing the ERC20 and releasing native assets to the user. This design makes any other kind of bridging (from any blockchain and security model) possible.
 
