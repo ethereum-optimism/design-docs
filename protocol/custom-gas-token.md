@@ -325,7 +325,7 @@ Since this design aims to be a better, minimal —yet-flexible— version of the
 | Token Upgradability / Chain Adaptability | No changes are recommended after chain deployment. | Allows upgrades and adaptability, since the native asset is not tied to an L1 token or specific bridge mechanism. |
 | Ease of Deployment | Choose a L1 Token and deploy the chain as usual. | Deploy the chain as usual, and chain governors must deploy the relevant contracts to manage the native asset. |
 
-### Flow Examples
+### Appendix B: Flow Examples
 
 **Native ETH L1 Bridging in CGT Mode**
 
@@ -356,7 +356,7 @@ When CGT mode is activated, all bridging methods related to ETH on L1 are disabl
 
 ```
 
-### Native Asset Withdrawals in CGT Mode
+**Native Asset Withdrawals in CGT Mode**
 
 Similarly, when CGT mode is used, native asset withdrawals are disabled, since it corresponds to ETH when used as the native asset, in order to maintain consistency with L1.
 
@@ -387,7 +387,7 @@ sequenceDiagram
 
  
 
-### Native Asset Coupled to an L2 Token
+**Native Asset Coupled to an L2 Token**
 
 When the liquidity of the native asset is coupled with an ERC20 on L2, exchanges between them occur.
 
