@@ -67,6 +67,8 @@ Both the Base and Uniswap implementations have about the same logic, they are mo
 - Uniswap: https://github.com/Uniswap/unichain-contracts/blob/main/src/FeeSplitter/FeeSplitter.sol
 - Base: https://github.com/base/contracts/blob/main/src/revenue-share/FeeDisburser.sol
 
+This design doc explicitly does not go into detail about the implementation details of the `FeeSplitter` contracts.
+
 ### Base
 
 The `FeeDisburser` is deployed to https://basescan.org/address/0x09C7bAD99688a55a2e83644BFAed09e62bDcCcBA. The `OPTIMISM_WALLET` is a Gnosis safe at https://basescan.org/address/0x9c3631dDE5c8316bE5B7554B0CcD2631C15a9A05.
@@ -136,7 +138,7 @@ This contract will be responsible for deploying and initializing the new `FeeVau
 
 #### Genesis (New Chains)
 
-- We set the proper config in the genesis but allow for overrides to enable anybody to set whatever values they want for the configuration. The defaults would plug right into the superchain revenue sharing.
+- We set the proper config in the genesis but allow for overrides to enable anybody to set whatever values they want for the configuration. The defaults would plug right into the superchain revenue sharing. This means that the `RECIPIENT` fields are set to the `FeeSplitter` and the `FeeSplitter` is configured correctly.
 
 ### Resource Usage
 
