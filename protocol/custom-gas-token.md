@@ -422,13 +422,13 @@ When the liquidity of the native asset is coupled with an ERC20 on L1, there sho
 
 ```mermaid
 sequenceDiagram
-    actor U1 as UserL1
-    participant L1T as ERC20_L1
+    actor U1 as User in L1
+    participant L1T as ERC20
     participant BR as L1Bridge
     participant L2B as L2Bridge
     participant LC as LiquidityController
     participant NAL as NativeAssetLiquidity
-    actor U2 as UserL2
+    actor U2 as User in L2
 
     Note over U1,U2: [Flow A] Convert L1 ERC20 -> native asset
     U1->>L1T: approve(...)
@@ -444,9 +444,9 @@ sequenceDiagram
     U2->>L2B: withdraw(...)
     L2B->>LC: burn(...) payable
     LC->>NAL: deposit(...) payable
-    L2B->>BR: withdrawTo(...)
-    BR-->>BR: verify and relay deposit
-    BR->>L1T: unlock or mint
+    L2B->>BR: verify and relay deposit
+    BR-->>BR: unlock or mint
+    BR->>L1T: transfer
     L1T-->>U1: ERC20 on L1
 
 ```
