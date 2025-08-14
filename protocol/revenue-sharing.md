@@ -101,7 +101,7 @@ The `ProxyAdmin` is a L2 predeploy. It is an `Ownable` contract that is at a det
 
 #### `FeeSplitter`
 
-All of the `FeeVault` implementations need to have their `RECIPIENT` set to the `FeeSplitter`. This means that all fees that are accumulated in the system will be sent through the `FeeSplitter`.
+For the `FeeSplitter` to function properly, all of the `FeeVault` implementations need to have their `RECIPIENT` set to the `FeeSplitter`. This means that all fees that are accumulated in the system will be sent through the `FeeSplitter`.
 
 We take the `FeeDisperser` from Base and make the following changes:
 
