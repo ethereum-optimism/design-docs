@@ -111,7 +111,8 @@ We take the `FeeDisperser` from Base and make the following changes:
 
 #### `FeeVault`
 
-We make the following modifications to the `FeeVault` contract to make it more flexible
+The `FeeVault` is an existing predeploy that is upgradable. Fees accumulate in the fee vault contracts as part of the state transition function automatically.
+The changes suggested to be made to the `FeeVault` here greatly simplify our ability to configure the `FeeSplitter`.
 
 - Add setters for `RECIPIENT` and `WithdrawalNetwork` that can be modified by `ProxyAdmin.owner()`
 - Return the amount withdrawn after calling `withdraw` but make sure this is backwards compatible. This simplifies the design of the `FeeSplitter`
@@ -124,7 +125,8 @@ The network specific config in the `FeeVault` is defined as:
 
 #### `FeeVaultInitializer`
 
-Since the `FeeVault` contracts have network specific configuration in them, we need to deploy a migrator contract as part of the network upgrade transactions that can propagate the network specific config into the new implementations.
+Since the `FeeVault` contracts have network specific configuration in them, we need to deploy a migrator contract as part of the network upgrade transactions that can propagate the network specific config into the new implementations. If we did not do this, then we would be forced to put network specific configuration into the rollup config so that it could configure the correct `RECIPIENT` values for each `FeeVault` during the network upgrade transactions.
+
 This contract will be responsible for deploying and initializing the new `FeeVault` implementations. It will be able to call the public interface of the existing `FeeVault` implementation and then pass through the same information to its call to initialize. This is helpful because it removes the need to deploy a new `FeeVault` contract each time that the `RECIPIENT` is changed. It may be the case that this cannot atomically operate due to the underlying `Proxy` needing to be called from `address(0)` when changing the implementation, but there is definitely a set of network upgrade transactions that can achieve this task.
 
 #### Upgrade
