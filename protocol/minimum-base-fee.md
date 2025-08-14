@@ -52,7 +52,7 @@ format may be modified/extended by future upgrades.
 ## Minimum Base Fee in `PayloadAttributesV3`
 
 The [`PayloadAttributesV3`](https://github.com/ethereum-optimism/specs/blob/a773587fca6756f8468164613daa79fcee7bbbe4/specs/protocol/exec-engine.md#extended-payloadattributesv3)
-type is modified to add an extra byte for `minBaseFeeLog2` to the `eip1559Params` field:
+type is modified to add a separate field for `minBaseFeeLog2`; `eip1559Params` remains 8 bytes:
 
 ```rs
 PayloadAttributesV3: {
@@ -64,7 +64,8 @@ PayloadAttributesV3: {
     transactions: array of DATA
     noTxPool: bool
     gasLimit: QUANTITY or null
-    eip1559Params: DATA (9 bytes) or null
+    eip1559Params: DATA (8 bytes) or null
+    minBaseFeeLog2: QUANTITY or null
 }
 ```
 
