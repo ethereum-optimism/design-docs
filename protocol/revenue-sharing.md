@@ -20,9 +20,21 @@ but understanding the purpose of the doc when writing is very helpful. -->
 <!-- Most (if not all) documents should have a summary.
 While the length will likely be proportional to the length of the full document,
 the summary should be as succinct as possible. -->
-A new predeploy (`FeeSplitter`) is introduced that is responsible for computing the revenue sharing. Both Base and Uniswap built this contract with slightly different implementation details, we will be introducing another version of it with the key difference of it being configurable by the L2 `ProxyAdmin.owner()`. This ensures that consistent admin roles are applied across chains.
+A new predeploy called the `FeeSplitter` is introduced that is responsible for computing the revenue share and splitting the fees. Both Base and Uniswap built this same contract with slightly different implementation details, we will be introducing another version of it with the key difference of it being configurable by the L2 `ProxyAdmin.owner()`. This ensures that consistent admin roles are applied across chains.
+
+An updated `FeeVault` implementation is also introduced, that allows for modifications of its config by the L2 `ProxyAdmin.owner()`. This is done to simplify proper configuration of the `FeeSplitter` contract.
 
 This design doc is specific to the fee splitting logic and does not cover any logic around where those fees go after they are split.
+
+It is also opt-in for chains, the network upgrade transactions do not modify any existing `FeeVault` configuration. The new `FeeVault` contracts are deployed and initialized at each `FeeVault` predeploy. The `FeeSplitter` is deployed without being hooked into any of the `FeeVault` contracts.
+
+## Requirements and Constraints
+
+- No modifications to the roles that can change configuration
+- 100% opt-in
+- Simple runbook for opting in
+- Support all 4 fee vaults
+- Does not break Base or Uniswap fee splitter contracts
 
 ## Problem Statement + Context
 
@@ -42,14 +54,18 @@ Fees for an OP Stack chain accumulate in predeploys called `FeeVault`. There are
 - `L1FeeVault`
 - `OperatorFeeVault`
 
-Each `FeeVault` has a `RECIPIENT` and a `WithdrawalNetwork` that can be L1 or L2. This enables the `FeeVault` to be able to send its collected fees to any account on L1 or L2. These values can only be changed with a full redeploy of these contracts because they are currently defined as immutable values in the smart contract. This creates a lot of friction when trying to change these values. The fee split predeploy depends on the `RECIPIENT` of each of these contracts to be set to the fee split contract itself on L2.
+Each `FeeVault` has a configurable `RECIPIENT`, `minWithdrawalAmount` and a `WithdrawalNetwork`. The `RECIPIENT` is an `address` that represents the account that receives the fees and the `WithdrawalNetwork` represents whether the `RECIPIENT` is on L1 or is on L2. This enables the `FeeVault` to be able to send its collected fees to any account on L1 or L2. The `minWithdrawalAmount` is the minimum amount of ETH (in wei) that must be in the `FeeVault` before the funds can be withdrawn.
+
+Each of these configuration options are defined as `immutable` values, meaning that they can only be modified with a full contract redeployment and call to modify the implementation set at the predeploy proxy. Note that only the L2 `ProxyAdmin.owner()` has the ability to make this call. This creates a lot of friction when trying to modify any `FeeVault` config.
+
+### Production Today
+
+The `FeeSplitter` predeploy (including both Base and Uniswap implementations) depends on the `RECIPIENT` of each of these contracts to be set to the fee split contract with the `WithdrawalNetwork` of L2.
 
 Both the Base and Uniswap implementations have about the same logic, they are modularized in slightly different ways
 
 - Uniswap: https://github.com/Uniswap/unichain-contracts/blob/main/src/FeeSplitter/FeeSplitter.sol
 - Base: https://github.com/base/contracts/blob/main/src/revenue-share/FeeDisburser.sol
-
-### Production Today
 
 ### Base
 
@@ -75,6 +91,7 @@ The `FeeDisburser` by Base and the `FeeSplitter` by Uniswap are both very simila
 ### Implementation Details
 
 The OP Stack uses Network Upgrade Transactions to manage predeploys. These are deterministic system transactions that are placed into the chain on the block of a network upgrade.
+We propose to use Network Upgrade Transactions to deploy and initialize new `FeeVault` contracts that do not have any modifications to their existing config. We also propose to deploy and initialize the `FeeSplitter` but without configuring it as part of the hot path. For chains that do not have the `FeeVault` recipient set to the `FeeSplitter`, it will not do anything on that chain.
 
 #### `ProxyAdmin`
 
@@ -95,6 +112,7 @@ We take the `FeeDisperser` from Base and make the following changes:
 We make the following modifications to the `FeeVault` contract to make it more flexible
 
 - Add setters for `RECIPIENT` and `WithdrawalNetwork` that can be modified by `ProxyAdmin.owner()`
+- Return the amount withdrawn after calling `withdraw` but make sure this is backwards compatible. This simplifies the design of the `FeeSplitter`
 
 The network specific config in the `FeeVault` is defined as:
 
@@ -137,7 +155,7 @@ Both the Go and Rust derivation pipelines will need to create the correct networ
 
 <!-- Link to the failure mode analysis document, created from the fma-template.md file. -->
 
-tba
+It would be very bad to break fee collection. This proposal specifically does nothing to change the existing configuration of the `RECIPIENT` or `WithdrawalNetwork` on any chain.
 
 ## Impact on Developer Experience
 <!-- Does this proposed design change the way application developers interact with the protocol?
