@@ -324,3 +324,135 @@ Since this design aims to be a better, minimal —yet-flexible— version of the
 | LX-LY/Deposit and Withdrawal Experience | Simple, via `OptimismPortal` and `L2ToL1MessagePasser`, respectively, analogous to ETH in standard chains. | Depending on the specific implementation, it could rely on a custom bridge built on top of OP Stack, a third-party bridge, or no bridge at all. |
 | Token Upgradability / Chain Adaptability | No changes are recommended after chain deployment. | Allows upgrades and adaptability, since the native asset is not tied to an L1 token or specific bridge mechanism. |
 | Ease of Deployment | Choose a L1 Token and deploy the chain as usual. | Deploy the chain as usual, and chain governors must deploy the relevant contracts to manage the native asset. |
+
+### Flow Examples
+
+**Native ETH L1 Bridging in CGT Mode**
+
+When CGT mode is activated, all bridging methods related to ETH on L1 are disabled, since it is not used as the native asset.
+
+```mermaid
+ sequenceDiagram
+    actor U as User
+    participant SB as L1StandardBridge
+    participant XDM as L1CrossDomainMessenger
+    participant OP as OptimismPortal
+    participant SC as SystemConfig
+    
+    U->>SB: depositETH / bridgeETH / receive(...)
+    SB->>XDM: sendMessage(...)
+    XDM->>OP: depositTransaction(...)
+    OP->>SC: isCustomGasToken()
+    OP->>OP: revert
+
+    U->>XDM: sendMessage(...), value > 0
+    XDM->>OP: depositTransaction(...)
+    OP->>SC: isCustomGasToken()
+    OP->>OP: revert
+
+    U->>OP: depositTransaction / receive(...), value > 0
+    OP->>SC: isCustomGasToken()
+    OP->>OP: revert
+
+```
+
+### Native Asset Withdrawals in CGT Mode
+
+Similarly, when CGT mode is used, native asset withdrawals are disabled, since it corresponds to ETH when used as the native asset, in order to maintain consistency with L1.
+
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant SB as L2StandardBridge
+    participant XDM as L2CrossDomainMessenger
+    participant OP as L2ToL1MessagePasser
+    participant SC as L1Block
+    
+    U->>SB: withdraw / bridgeETH / receive(...)
+    SB->>XDM: sendMessage(...)
+    XDM->>OP: initiateWithdrawal(...)
+    OP->>SC: isCustomGasToken()
+    OP->>OP: revert
+
+    U->>XDM: sendMessage(...), value > 0
+    XDM->>OP: initiateWithdrawal(...)
+    OP->>SC: isCustomGasToken()
+    OP->>OP: revert
+
+    U->>OP: initiateWithdrawal(...), value > 0
+    OP->>SC: isCustomGasToken()
+    OP->>OP: revert
+
+```
+
+ 
+
+### Native Asset Coupled to an L2 Token
+
+When the liquidity of the native asset is coupled with an ERC20 on L2, exchanges between them occur.
+
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant ERC20
+    participant ERC20C as ERC20Converter
+    participant LC as LiquidityController
+    participant NAL as NativeAssetLiquidity
+    
+    Note over U,NAL: [Flow A] Convert ERC20 → native asset
+    U->>ERC20: approve(...)
+    U->>ERC20C: getNativeAsset(...)
+    ERC20C->>ERC20: transferFrom(...)
+    ERC20C->>LC: mint(...)
+    LC->>NAL: withdraw(...)
+    NAL-->>U: native asset
+
+    Note over U,NAL: [Flow B] Convert native asset → ERC20
+    U->>ERC20C: getERC20(...)
+    ERC20C->>LC: burn(...) (payable)
+    LC->>NAL: deposit(...) (payable)
+    LC->>ERC20: mint(...)
+    ERC20-->>U: ERC20
+
+```
+
+**Native Asset Coupled to an L1 Token**
+
+When the liquidity of the native asset is coupled with an ERC20 on L1, there should be a bridging mechanism between them, and its nature or security model is not constrained by this design.
+
+```mermaid
+sequenceDiagram
+    actor U1 as UserL1
+    participant L1T as ERC20_L1
+    participant BR as L1Bridge
+    participant L2B as L2Bridge
+    participant LC as LiquidityController
+    participant NAL as NativeAssetLiquidity
+    actor U2 as UserL2
+
+    Note over U1,U2: [Flow A] Convert L1 ERC20 -> native asset
+    U1->>L1T: approve(...)
+    U1->>BR: deposit(...)
+    BR->>L1T: transferFrom(...)
+    BR-->>BR: lock or burn
+    BR->>L2B: verify and relay deposit
+    L2B->>LC: mint(...)
+    LC->>NAL: withdraw(...)
+    NAL-->>U2: native asset
+
+    Note over U1,U2: [Flow B] Convert native asset -> L1 ERC20
+    U2->>L2B: withdraw(...)
+    L2B->>LC: burn(...) payable
+    LC->>NAL: deposit(...) payable
+    L2B->>BR: withdrawTo(...)
+    BR-->>BR: verify and relay deposit
+    BR->>L1T: unlock or mint
+    L1T-->>U1: ERC20 on L1
+
+```
+
+**Mixed and Other Cases**
+
+An L2 token coupled to native asset liquidity may also be bridgeable, or the native asset may have another token representation, as already occurs with the `WNA` predeploy contract. The desired supply management will determine the supply relationship between an ERC20 and the native asset. It is up to the governor to decide where the supply originates, under which mechanism it is created, and how the native asset is released.
+
+Also, it is entirely possible to do not depend on an ERC20 and be released by any supply liberation mechanism, such as mining based on other actions, conditions, etc.
