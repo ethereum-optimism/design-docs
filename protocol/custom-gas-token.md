@@ -205,6 +205,8 @@ sequenceDiagram
 
 ```
 
+These predeploys are specific to CGT-enabled chains, meaning OP Stack chains not running in CGT will not include them. Rollup config files in `op-node` must be aware of whether CGT mode is being used.
+
 By default, the `ProxyAdmin` owner can release the supply at the beginning and distribute the minimal supply needed to ensure the CGT-specific contracts related to their use case are deployed. The chain governor may also opt to withdraw any excess native supply and burn it to reduce the total supply recorded in the chain’s state, for example by using the `burn()` function held in `L2ToL1MessagePasser`.
 
 Chain Governors must define the `SYMBOL` and `NAME` of the `WNA` in `LiquidityController`.
@@ -260,7 +262,7 @@ No major changes are expected. However, the resource pricing needs to be adjuste
 
 Since the `NativeAssetLiquidity` contains a large amount of pre-minted native assets, managing the supply properly becomes fundamental. Failures would affect the value of the native asset, ruining their economics and severely affecting the user-experience.
 
-Regarding existing clients, there is no major impact expected for this design.
+Regarding existing clients, no major impact is expected from this design. The respective rollup config files must be updated to reflect whether the CGT mode is activated or not.
 
 ## Failure Mode Analysis
 
