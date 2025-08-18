@@ -341,16 +341,16 @@ When CGT mode is activated, all bridging methods related to ETH on L1 are disabl
     U->>SB: depositETH / bridgeETH / receive(...)
     SB->>XDM: sendMessage(...)
     XDM->>OP: depositTransaction(...)
-    OP->>OP: isCustomGasToken() returns false
+    OP->>OP: isCustomGasToken() returns true
     OP->>OP: revert
 
     U->>XDM: sendMessage(...), value > 0
-    XDM->>OP: depositTransaction(...) returns false
-    OP->>OP: isCustomGasToken()
+    XDM->>OP: depositTransaction(...)
+    OP->>OP: isCustomGasToken() returns true
     OP->>OP: revert
 
     U->>OP: depositTransaction / receive(...), value > 0
-    OP->>OP: isCustomGasToken() returns false
+    OP->>OP: isCustomGasToken() returns true
     OP->>OP: revert
 
 ```
