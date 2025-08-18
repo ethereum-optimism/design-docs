@@ -42,7 +42,7 @@ The presented design has been thought out based on the following principles:
 
 The `isCustomGasToken()` view function becomes the unique one that brings awareness to the system about whether or not the CGT mode is being used. It is a boolean flag that other functions in other contracts use to check if they can receive ETH values or not.
 
-In L1 placed in `SystemConfig`, it will block `depositTransaction` calls that contain `msg.value`. The same will occur in their pair functions `sendMessage` in `L1CrossDomainMessenger` and ETH bridging in `L1StandardBridge`.
+In L1 placed in `OptimismPortal`, it will block `depositTransaction` calls that contain `msg.value`. The same will occur in their pair functions `sendMessage` in `L1CrossDomainMessenger` and ETH bridging in `L1StandardBridge`. The `SystemConfig` reads this setting from the `OptimismPortal`, since it is a relevant configuration parameter for the chain.
 
 In L2 placed in `L1Block`, it will block `initiateWithdrawal` call, which contains `msg.value` in `L2ToL1MessagePasser`. The same will happen in `sendMessage` in `L2CrossDomainMessenger` and ETH bridging methods in `L2StandardBridge` and `FeeVaults`.
 
@@ -337,21 +337,20 @@ When CGT mode is activated, all bridging methods related to ETH on L1 are disabl
     participant SB as L1StandardBridge
     participant XDM as L1CrossDomainMessenger
     participant OP as OptimismPortal
-    participant SC as SystemConfig
     
     U->>SB: depositETH / bridgeETH / receive(...)
     SB->>XDM: sendMessage(...)
     XDM->>OP: depositTransaction(...)
-    OP->>SC: isCustomGasToken()
+    OP->>OP: isCustomGasToken() returns false
     OP->>OP: revert
 
     U->>XDM: sendMessage(...), value > 0
-    XDM->>OP: depositTransaction(...)
-    OP->>SC: isCustomGasToken()
+    XDM->>OP: depositTransaction(...) returns false
+    OP->>OP: isCustomGasToken()
     OP->>OP: revert
 
     U->>OP: depositTransaction / receive(...), value > 0
-    OP->>SC: isCustomGasToken()
+    OP->>OP: isCustomGasToken() returns false
     OP->>OP: revert
 
 ```
