@@ -17,7 +17,7 @@ The proposed Custom Gas Token upgrade lets any OP Stack chain introduce its nati
 
 ## Problem Statement + Context
 
-The prior CGT design anchored the gas token to an L1 ERC‑20, hard‑coding bridge paths, and cluttering core contracts with token metadata. These restrictions make it hard to handle the following scenarios properly:
+The [prior CGT design](https://github.com/ethereum-optimism/specs/blob/5887eb2f74821b4125c2f47523d6d54379fd46d8/specs/experimental/custom-gas-token.md) anchored the gas token to an L1 ERC‑20, hard‑coding bridge paths, and cluttering core contracts with token metadata. These restrictions make it hard to handle the following scenarios properly:
 
 - Integrates with a token that doesn’t live on L1.
 - Launch chains whose native asset does not yet exist or have an ERC20 representation somewhere.
@@ -314,7 +314,7 @@ As an alternative to the proposed architecture, both predeploys might be merged 
 
 ### Appendix A: Old vs. New CGT design
 
-Since this design aims to be a better, minimal —yet-flexible— version of the previous CGT design, it is worth comparing the two to understand the trade-offs involved in each. Below is a quick comparative table that contrasts both approaches:
+Since this design aims to be a better, minimal —yet-flexible— version of the [previous CGT design](https://github.com/ethereum-optimism/specs/blob/5887eb2f74821b4125c2f47523d6d54379fd46d8/specs/experimental/custom-gas-token.md), it is worth comparing the two to understand the trade-offs involved in each. Below is a quick comparative table that contrasts both approaches:
 
 | Item | Old Design | New Design |
 | --- | --- | --- |
