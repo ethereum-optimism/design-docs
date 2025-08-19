@@ -34,7 +34,7 @@ The presented design has been thought out based on the following principles:
 
 - Stick with a minimal set of changes.
 - Remain token-agnostic and completely flexible for any use cases.
-- Preserve OP Stack [foundational properties](https://specs.optimism.io/background.html#foundations), which also make Stage 2 requirements achievable.
+- Preserve OP Stack [foundational properties](https://specs.optimism.io/background.html#foundations), which also make [Stage 2](https://medium.com/l2beat/introducing-stages-a-framework-to-evaluate-rollups-maturity-d290bb22befe) requirements achievable.
 
 ### Architecture
 
