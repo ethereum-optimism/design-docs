@@ -187,7 +187,12 @@ malicious transaction, but where obtaining a quorum for a second transaction is 
 difficult.
 
 In that scenario, the multisig might want to cancel the malicious transaction during the default
-delay period. A way of doing that is to allow a `min(blocking_minority, quorum)` of the multisig to
-cancel with zero delay transactions approved by quorum. An alternative would be to allow a single
-signer to cancel transactions, with the required number of cancelling signers growing by one with
-each consecutive cancellation until reaching `min(blocking_minority, quorum)`.
+delay period. There are several methods to address that.
+
+- Allow a `min(blocking_minority, quorum)` of the multisig to instantaneously cancel transactions
+approved by quorum.
+- Allow a single signer to cancel transactions, with the required number of cancelling signers
+growing by one with each consecutive cancellation until reaching `min(blocking_minority, quorum)`.
+- Implement an external pause mechanism and activate it along with the LivenessGuard. Then either
+the LivenessGuard clears the execution queue, or we implement an stale period after which
+transactions can't be executed even with quorum.
