@@ -113,6 +113,7 @@ For situations in which there exists a blocking minority of malicious signers we
 the liveness guard. An scenario with a malicious majority can’t be mitigated as it is
 indistinguishable from a non-malicious majority.
 
+
 ### Safety of Single-Approval transactions
 A quorum of signers currently have to review each transaction. For the Security Council multisig it
 is difficult to incentivise them to do this job properly against their competing interests. An
@@ -179,3 +180,12 @@ in a worst-case scenario. We should do our best to avoid these situations as muc
 use other protocol features (like the Pause) to mitigate them entirely. We need to confirm with
 users of finance multisigs that this is not expected to be common. We should avoid instant
 execution at all costs, even if a signature from all owners would reduce the time to, say, 1 hour.
+
+### Temporary Malicious Majority - To discuss
+An scenario can be assumed where a malicious party has obtained a quorum of signatures for a single
+malicious transaction, but where obtaining a quorum for a second transaction is considerably more
+difficult.
+
+In that scenario, the multisig might want to cancel the malicious transaction during the default
+delay period. A way of doing that is to allow a quorum of the multisig to cancel transactions also
+approved by quorum with zero delay.
