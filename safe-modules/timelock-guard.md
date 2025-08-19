@@ -20,6 +20,11 @@ all multisigs managed by these entities were to require mandatory delays. We wan
 component that we can fit into our existing multisigs that provides this delay with minimal
 configuration and minimal overhead for both signers and multisig leads.
 
+Another concern specific to the Security Council multisig is that a quorum ofsigners have to review
+and sign each upgrade transaction, and it is difficult to incentivise them against their competing
+interests. While the Security Council should be maintained as a highly trusted body that secures
+critical transactions, there is opportunity to use their time and focus more effectively.
+
 ## Customer Description
 
 <!-- Provide a brief summary of the customers for this design document. -->
@@ -61,20 +66,62 @@ within the Safe.
 
 ### Configuration
 
-A Safe configures the Guard by setting two delay periods, one that applies when a threshold is
-reached and a second that applies if all members of the multisig sign the transaction.
+A Safe configures the Guard by setting a delay period that applies to transactions for which a
+quorum is required. Optionally, a longer delay can be set that enables transactions to execute with
+a single approval if there is no opposition from other sigenrs.
 
 ### Transaction Flow
 
-1. Users sign the transaction normally, either via the UI or via `superchain-ops`.
-2. Anyone can collect the signatures and send the transaction along with the signatures to
+`TimelockGuard` enables two execution paths, using the same function signatures but diferentiated
+by the amount of signatures supplied.
+
+#### Quorum Approval, Default Delay
+
+1. User signs the transaction normally, either via the UI or via `superchain-ops`.
+2. Anyone can collect the signatures and send them along with the transaction along to
   `TimelockGuard.schedule`. This function has the exact same inputs as `execTransaction` and is
   therefore compatible with both the standard Safe and the proposed nonceless execution module.
-3. `TimelockGuard.schedule` verifies the signatures attached to the transaction and starts a timer
-  for execution of the transaction. If a threshold of signers have signed the timer is set to one
-  value, if all signers have signed the timer is set to some second (presumably shorter) value.
-4. After the specified time, anyone can then call `Safe.execTransaction` as normal and execution
-  will complete as expected.
+3. `TimelockGuard.schedule` verifies the signatures attached to the transaction and emits an event
+  reporting the proposed transaction.
+4. After the shorter configured delay, anyone can then call
+  `Safe.execTransaction` as normal and execution will complete as expected.
+
+#### Single Approval, Long Delay
+This execution path is only enabled if a delay for it is set, and the delay is longer than the
+default delay.
+
+1. One single user signs the transaction normally, either via the UI or via `superchain-ops`.
+2. Anyone can collect the signature and send it along with the transaction to
+  `TimelockGuard.schedule`. This function has the exact same inputs as `execTransaction` and is
+  therefore compatible with both the standard Safe and the proposed nonceless execution module.
+3. `TimelockGuard.schedule` verifies the signature attached to the transaction and emits an event
+  reporting the proposed transaction.
+4. If there are no other actions, after the longer configured delay, anyone can then call
+  `Safe.execTransaction` as normal and execution will complete as expected.
+5. After scheduling but before execution, any signer can call `Safe.cancelTransaction` to make the
+  transaction permanently non-executable.
+
+## Security Considerations
+
+### Malicious Majority, Blocking Minority, Malicious Signer
+This design only mitigates instances of malicious signers that fall short of a blocking minority.
+If a signer maliciously cancels a transaction with the intent of blocking it, the multisig should
+submit and execute a transaction under quorum to remove the malicious signer, and then resubmit
+the cancelled transaction. The resubmission can be done under quorum to avoid a long delay.
+
+For situations in which there exists a blocking minority of malicious signers we should implement
+the liveness guard. An scenario with a malicious majority can’t be mitigated as it is
+indistinguishable from a non-malicious majority.
+
+### Safety of Single-Approval transactions
+A quorum of signers currently have to review each transaction. For the Security Council multisig it
+is difficult to incentivise them to do this job properly against their competing interests. An
+automated flow with a long delay allows OP Labs to task and adequately incentivise multiple parties
+to carefully analyse each proposal before it gets executed, while safely avoiding any
+man-in-the-middle attacks that would replace a verified proposal by a malicious one.
+
+Some examples of parties that could be incentivised to verify proposals in the timelock are EVM
+Safety, bounty hunters, and contracted auditors such as Spearbit or Guardian Audits.
 
 ## Alternatives Considered
 
@@ -93,6 +140,24 @@ to not really be worth considering. Examples of this are:
 
 We could not find any alternative design with the simplicity and security of the one that was
 ultimately presented in this document.
+
+### Stateful Timelock
+The timelock could be implemented by keeping count of which signer approved each proposal, but an
+implementation that just evaluates the signatures submitted on execution offloads that complexity
+off chain without compromising in security, and offers a smaller attack surface.
+
+### Multiple Cancellation Threshold
+It was considered to require a threshold of signers to cancel a proposal, to avoid the scenario in
+which a single malicious signer can block proposals. This approach would require a considerable
+amount of logic. The current design allows to still execute a proposal as long as the number of
+malicious signers is less than a blocking minority.
+
+### Provide Signatures
+A single-flow implementation is possible in which the proposal is first scheduled by a single
+signer, and then the signatures are provided to a replacement for `Safe.execTransaction`. While
+this would optimize the flow in the case of a non-blocking minority of malicious signers, it
+would also significantly change the UX in the more common execution path of transactions that
+require a quorum, which is the default if single-approval transactions are not enabled.
 
 ## Risks and Uncertainties
 
