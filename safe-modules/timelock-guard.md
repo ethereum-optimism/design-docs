@@ -187,5 +187,7 @@ malicious transaction, but where obtaining a quorum for a second transaction is 
 difficult.
 
 In that scenario, the multisig might want to cancel the malicious transaction during the default
-delay period. A way of doing that is to allow a quorum of the multisig to cancel transactions also
-approved by quorum with zero delay.
+delay period. A way of doing that is to allow a `min(blocking_minority, quorum)` of the multisig to
+cancel with zero delay transactions approved by quorum. An alternative would be to allow a single
+signer to cancel transactions, with the required number of cancelling signers growing by one with
+each consecutive cancellation until reaching `min(blocking_minority, quorum)`.
