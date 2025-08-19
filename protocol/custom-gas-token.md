@@ -46,7 +46,7 @@ In L1 placed in `OptimismPortal`, it will block `depositTransaction` calls that 
 
 In L2 placed in `L1Block`, it will block `initiateWithdrawal` call, which contains `msg.value` in `L2ToL1MessagePasser`. The same will happen in `sendMessage` in `L2CrossDomainMessenger` and ETH bridging methods in `L2StandardBridge` and `FeeVaults`.
 
-As a consequence, native asset mints and burns are decoupled from system transactions (deposits) in normal operations, and those are moved into the application layer with the new introduced predeploys.
+As a consequence, native asset mints and burns are decoupled from system transactions (deposits) in normal operations, and those are moved into the application layer with the newly introduced predeploys.
 
 **`NativeAssetLiquidity` and `LiquidityController` Predeploys**
 
@@ -101,7 +101,7 @@ contract LiquidityController {
 }
 ```
 
-Chain Governors will be responsible for granting minter rights in the `LiquidityController`, which has full flexibility to integrate with any new or existing ERC20 wrappers, bridges, or novel tokenomics mechanisms. As an early example, a Chain Governor might grant an _`ERC20Converter`_ the minter role, enabling 1:1 exchanges between the native asset and a desired ERC20 representation:
+Chain Governors will be responsible for granting minter rights in the `LiquidityController`, which has full flexibility to integrate with any new or existing ERC20 wrappers, bridges, or novel tokenomics mechanisms. As an **_early example_** that demonstrates how it can be coupled with an external contract, a Chain Governor might grant an _`ERC20Converter`_ the minter role, enabling 1:1 exchanges between the native asset and a desired ERC20 representation:
 
 ```solidity
 contract ERC20Converter {
@@ -140,14 +140,14 @@ sequenceDiagram
     Address B->>ERC20Converter: getNativeAsset(ERC20, amount, recipient)
     ERC20Converter->>ERC20Converter: lock / burn ERC20
     ERC20Converter->>LiquidityController: mint(amount, recipient)
-    LiquidityController->>Liquidity: deposit(amount, recipient)
+    LiquidityController->>Liquidity: withdraw(amount, recipient)
     Liquidity-->>recipient: native asset
 
     %% --- Flow C: burn native asset and unlock ERC20 ---
     Note over LiquidityController,recipient: [Flow C] Convert native asset → ERC20
-    Address B->>ERC20Converter: getERC20(recipient)  %% msg.value = native asset
+    Address B->>ERC20Converter: getERC20{msg.value = amount}(recipient)
     ERC20Converter->>LiquidityController: burn() (payable)
-    LiquidityController->>Liquidity: withdraw() (payable)
+    LiquidityController->>Liquidity: deposit() (payable)
     LiquidityController-->>recipient: ERC20
 
 ```
