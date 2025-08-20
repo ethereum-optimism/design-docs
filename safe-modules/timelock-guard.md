@@ -25,7 +25,7 @@ configuration and minimal overhead for both signers and multisig leads.
 <!-- Provide a brief summary of the customers for this design document. -->
 
 The customers for this design doc are any participants in the multisig accounts that would utilize
-this module, as well as any 3rd parties who rely on the security properties of these accounts.
+this guard, as well as any 3rd parties who rely on the security properties of these accounts.
 
 ### Customer Reviewers
 
