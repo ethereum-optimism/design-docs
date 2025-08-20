@@ -372,16 +372,16 @@ sequenceDiagram
     U->>SB: withdraw / bridgeETH / receive(...)
     SB->>XDM: sendMessage(...)
     XDM->>OP: initiateWithdrawal(...)
-    OP->>SC: isCustomGasToken()
+    OP->>SC: isCustomGasToken() returns true
     OP->>OP: revert
 
     U->>XDM: sendMessage(...), value > 0
     XDM->>OP: initiateWithdrawal(...)
-    OP->>SC: isCustomGasToken()
+    OP->>SC: isCustomGasToken() returns true
     OP->>OP: revert
 
     U->>OP: initiateWithdrawal(...), value > 0
-    OP->>SC: isCustomGasToken()
+    OP->>SC: isCustomGasToken() returns true
     OP->>OP: revert
 
 ```
