@@ -32,7 +32,7 @@ The goals for the migration must be:
 The solution consists of an upgrade procedure that performs two main changes:
 
 - Upgrade the chain
-- Enable a new bridge for native asset minting, defined by the chain governor.
+- Enable a new L1-L2 bridge for native asset minting, defined by the chain governor.
 
 ### Chain’s Contracts Changes
 
@@ -48,7 +48,7 @@ The following contracts are upgraded to the version that contains the new CGT im
 - In `OptimismPortal`:
     - Removal of the `depositERC20Transaction` and `gasPayingToken` dependencies.
     - Addition of the `isCustomGasToken` boolean to block `msg.value` > 0 during deposits, to block ETH sends.
-    - Migrate ERC20 balance into a new bridge.
+    - Migrate the ERC20 balance into a new bridge.
 
 **L2 Contracts Upgrade**
 
@@ -70,7 +70,6 @@ Since the legacy L1-L2 native asset bridging is down, liquidity creation is repl
 
 - `NativeAssetLiquidity`: This contains a large amount of native assets minted during the upgrade.
 - `LiquidityController`: In charge of managing such liquidity.
-- `L2CGTBridge`: predeploy addresses reserved for managing users’ requests to mint native assets, which the chain governor decides their implementation.
 
 **Consensus / Execution clients**
 
@@ -82,13 +81,13 @@ Other than setting the new state containing the upgrade, no major changes are re
 
 ### Native Asset Bridging
 
-Native asset bridging is outsourced from OP Stack core components, which means chain governors must implement their bridge set of contracts to migrate from the existing flow (through `OptimismPortal`) into a new one, which gets coupled into the `LiquidityController` and `L2CGTBridge` proxy.
+Native asset bridging is outsourced from OP Stack core components, which means chain governors must implement their bridge set of contracts to migrate from the existing flow (through `OptimismPortal`) into a new one, which gets coupled into the `LiquidityController`.
 
-For example, a chain governor can implement a set of contracts that uses the reserved `L2CGTBridge` pre-deploy along with any set of L1 contracts to support bridging from L1.
+For example, a chain governor can implement a set of contracts that acts as minter of the `LiquidityController` along with any set of L1 contracts to support bridging from L1.
 
 ### Liquidity Migration on `OptimismPortal`
 
-The `OptimismPortal` would be required to be upgraded into an intermediate contract containing a function such as migrateLiquidity to move the ERC20 tokens into the new bridge.
+The `OptimismPortal` would be required to be upgraded into an intermediate contract containing a function such as `migrateLiquidity` to move the ERC20 balance into the new bridge.
 
 If the token is upgradable, the chain governor can also upgrade the token itself to swap the balances between the `OptimismPortal` and the new bridge.
 
@@ -104,11 +103,10 @@ A chain governor would require deploying the desired bridge for native asset bri
     
     Perform the upgrade for L1 and L2 contracts into the new implementations.
     
-    Hardfork the L2 chain to add `NativeAssetLiquidity` (fund liquidity), add `LiquidityController`, reserve the `L2CGTBridge` address, and upgrade each predeploy contract.
+    Hardfork the L2 chain to add `NativeAssetLiquidity` (fund liquidity) and add `LiquidityController` and upgrade each existing predeploy contract.
     
     - For `NativeAssetLiquidity`, burn the amount of native asset that isn’t planned to be used.
-        - Relevant for chains that already run over pre-defined tokenomics.
-    - For `L2CGTBridge`, point to a desired implementation if the chain governor desires to give it to a user.
+        - Relevant for chains that already has a considerable amount of native asset supply scattered in the L2 state.
     - For `OptimismPortal`, use an intermediate contract/implementation to move the funds into the new L1 CGT Bridge.
 4. Update the chain state in Fault Proofs.
 5. Activates `L1CGTBridge`.
