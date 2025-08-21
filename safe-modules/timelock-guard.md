@@ -39,7 +39,8 @@ this guard, as well as any 3rd parties who rely on the security properties of th
 <!-- Identify the solution requirements and any additional design constraints from the Context and
 Problem Statement section in a bulleted list. -->
 
-- Enforce a mandatory delay on multisig transactions.
+- Mitigate the impact of a malicious majority of owners capable to execute a single transaction.
+- Mitigate the impact of an honest majority approving a malicious or erroneous transaction.
 - Keep code as minimal as possible to avoid complex logic in Safe modules/guards.
 - Limit mental overhead for Safe owners and multisig leads, don't break workflows if possible.
 - Apply cleanly for all of the major multisigs.
@@ -187,9 +188,17 @@ users of finance multisigs that this is not expected to be common. We should avo
 execution at all costs, even if a signature from all owners would reduce the time to, say, 1 hour.
 
 ### Interaction with the LivenessModule
-The `cancellation_threshold` becomes the new `blocking_minority`, and as such it can force not
-meeting a liveness challenge. Given that such challenges should be issued by the trusted fallback
-owner, this is not a concern.
+The `cancellation_threshold` becomes the new `blocking_minority`. To avoid unexpected loss of
+control, all multisigs enabling the TimelockGuard should also enable the LivenessModule.
+
+When using a LivenessModule, the liveness challenges are responded with a regular transaction which
+is subject to the timelock delay, and as such the LivenessModule needs to have a challenge reponse
+time that allows for both assembling a quorum of signers and executed a delayed transaction.
+
+Since the response to a liveness challenge is a transaction scheduled through the timelock, a
+`cancellation_threshold` of owners can block it, and as such it can force not meeting a liveness
+challenge, which would cause the ownership of the multisig to revert to the fallback owner. Given
+that liveness challenges should be issued by the trusted fallback owner, this is not a concern.
 
 ### Interaction with the UnorderedExecutionModule
 To avoid issues with a future implementation of an UnorderedExecutionModule, the scheduling of
