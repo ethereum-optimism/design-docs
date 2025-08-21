@@ -45,6 +45,7 @@ Problem Statement section in a bulleted list. -->
 - Limit mental overhead for Safe owners and multisig leads, don't break workflows if possible.
 - Apply cleanly for all of the major multisigs.
 - Do not use sequential nonces, which we are planning to deprecate for operational reasons.
+- The designed solution should be aplicable to single and arbitrarily nested Safe configurations.
 
 ## Proposed Solution
 
@@ -94,64 +95,32 @@ To cancel a scheduled transaction, a `cancellation_threshold` number of owners w
 that they agree with it. Cancelled transactions never will be executable, unless rescheduled with a
 different `salt` and fresh signatures.
 
-To describe the cancellation flow, we will consider first a single multisig, and then an
-arbitrarily nested multisig.
-
-#### Single Multisig Cancellation FLow
-Members of the Safe can propose to cancel by calling `reject(txHash)`.
-    1. EOAs can call this function directly.
-    2. Smart contracts can call this function directly.
-
-Anyone can actually cancel the transaction by calling `cancel(txHash, owners[])` where `owners[]`
-is the list of owners that called `reject`. TimelockGuard will then verify that each owner did, in
-fact, call `reject` and that the number of owners that called `reject` is greater then or equal to
-the `cancellation_threshold`.
-
-#### Nested Multisig Cancellation Flow
-In a nested group of Safes, some Safes are owners of other Safes, building a tree with a single
-Safe at the root. 
-
-To allow for cancelling of scheduled transactions a nested Safe setup with an arbitrary depth,
-owners of any Safe still call `reject(txHash)` for a transaction hash scheduled within the
-TimelockGuard, which is common for all the Safes in the nested group.
-
-A new `cancel(SafeA, txHash, owners[])` allows to specify the executing safe (`SafeA`) and the list
-of owners that signalled rejection of the scheduled transaction. Upon receiving this call, `SafeA`
-will compare the list of signalling owners with its own owner members, and will request from any
-owner members that are also Safes to recursively confirm rejection from their owners using the
-unmatched owners from the original provided array. The process will continue until the
-`cancellation_threshold` is met at the executing Safe, or all the originally provided owners have
-been matched up without reaching the `cancellation_threshold` at the executing Safe.
+In nested safe setups, the owners of a child multisig would need to signal the rejection of the
+transaction in numbers no less than the `cancellation_threshold` of the child multisig, for the
+child multisig to signal rejection of the transaction to the parent multisig.
 
 #### Choosing a `cancellation_threshold`
-Choosing an appropriate `cancellation_threshold` is not obvious, and needs to be considered
-according to several factors.
-1. Stage 1 requires that the compromise of a 75% or less of the Security Council can't be enough
-to cause a safety-level incident. If the Security Council would be turned into a reactive multisig
-with cancellation duties instead of approval duties, a compromise of 
-`total_owners - cancellation_threshold + 1` SC owners would be enough to remove the ability of the
-SC to cancel malicious transactions. For this reason, for the Security Council multisig,
-`cancellation_threshold =< 0.25 * total_owners`
-2. We define a "blocking minority" as the minimum number of `owners` that can stop the multisig
+The `cancellation_threshold` should be always the same as the `blocking_minority`.
+
+1. We define a "blocking minority" as the minimum number of `owners` that can stop the multisig
 from approving transactions, which is `total_owners - quorum + 1`. If the `cancellation_threshold`
 would be less than a blocking minority then it becomes the new blocking minority as it can stop any
 transactions (including modifying ownership, or responding to liveness challenges) from execution.
 A `cancellation_threshold` that is set too low can be abused in this way by malicious owners to
 permanently block the multisig from executing transactions if a LivenessModule hasn't been
-installed.
-
-Therefore:
-It's recommended that the LivenessModule is installed in all multisigs, otherwise the
-`cancellation_threshold` should not be lower than the "blocking minority".
-
-The `cancellation_threshold` should be high enough to limit having to use the liveness challenge
-too frequently and disrupt operations, if that is a concern.
-
-For the Security Council, the `cancellation_threshold` should be lower than `0.25 * total_owners`,
-or 3.25 with the current 10/13 membership. That leaves an optimal `cancellation_threshold` of 3.
+installed. For this reason, `cancellation_threshold >= blocking_minority`.
+2. Stage 1 requires that the compromise of a 75% or less of the Security Council can't be enough
+to cause a safety-level incident. If the Security Council would be turned into a reactive multisig
+with cancellation duties instead of approval duties, a compromise of 
+`total_owners - cancellation_threshold` SC owners would be enough to remove the ability of the
+SC to cancel malicious transactions. For this reason, for the Security Council multisig,
+`cancellation_threshold =< ceiling(0.25 * total_owners)`. This is coincidentally the same as the
+`blocking_minority` for the SC multisig. Therefore, `cancellation_threshold <= blocking_minority`.
+3. A configurable `cancellation_threshold` would need to be maintained along with `total_owners`
+and `quorum`, and would be likely to be misconfigured at some point. For this reason, it is best
+for the TimelockGuard to calculate the threshold from available data.
 
 ## Alternatives Considered
-
 <!-- Describe any alternatives that were considered during the development of this design. Explain
 why the alternative designs were ultimately not chosen and where they failed to meet the product
 requirements. -->
@@ -164,6 +133,14 @@ to not really be worth considering. Examples of this are:
 - Having multisigs queue transaction via the timelock directly and then allowing anyone to execute
   the transaction via a module, which changes the signing flow significantly and means transactions
   are challenging to simulate properly.
+- Configurable `cancellation_thresholds` were considered, but the risk of misconfiguration over
+  time was expected to be considerable.
+- A fixed `cancellation_threshold` of 1 was considered, but the risk of operational disruption by
+  malicious actors was considered unacceptable.
+- An increasing `cancellation_threshold` from 1 to `min(blocking_minority, quorum)`, which would
+  increase by one with each successful cancellation, and reset to one with each successful
+  execution, was considered. It was deemed that at its lower end it would be too operationally
+  disruptive, and not worth the additional complexity.
 
 We could not find any alternative design with the simplicity and security of the one that was
 ultimately presented in this document.
@@ -188,9 +165,6 @@ users of finance multisigs that this is not expected to be common. We should avo
 execution at all costs, even if a signature from all owners would reduce the time to, say, 1 hour.
 
 ### Interaction with the LivenessModule
-The `cancellation_threshold` becomes the new `blocking_minority`. To avoid unexpected loss of
-control, all multisigs enabling the TimelockGuard should also enable the LivenessModule.
-
 When using a LivenessModule, the liveness challenges are responded with a regular transaction which
 is subject to the timelock delay, and as such the LivenessModule needs to have a challenge reponse
 time that allows for both assembling a quorum of signers and executed a delayed transaction.
