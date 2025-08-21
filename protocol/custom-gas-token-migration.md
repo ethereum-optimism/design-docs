@@ -17,7 +17,7 @@ The proposed Custom Gas Token (CGT) upgrade path enables any OP Stack chain runn
 
 ## Problem Statement + Context
 
-A new CGT implementation is being proposed to minimize the number of changes required to enable the custom gas token mode. In contrast, allow greater customizability for chain governors to define the native asset. However, chains already in production use the legacy CGT implementation. There should be a way to migrate the legacy implementation into the new one to make it possible for them to stay in a standard version for present and future compatibility in the OP Stack development.
+A new CGT implementation is being proposed to minimize the number of changes required to enable the custom gas token mode. In contrast, allow greater customizability for chain governors to define the native asset. However, chains already in production use a legacy CGT implementation, for example, based in the op-contracts/v1.8.0 release. There should be a way to migrate the legacy implementation into the new one to make it possible for them to stay in a standard version for present and future compatibility in the OP Stack development.
 
 The goals for the migration must be:
 
@@ -161,5 +161,6 @@ One of the main user-facing risks during the upgrade processes is that some unfi
 
 ## Risks & Uncertainties
 
+- OP Stack chains might use contract versions that differ from v1.8.0 or even from the old CGT specs. A complete review of the core contracts is needed to ensure there are no inconsistencies with the proposed upgrade path that could introduce safety or liveness risks.
 - Chains should ensure no critical dependencies on `depositERC20Transaction`, `initiateWithdrawal`, and related legacy CGT code being removed, and communicate with enough anticipation for proper migration.
 - Chains with an enormous amount of native assets might cause an overflow in `NativeAssetLiquidity`. Currently, we set the liquidity to `type(uint248).max` wei, which should make such cases extremely rare.
