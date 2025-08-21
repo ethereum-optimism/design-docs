@@ -13,7 +13,7 @@ Provide a repeatable, low-risk procedure for OP Stack chains that still run the 
 
 ## Summary
 
-The proposed Custom Gas Token upgrade lets any OP Stack chain introduce its native asset as the gas currency with almost no core-code intrusion: a single `isCustomGasToken()` flag turns off ETH transfer flows in all bridging methods, while two new pre-deploys, `NativeAssetLiquidity`, a contract with pre-minted assets, and `LiquidityController`, an owner-governed mint/burn router, hand supply control to chain governors or authorized “minter” contracts that can plug in anything from ERC-20 converters to third-party bridges or emission schedules. Wrapped-asset compatibility is preserved, and the entire system is initialized by seeding the native asset and allowing the governor to fully manage liquidity, such as integrating with the `L2CGTBridge` and burning any surplus. Lastly, we propose a method to address the issue of in-flight withdrawals when necessary.
+The proposed Custom Gas Token (CGT) upgrade path enables any OP Stack chain running the legacy CGT implementation to migrate to the new design. The migration process assumes that the set of smart contracts either corresponds to an official release (e.g., v1.8.0) or complies with the legacy CGT specifications. Only a single upgrade procedure is expected to transition a valid old implementation into the new one. Finally, we propose a method to address the issue of in-flight withdrawals when necessary.
 
 ## Problem Statement + Context
 
