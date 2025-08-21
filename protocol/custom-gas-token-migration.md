@@ -158,6 +158,7 @@ One of the main user-facing risks during the upgrade processes is that some unfi
 - **OptimismPortal maintains the finalizeWithdrawal legacy code**: retain the withdrawal legacy code to maintain backward compatibility, at the cost of keeping old code just for this purpose and storing the exact portion of tokens there, which should be upgraded on a future date, since new CGT chains will not have this logic.
 - **Inherit the CGT Bridge interface into OptimismPortal**: replicate the latest `OptimismPortal` logic (`ETHLockbox`), in this case, where the native assets are pulled from the CGT Bridge, at the cost of adding new code for this sole purpose.
 - **Upgrade the Gas Token**: Only for chains that use an upgradable token can it simply mint tokens and reimburse the affected users due to the migration.
+-** Return funds on L2 via a reimburse contract**: Deploy an reimburse contract as an authorized minter of the `LiquidityController`. The user initiates a request in L1, which verifies the unfinalized withdrawal status, sends a cross-chain message, and reimburses users directly on L2, effectively reversing unfinalized withdrawals. The contract can be retired once all reimbursements are completed.
 
 ## Risks & Uncertainties
 
