@@ -107,9 +107,9 @@ A chain governor would require deploying the desired bridge for native asset bri
     
 2. Upgrade all the contracts to the new CGT version via hard fork.
     
-    Perform the upgrade for L1 and L2 contracts into the new implementations.
+    Perform the upgrade for L1 and L2 contracts into the new implementations. The following L1 contracts needs to be upgraded: `SystemConfig`, `OptimismPortal`, `L1CrossDomainMessenger` and `L1StandardBridge`.
     
-    Hardfork the L2 chain to add `NativeAssetLiquidity` (fund liquidity) and add `LiquidityController` and upgrade each existing predeploy contract.
+    Hardfork the L2 chain through a NUT to add `NativeAssetLiquidity` (`fund` liquidity) and add `LiquidityController` and upgrade the `L1Block`, `L2StandardBridge`, `L2CrossDomainMessenger` and `L2ToL1MessagePasser` predeploy contracts.
     
     - For `NativeAssetLiquidity`, burn the amount of native asset that isn’t planned to be used.
         - Relevant for chains that already has a considerable amount of native asset supply scattered in the L2 state.
