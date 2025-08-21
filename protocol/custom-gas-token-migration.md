@@ -91,6 +91,12 @@ The `OptimismPortal` would be required to be upgraded into an intermediate contr
 
 If the token is upgradable, the chain governor can also upgrade the token itself to swap the balances between the `OptimismPortal` and the new bridge.
 
+### CGTBridge Deployment
+
+To automate the deployment process of the `L1CGTBridge` and `L2CGTBridge`, a Factory contract will be deployed on L1. This Factory is responsible for deploying the L1 and L2 bridge contracts (proxy + implementation) and ensuring that their addresses are deterministically derived. Since the addresses are precomputed, each bridge will already know the address of its counterpart at the time of deployment, eliminating the need for an additional step to manually set the bridge addresses.
+
+The `ProxyAdmin` owner must authorize the `L2CGTBridge` proxy address as a minter in the `LiquidityController`.
+
 ### Upgrade Overview Flow
 
 A chain using the CGT legacy implementation would need to pass through an upgrade process, which requires the following steps:
@@ -109,8 +115,9 @@ A chain governor would require deploying the desired bridge for native asset bri
         - Relevant for chains that already has a considerable amount of native asset supply scattered in the L2 state.
     - For `OptimismPortal`, use an intermediate contract/implementation to move the funds into the new L1 CGT Bridge.
 4. Update the chain state in Fault Proofs.
-5. Activates `L1CGTBridge`.
-6. Restore the rest of the OP Stack Chains related services.
+5. Grants the `authorizedMinter` role to the `L2CGTBridge`.
+6. Activates `L1CGTBridge`.
+7. Restore the rest of the OP Stack Chains related services.
 
 ### In-Flight Withdrawals
 
