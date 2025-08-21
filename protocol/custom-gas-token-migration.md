@@ -42,12 +42,13 @@ The following contracts are upgraded to the version that contains the new CGT im
 
 - In `SystemConfig`:
     - Removal of the `GasPayingToken` library.
-    - This removes the `gasPayingToken`, `gasPayingTokenName`, and `gasPayingTokenSymbol`.
-    - `isCustomGasToken()` boolean is introduced at initialization, as a replacement for `setGasPayingToken`.
+    - This removes the `gasPayingToken`, `gasPayingTokenName` and `gasPayingTokenSymbol`.
+    - Removal of the `GAS_PAYING_TOKEN_DECIMALS` constant.
+    - `isCustomGasToken()` boolean is read from `OptimismPortal`.
 - In `OptimismPortal`:
     - Removal of the `depositERC20Transaction` and `gasPayingToken` dependencies.
-    - Import `isCustomGasToken` to block `msg.value` > 0 during deposits, to block ETH sends.
-    - Migrate funds into a new bridge.
+    - Addition of the `isCustomGasToken` boolean to block `msg.value` > 0 during deposits, to block ETH sends.
+    - Migrate ERC20 balance into a new bridge.
 
 **L2 Contracts Upgrade**
 
