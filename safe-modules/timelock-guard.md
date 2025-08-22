@@ -100,10 +100,8 @@ transaction in numbers no less than the `cancellation_threshold` of the child mu
 child multisig to signal rejection of the transaction to the parent multisig.
 
 #### Choosing a `cancellation_threshold`
-The `cancellation_threshold` should be always the same as the `blocking_minority`.
-
 1. We define a "blocking minority" as the minimum number of `owners` that can stop the multisig
-from approving transactions, which is `total_owners - quorum + 1`. If the `cancellation_threshold`
+from approving transactions, which is `min(quorum, total_owners - quorum + 1)`. If the `cancellation_threshold`
 would be less than a blocking minority then it becomes the new blocking minority as it can stop any
 transactions (including modifying ownership, or responding to liveness challenges) from execution.
 A `cancellation_threshold` that is set too low can be abused in this way by malicious owners to
@@ -119,6 +117,15 @@ SC to cancel malicious transactions. For this reason, for the Security Council m
 3. A configurable `cancellation_threshold` would need to be maintained along with `total_owners`
 and `quorum`, and would be likely to be misconfigured at some point. For this reason, it is best
 for the TimelockGuard to calculate the threshold from available data.
+
+The `cancellation_threshold` should either always be the same as the `blocking_minority` or if the
+code complexity is acceptable, the `cancellation_threshold` can be dynamic between 1 and
+`blocking_minority`. A dynamic `cancellation_threshold` offers a better response time while not
+being vulnerable to sustained abuse by a small amount of malicious owners.
+
+If a dynamic `cancellation_threshold` is chosen, it would start at 1 and increase by 1 with each
+successful consecutive cancellation. The `cancellation_threshold` would reset to 1 with each
+successful execution of an scheduled transaction.
 
 ## Alternatives Considered
 <!-- Describe any alternatives that were considered during the development of this design. Explain
