@@ -47,7 +47,8 @@ this module, as well as any 3rd parties who rely on the security properties of t
 
 - Coinbase (potentially impacted 3rd party)
 - Uniswap (`LivenessModule` user)
-- Optimism Foundation (`LivenessModule` user)
+- Security Council (`LivenessModule` user)
+- Optimism Foundation
 
 ## Requirements and Constraints
 
@@ -72,18 +73,20 @@ mechanism as an alternative to the existing poke mechanism inside of `LivenessGu
 constructor parameters. Any Safe on any network can choose to configure the module and then enable
 the module within the Safe.
 
+If possible, this module should be integrated with all other safe modules and guards in a single
+contract that is enabled and configured in all Optimism Safes.
+
 ### Configuration
 
-A Safe configures the module by setting a challenge period, a challenge bond, and a fallback owner.
+A Safe configures the module by setting a challenge period and a fallback owner.
 
 ### Challenge Protocol
 
-Any user may trigger an Account Liveness Challenge by targeting a specific Safe address. In
-response to this challenge, a threshold of owners (same threshold as the Safe itself) must sign a
-message that confirms the liveness of the safe (e.g., a message over the Safe address and the
-current timestamp). If the Safe fails to reach this threshold, all owners are removed from the
-account and ownership is transferred to the fallback account. If the Safe successfully reaches the
-threshold, the challenge fails and the Safe receives the bond as a reward.
+The fallback owner may trigger an Account Liveness Challenge by targeting a specific Safe address.
+In response to this challenge, a threshold of owners (same threshold as the Safe itself) must 
+execute a regular transaction that confirms the liveness of the safe. If the Safe fails to execute
+this transaction, all owners are removed from the Safe and ownership is transferred to the fallback
+account. If the Safe successfully executes the transaction, the challenge fails and nothing happens.
 
 The Account Liveness Challenge addresses both of the ways in which a Safe can fail to be live. If
 sufficiently many honest users cannot sign that the account cannot reach a threshold, the account
@@ -118,6 +121,19 @@ prefer to simply remove an owner that is unable to sign.
 
 <!-- Explain any risks and uncertainties that this design includes. Highlight aspects of the design
 that remain unclear and any potential issues we may face down the line. -->
+### Malicious Fallback
+While the fallback owner is chosen as a trusted actor, it can always happen that they are
+eventually compromised. In that case, they might issue a liveness challenge and if unnoticed
+gain control of the multisig enabling the LivenessModule.
+
+To mitigate this, we will require monitoring that will alert us of unexpected liveness challenges.
+
+### Blocking Minority is Below Quorum
+If a multisig uses a simple majority or less as quorum this module will be ineffective for the
+stated scenario, because malicious actors will reach quorum before the reach a blocking minority.
+
+Instead of implementing a module that would address this scenario, we accept that this module
+is intended for multisigs where the quorum is greater than a simple majority.
 
 ### Fallback Ownership
 
