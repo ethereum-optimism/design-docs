@@ -2,26 +2,30 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [[Project Name]: Design Doc](#project-name-design-doc)
+- [OPCM SuperchainConfig Upgrade Fix: Design Doc](#opcm-superchainconfig-upgrade-fix-design-doc)
   - [Summary](#summary)
   - [Problem Statement + Context](#problem-statement--context)
   - [Customer Requirements and Expected Behavior](#customer-requirements-and-expected-behavior)
+    - [OPContractsManager upgradeSuperchainConfig function:](#opcontractsmanager-upgradesuperchainconfig-function)
+    - [OPContractsManager upgrade function:](#opcontractsmanager-upgrade-function)
   - [Proposed Solution](#proposed-solution)
+    - [Proposal 1: Move the SuperchainConfig upgrade functionality to it's own function:](#proposal-1-move-the-superchainconfig-upgrade-functionality-to-its-own-function)
+    - [Proposal 2: SuperchainConfig Upgrade Check Fix](#proposal-2-superchainconfig-upgrade-check-fix)
+    - [Proposal 3: Support for different superchainConfigs i.e different Superchains](#proposal-3-support-for-different-superchainconfigs-ie-different-superchains)
+    - [Proposal 4: Remove redundant immutable variables from the OPCM](#proposal-4-remove-redundant-immutable-variables-from-the-opcm)
   - [Failure Mode Analysis](#failure-mode-analysis)
-  - [Alternatives Considered](#alternatives-considered)
-  - [Risks & Uncertainties](#risks--uncertainties)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# [Project Name]: Design Doc
+# OPCM SuperchainConfig Upgrade Fix: Design Doc
 
 |                    |                                                    |
 | ------------------ | -------------------------------------------------- |
 | Author             | Michael Amadi                                      |
 | Created at         | _2025-07-29_                                       |
-| Initial Reviewers  | Matt Solomon, John Mardlin                 |
-| Need Approval From | _To be assigned_                                    |
-| Status             | _Draft_ |
+| Initial Reviewers  | Matt Solomon, John Mardlin                         |
+| Need Approval From | _To be assigned_                                   |
+| Status             | _Draft_                                            |
 
 ## Summary
 
@@ -79,30 +83,31 @@ When it calls the OPCM's `upgrade()` function, the check above (if (`superchainP
 
 ## Customer Requirements and Expected Behavior
 
-| Scenario Number | ChainAProxyAdmin == superchainProxyAdmin?  | Target version is latest? | SuperchainConfig already on latest? | Expected Behavior                                                                                                                                                                                                     |
-| --------------- | ---------------------------- | ------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1               | Yes                          | Yes                       | Yes                                 | Upgrades ChainA's L1 contracts, Function returns successfully                                                                                                                                                         |
-| 2               | Yes                          | Yes                       | No                                  | Upgrades SuperchainConfig to latest version, Upgrades ChainA's L1 contracts, Function returns successfully                                                                                                            |
-| 3a              | No (Caller is ChainAPAO)     | Yes                       | Yes                                 | Upgrades ChainA's L1 contracts, Function returns successfully                                                                                                                                                         |
-| 3b              | No (Caller is SuperchainPAO) | Yes                       | Yes                                 | Nothing happens, Function returns successfully                                                                                                                                                                        |
-| 4a              | No (Caller is ChainAPAO)     | Yes                       | No                                  | Function reverts since it will try to upgrade the SuperchainConfig to the latest version with the wrong owner                                                                                                         |
-| 4b              | No (Caller is SuperchainPAO) | Yes                       | No                                  | Upgrades SuperchainConfig to latest version, Function returns successfully                                                                                                                                            |
-| 5               | Yes                          | No                        | Yes                                 | It should revert since it will firstly attempt to upgrade to a former implementation, currently it does not revert and it upgrades the SuperchainConfig to the target version and also upgrades ChainA's L1 contracts |
-| 6               | Yes                          | No                        | No                                  | It should ideally only work if we are upgrading to a newer version, currently it does not revert and it upgrades the SuperchainConfig to the target version and also upgrades ChainA's L1 contracts                   |
-| 7a               | No (Caller is ChainAPAO)     | No                        | Yes                                 | Upgrades ChainA's L1 contracts, Function returns successfully                                                                                                                                                         |
-| 7b               | No (Caller is SuperchainPAO) | No                        | Yes                                 | Function reverts since it has already been upgraded                                                                                                                                                                   |
-| 8a               | No (Caller is ChainAPAO)     | No                        | No                                  | Function reverts since it will try to upgrade the SuperchainConfig to the latest version with the wrong owner                                                                                                         |
-| 8b               | No (Caller is SuperchainPAO) | No                        | No                                  | Upgrades SuperchainConfig to latest version, Function returns successfully
+### OPContractsManager upgradeSuperchainConfig function:
+- The SuperchainConfig has not been upgraded by the OPCM being called.
+- The caller must be the SuperchainConfig's ProxyAdminOwner.
+
+### OPContractsManager upgrade function:
+- ChainA's SuperchainConfig has been upgraded by the OPCM being called.
+- The caller must be ChainA's ProxyAdminOwner.
+- ChainA has not already been upgraded by the OPCM being called.
 
 ## Proposed Solution
 
-A proposed solution for this is to change the check to version comparisons. We can hardcode an expected previous version for the SuperchainConfig and compare it to the actual version. If the actual version is equal to the expected previous version, we can upgrade the SuperchainConfig. Otherwise we continue the execution.
+### Proposal 1: Move the SuperchainConfig upgrade functionality to it's own function:
+This will help simplify the `upgrade()` function and make the checks easier to reason about and implement.
 
+
+### Proposal 2: SuperchainConfig Upgrade Check Fix
+A proposed solution for this is to change the check to version comparisons. We can hardcode an expected previous and target versions for the SuperchainConfig and compare it to the actual version when performing upgrades. E.g
+- For `The SuperchainConfig has not been upgraded by the OPCM being called` in `OPCM.upgradeSuperchainConfig()`, we check if the SuperchainConfig's actual version is equal to the expected previous version. If it is, we can upgrade the SuperchainConfig. Otherwise we revert. We do this strict check to ensure that SuperchainConfigs are upgraded only from a pre-approved version most likely to be the immediate previous version.
+- For `ChainA's SuperchainConfig has been upgraded by the OPCM being called` in `OPCM.upgrade()`, we check if the SuperchainConfig's actual version is greater than or equal to the expected target version. If it is, we can proceed to upgrade the OP Chains L1 contracts. Otherwise we revert. We do not make a strict check here so that OP Chains that are more than 2 SuperchainConfig versions behind can still be upgraded.
+- For `ChainA has not already been upgraded by the OPCM being called` in `OPCM.upgrade()`, we check if the version of one of the OP Chains L1 contracts intended to be upgraded by the upgrade function is equal to the expected previous version of the chosen contract. If it is, we can proceed to upgrade the OP Chains L1 contracts. Otherwise we revert.
+
+
+### Proposal 3: Support for different superchainConfigs i.e different Superchains
 While at it, it is proposed to also add support for different superchainConfigs i.e different Superchains. The proposed solution also allows for this.
 
-We should note also that:
-- Multiple superchainConfigs can not be upgraded in one call to upgrade(...)
-- It is assumed that all the chains upgraded in one call to upgrade(...) will be of the same superchain. We assert this through a check similar to this
 ```solidity
 ISuperchainConfig _superchainConfig = _opChainInputs[0].systemConfig.optimismPortal().superchainConfig();
 for (uint256 i = 0; i < _opChainInputs.length; i++) {
@@ -111,20 +116,18 @@ for (uint256 i = 0; i < _opChainInputs.length; i++) {
     }
 }
 ```
-- It is also important to note that for any superchain asides the one with its superchainConfig hardcoded in the OPCM, in order to upgrade the superchainConfig, one of it's L1 chains which has the same ProxyAdmin as the SuperchainConfig's ProxyAdmin will need to be upgraded in the same transaction i.e the `OpChainConfig` should not be empty. This is because if the `OpChainConfig` is empty, the function defaults to using a hardcoded superchainConfig and superchainProxyAdmin.
+
+We should note that:
+- OP Chains of different superchains (even if they share the same ProxyAdminOwner)can not be upgraded in one call to upgrade(...) because of the check above.
+
+
+### Proposal 4: Remove redundant immutable variables from the OPCM
+Lastly, it is proposed to remove the following immutable variables from the OPCM contract as they are not used any longer:
+- `ProtocolVersions`
+- `SuperchainProxyAdminOwner`
+- `SuperchainConfig`: This is still used as an input to OPCMDeployer.deploy(...) which is called in the OPCM. A bypass this is to add the `SuperchainConfig` as one of the fields of the `Roles` struct which is an input to OPCM.deploy(...).
 
 ## Failure Mode Analysis
 
 - **A chain might be upgraded when it's superchainConfig is not upgraded:**
-    - Explainer: If the array of chains to upgrade include chains of more than one superchain, since we only check the superchainConfig of the first chain in the array and assume that to be the superchainConfig of all inputs, if any other chain in the array is of a different superchain, the function would not check if it's superchainConfig has been upgraded yet.
     - Mitigation: We can implement a simple loop to assert that all chains in the array are of the same superchain and have tests for this.
-
-## Alternatives Considered
-
-- Define the mapping `mapping(ISuperchainConfig superchainConfig => bool isSuperchainUpgraded) public isSuperchainUpgraded` and `setSuperchainUpgraded(ISuperchainConfig superchainConfig)` in the OPCM contract:
-    This was considered but was not implementable because OPCM components (since they are created before the OPCM) do not have any knowledge of what the OPCM address is in order to call the `isSuperchainUpgraded(ISuperchainConfig superchainConfig)` and `setSuperchainUpgraded(ISuperchainConfig superchainConfig)` functions.
-
-## Risks & Uncertainties
-
-<!-- An overview of what could go wrong.
-Also any open questions that need more work to resolve. -->
