@@ -309,7 +309,25 @@ As an alternative to the proposed architecture, both predeploys might be merged 
     - A new `SuperchainWETH` version might be introduced to enable interoperability for the ETH transfer.
 - `L1FeeVault` might not receive the amount in value to pay for data availability, since the mismatch is corrected via `minBaseFee` and `operatorFees`. The introduction of parameters or oracles is actively being discussed.
 - Native asset custom features are in early research phase, but the design is minimal enough not to block a future upgrade of this kind.
+### NativeAssetLiquidity Drained
+A bug or a compromise on `NativeAssetLiquidity` or the `LiquidityController` could lead to a massive asset loss either in the canonical bridge or third party bridges. Given the low complexity of `LiquidityController`, the most likely vector would be an access control bug or attack.
 
+This is already mitigated by the airgap in each bridge, and by the existing measures to avoid bugs and L2 predeploy compromises. No new mitigations are required for this risk.
+
+### CGTs unduly minted or burned
+Errors or compromises affecting chain operators could cause CGTs to be minted or burned not following the protocol. The most likely would be:
+- L1 or L2 misconfigurations of `isCustomGAsToken` or `LiquidityController`.
+- AccessControl, Replayability, ERC20 or CGT bridge smart contract bugs.
+- `NativeAssetLiquidity` balance overflows
+- Misconfiguration of `L1ToL2MessagePasser`
+
+These risks would be mostly borne by chain operators, and the developer documentation should reflect these concerns so that they are not overlooked. Additionally, we will need automated checks to verify that the `isCustomGAsToken` always matches in the L1 and L2 parts of a chain configuration.
+
+### Very Inaccurate Fees
+L1 misconfigurations could lead to very inaccurate fees being charged. This will need to be highlighted in the developer documentation for chain operators to be aware.
+
+### Chain operators see wrong amounts of wrapped asset
+The current version of CGT only accepts 18-decimal CGTs, or the wrapper contract will malfunction. This will need to be highlighted in the documentation.
 ## Appendix
 
 ### Appendix A: Old vs. New CGT design
