@@ -75,11 +75,22 @@ contract LiquidityController {
 	// Authorized addresses to manage liquidity of NativeAssetLiquidity
 	mapping(address => bool) public minters;
 
+	// Authorizes an address from performing liquidity control operations
 	function authorizeMinter(address _minter) external {
 		if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert Unauthorized();
 		minters[_minter] = true;
 		(...)
 	}
+
+	// Deauthorizes an address from performing liquidity control operations
+	function deauthorizeMinter(address _minter) external {
+		if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert Unauthorized();
+		if (!minters[_minter]) revert NotMinter(_minter);
+
+		delete minters[_minter];
+		(...)
+	}
+
 	// Authorized minter can unlock native asset
 	function mint(address _to, uint256 _amount) external {
 		if (!minters[msg.sender]) revert Unauthorized();
