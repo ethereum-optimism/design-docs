@@ -123,9 +123,10 @@ We should note that:
 
 ### Proposal 4: Remove redundant immutable variables from the OPCM
 Lastly, it is proposed to remove the following immutable variables from the OPCM contract as they are not used any longer:
-- `ProtocolVersions`
-- `SuperchainProxyAdminOwner`
-- `SuperchainConfig`: This is still used as an input to OPCMDeployer.deploy(...) which is called in the OPCM. A bypass this is to add the `SuperchainConfig` as one of the fields of the `Roles` struct which is an input to OPCM.deploy(...).
+- `ProtocolVersions`: Not used anymore since OPCM v2.x.x
+- `SuperchainProxyAdminOwner`: Not used anymore since we now support multiple superchains.
+- `upgradeController`: Not used anymore since RC functionality was removed.
+- `SuperchainConfig`: Not used anymore except as an input to OPCMDeployer.deploy(...) which is called in the OPCM. A bypass this is to add the `SuperchainConfig` as one of the fields of the `Roles` struct which is an input to OPCM.deploy(...). This should now fully enable deploying OP chains from variable `SuperchainConfigs`.
 
 ## Failure Mode Analysis
 
