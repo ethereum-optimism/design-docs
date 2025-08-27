@@ -95,7 +95,7 @@ When it calls the OPCM's `upgrade()` function, the check above (if (`superchainP
 ## Proposed Solution
 
 ### Proposal 1: Move the SuperchainConfig upgrade functionality to it's own function:
-This will help simplify the `upgrade()` function and make the checks easier to reason about and implement.
+This will help simplify the `upgrade()` function and make the checks easier to reason about and implement. As part of this the `opcm-upgrade-checks` script will also need to be updated to support this too.
 
 
 ### Proposal 2: SuperchainConfig Upgrade Check Fix
