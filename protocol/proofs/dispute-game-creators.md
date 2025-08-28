@@ -12,8 +12,6 @@ The Fault Dispute Game system relies on several core contracts, including `Dispu
 
 The goal is to allow a single, canonical `FaultDisputeGame.sol` implementation to be reused, with chain-specific parameters injected during the proxy creation process, simplifying deployments and upgrades.
 
-An important nuance here is that each `FaultDisputeGame.sol` deployment has both a minimal proxy with immutable args deployed that points at an implementation specific to the `FaultDisputeGameFactory.sol`. The two sets of immutable args are first specific to the fault dispute game, then the second set on the implementation are specific to the rollup.
-
 # Proposed Solution
 
 The `FaultDisputeGame.sol` contract be modified to remove chain-specific immutable variables (like `WETH`, `ANCHOR_STATE_REGISTRY`, `L2_CHAIN_ID`, etc.). Instead, these configuration parameters should be read dynamically from the `clones-with-immutable-args` (CWIA) data payload.
