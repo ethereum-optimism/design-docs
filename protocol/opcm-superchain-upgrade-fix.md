@@ -12,7 +12,6 @@
     - [Proposal 1: Move the SuperchainConfig upgrade functionality to it's own function:](#proposal-1-move-the-superchainconfig-upgrade-functionality-to-its-own-function)
     - [Proposal 2: SuperchainConfig Upgrade Check Fix](#proposal-2-superchainconfig-upgrade-check-fix)
     - [Proposal 3: Support for different superchainConfigs i.e different Superchains](#proposal-3-support-for-different-superchainconfigs-ie-different-superchains)
-    - [Proposal 4: Remove redundant immutable variables from the OPCM](#proposal-4-remove-redundant-immutable-variables-from-the-opcm)
   - [Failure Mode Analysis](#failure-mode-analysis)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -102,31 +101,11 @@ This will help simplify the `upgrade()` function and make the checks easier to r
 A proposed solution for this is to change the check to version comparisons. We can hardcode an expected previous and target versions for the SuperchainConfig and compare it to the actual version when performing upgrades. E.g
 - For `The SuperchainConfig has not been upgraded by the OPCM being called` in `OPCM.upgradeSuperchainConfig()`, we check if the SuperchainConfig's actual version is equal to the expected previous version. If it is, we can upgrade the SuperchainConfig. Otherwise we revert. We do this strict check to ensure that SuperchainConfigs are upgraded only from a pre-approved version most likely to be the immediate previous version.
 - For `ChainA's SuperchainConfig has been upgraded by the OPCM being called` in `OPCM.upgrade()`, we check if the SuperchainConfig's actual version is greater than or equal to the expected target version. If it is, we can proceed to upgrade the OP Chains L1 contracts. Otherwise we revert. We do not make a strict check here so that OP Chains that are more than 2 SuperchainConfig versions behind can still be upgraded.
-- For `ChainA has not already been upgraded by the OPCM being called` in `OPCM.upgrade()`, we check if the version of one of the OP Chains L1 contracts intended to be upgraded by the upgrade function is equal to the expected previous version of the chosen contract. If it is, we can proceed to upgrade the OP Chains L1 contracts. Otherwise we revert.
 
 
 ### Proposal 3: Support for different superchainConfigs i.e different Superchains
-While at it, it is proposed to also add support for different superchainConfigs i.e different Superchains. The proposed solution also allows for this.
+While at it, it is proposed to also add support for different superchainConfigs i.e different Superchains. We can easily achieve this by getting the superchainConfig of each OPChain from its optimismPortal (gotten from the systemConfig in the OPChainConfig struct) rather than using the hardcoded SuperchainConfig address in the OPCM. Note this means that it is possible for OPChains of different superchains to be upgraded in one call to `OPCM.upgrade()` as long as they share the same proxyAdminOwner. This means that we must check that each OPChain's superchainConfig is at the correct version before proceeding to upgrade it, otherwise we revert the transaction.
 
-```solidity
-ISuperchainConfig _superchainConfig = _opChainInputs[0].systemConfig.optimismPortal().superchainConfig();
-for (uint256 i = 0; i < _opChainInputs.length; i++) {
-    if (_opChainInputs[i].systemConfig.optimismPortal().superchainConfig() != _superchainConfig) {
-        revert SuperchainConfigInconsistent();
-    }
-}
-```
-
-We should note that:
-- OP Chains of different superchains (even if they share the same ProxyAdminOwner)can not be upgraded in one call to upgrade(...) because of the check above.
-
-
-### Proposal 4: Remove redundant immutable variables from the OPCM
-Lastly, it is proposed to remove the following immutable variables from the OPCM contract as they are not used any longer:
-- `ProtocolVersions`: Not used anymore since OPCM v2.x.x
-- `SuperchainProxyAdminOwner`: Not used anymore since we now support multiple superchains.
-- `upgradeController`: Not used anymore since RC functionality was removed.
-- `SuperchainConfig`: Not used anymore except as an input to OPCMDeployer.deploy(...) which is called in the OPCM. A bypass this is to add the `SuperchainConfig` as one of the fields of the `Roles` struct which is an input to OPCM.deploy(...). This should now fully enable deploying OP chains from variable `SuperchainConfigs`.
 
 ## Failure Mode Analysis
 
