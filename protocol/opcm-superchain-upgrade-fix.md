@@ -89,7 +89,6 @@ When it calls the OPCM's `upgrade()` function, the check above (if (`superchainP
 ### OPContractsManager upgrade function:
 - ChainA's SuperchainConfig has been upgraded by the OPCM being called.
 - The caller must be ChainA's ProxyAdminOwner.
-- ChainA has not already been upgraded by the OPCM being called.
 
 ## Proposed Solution
 
@@ -99,7 +98,7 @@ This will help simplify the `upgrade()` function and make the checks easier to r
 
 ### Proposal 2: SuperchainConfig Upgrade Check Fix
 A proposed solution for this is to change the check to version comparisons. We can hardcode an expected previous and target versions for the SuperchainConfig and compare it to the actual version when performing upgrades. E.g
-- For `The SuperchainConfig has not been upgraded by the OPCM being called` in `OPCM.upgradeSuperchainConfig()`, we check if the SuperchainConfig's actual version is equal to the expected previous version. If it is, we can upgrade the SuperchainConfig. Otherwise we revert. We do this strict check to ensure that SuperchainConfigs are upgraded only from a pre-approved version most likely to be the immediate previous version.
+- For `The SuperchainConfig has not been upgraded by the OPCM being called` in `OPCM.upgradeSuperchainConfig()`, we check if the SuperchainConfig's actual version is less than the target version. If it is, we can upgrade the SuperchainConfig. Otherwise we revert. We do this check to ensure that SuperchainConfigs are not accidentally downgraded.
 - For `ChainA's SuperchainConfig has been upgraded by the OPCM being called` in `OPCM.upgrade()`, we check if the SuperchainConfig's actual version is greater than or equal to the expected target version. If it is, we can proceed to upgrade the OP Chains L1 contracts. Otherwise we revert. We do not make a strict check here so that OP Chains that are more than 2 SuperchainConfig versions behind can still be upgraded.
 
 
