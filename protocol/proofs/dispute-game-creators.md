@@ -1,10 +1,16 @@
 # Purpose
 
-The current fault-proof system requires a redeployment of the `DisputeGame.sol`, `DisputeGameFactory.sol`, and `AnchorStateRegistry.sol` for new L2 chains due to chain-specific immutable variables (like `anchorStateRegistry`, `absolutePrestate`) in their constructor. This document proposes changes to simplify the Fault Dispute Game contract setup, enabling reuse of a single implementation across chains by moving the chain-specific configuration from immutable variables stored as immutable variables to variables stored as part of the payload for clones with immutable args (CWIA).
+The fault proof system uses a `DisputeGameFactory` contract to construct new dispute games. This factory stores a mapping from `GameType` to game implementation. When `DisputeGameFactory.create` is called, the factory deploys a game, which is a proxy contract that points to the appropriate implementation. The current system requires a redeployment of these implementations for every L2 chain due to chain-specific immutable variables (like `anchorStateRegistry`, `absolutePrestate`) in their constructor. 
+
+The current system is suboptimal for a number of reasons. Because we require a full redeployment of the game implemenations per L2, game implementation constructor arguments must be passed to `OPContractsManager` (OPCM) at deployment time, increasing the risk of misconfiguration. Additionally, redeploying the full contract is expensive in terms of gas. 
+
+This document proposes changes to simplify the deployment of game contracts, enabling reuse of a single implementation across all chains. This is accomplished by removing chain-specific configuration from immutable variables on the implementation and instead using clone with immutable arguments (CWIA) to pass this data into the game proxy contract at game creation time. 
 
 # Summary
 
-This proposal recommends modifying the `FaultDisputeGame.sol` contract to remove chain-specific immutable arguments. These parameters would instead be provided during proxy creation via a `bytes` payload constructed by the `DisputeGameFactory.sol`. The factory should be updated to store base configuration per `GameType` in a `gameArgs` mapping and combine it with game-specific data (`rootClaim`, `extraData`) at creation time of the proxy contract. This would allow new chain deployments to use proxies pointing to a canonical implementation, configured by the factory, eliminating the need for full contract redeployments.
+This proposal recommends modifying the game implementation contracts (`FaultDisputeGame.sol`, `PermissionedDisputeGame`, etc) to remove chain-specific immutable arguments. These parameters would instead be provided during proxy creation via a `bytes` payload constructed by the `DisputeGameFactory.sol`. The factory should be updated to store base configuration per `GameType` in a `gameArgs` mapping and combine it with game-specific data (`rootClaim`, `extraData`) at creation time of the proxy contract. 
+
+This new approach would allow the OPCM to embed fixed references to a canonical game contract implementation per `GameType`. These implementations are then reused across all L2 chains. The chain-specific information is configured on each L2 chain's `DisputeGameFactory` via the `gameArgs` mapping. This eleminates the need for full game implementation contract deployment for every L2 chain.
 
 # Problem Statement + Context
 
