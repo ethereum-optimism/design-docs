@@ -28,17 +28,74 @@ Fixed fee shares are too rigid: chains want custom splits, L1/L2 destinations, a
 
 ## Proposed Solution
 
-![Diagram.png](https://img.notionusercontent.com/s3/prod-files-secure%2F7683bccd-1174-4689-a817-b27fd9d7ef00%2Fc6217459-59b2-4c32-bf56-7a028ed3bdcf%2FScreenshot_2025-08-25_at_13.47.02.png/size/w=1420?exp=1756395886&sig=fObiioU1Qwbf4ySWEiN7Mzyf5Fr86Yimtr3DJgKZZE0&id=25a9a4c0-92c7-80c2-a19a-da6dc330687b&table=block)
-
 The `FeeSplitter` will be a predeploy with a modular config. The `SharesCalculator` and each `Recipient` are external entities that integrate into the system.
 
 High‑level flow:
 
-1. Somebody (permissionless) calls `FeeSplitter.disburseFees()`.
-2. Checks if the disbursement interval has passed.
-3. Checks vault configs, pulls funds from vaults (if they reached the min withdrawal amount threshold), and computes per‑vault collected fees for granularity.
-4. It calls the chain‑configured `SharesCalculator` with the revenue per vault as input to compute disbursements.
-5. It receives the return data from `SharesCalculator`, validates outputs, stores the metadata on storage to make it externally accessible, and then transfers the amount to each recipient.
+1. Anyone can call `FeeSplitter.disburseFees()`. The `FeeSpliter` checks the disbursement interval has elapsed.
+2. For each `FeeVault`, the `FeeSplitter`: 
+    - Verifies vaults configs.
+    - If valid, it calls `withdraw` from vaults (if they reached the min withdrawal amount threshold), pulling the funds.
+    - Computes a per‑vault collected fees for granularity.
+3. The `FeeSplitter` calls the chain‑configured `SharesCalculator` with:
+    - The revenue per vault as input to compute disbursements.
+    - Receives data from `SharedCalculator` (amounts and outputs).
+4. Finally, the `FeeSplitter` transfers the respective amount to each recipient and emit `FeesDisbursed`.
+
+```mermaid
+graph LR
+
+User((User))
+
+%% -------- Vaults row --------
+subgraph Vaults_L2["Fee Vaults"]
+  direction TB
+  BaseFeeVault[BFVault]
+  L1FeeVault[L1FVault]
+  SequencerFeeVault[SFVault]
+  OperatorFeeVault[OFVault]
+end
+
+%% -------- Fee Splitter zone --------
+subgraph SplitterZone["Fee Splitter"]
+  direction LR
+  FeeSplitterNode[[FeeSplitter]]
+  SharesCalculator[SharesCalculator]
+  L2Recipient[EOA Recipient]
+  L2SC[Contracts]
+  L1Withdrawer[L1 Withdrawer]
+  L2ToL1MessagePasser[L2ToL1MP]
+end
+
+%% -------- L1 side --------
+subgraph L1Zone["L1 Contracts"]
+  direction TB
+  Prover((User))
+  OptimismPortal[OptimismPortal]
+  L1Recipient[L1 Recipient]
+end
+
+%% -------- Flows --------
+User -->|"(1) disburseFees"| FeeSplitterNode
+
+BaseFeeVault -->|"(2) withdraw"| FeeSplitterNode
+L1FeeVault -->|"(2) withdraw"| FeeSplitterNode
+SequencerFeeVault -->|"(2) withdraw"| FeeSplitterNode
+OperatorFeeVault -->|"(2) withdraw"| FeeSplitterNode
+
+FeeSplitterNode -->|"(3) getSharesRecipients"| SharesCalculator
+SharesCalculator -.-> FeeSplitterNode
+
+FeeSplitterNode -->|"(4) send"| L2Recipient
+FeeSplitterNode -->|"(4) send"| L2SC
+FeeSplitterNode -->|"(4) send"| L1Withdrawer
+
+L1Withdrawer -->|"initiateWithdrawal"| L2ToL1MessagePasser
+L2ToL1MessagePasser -.-> OptimismPortal
+Prover -->|"prove and finalize"| OptimismPortal
+OptimismPortal -->|"deliver"| L1Recipient
+
+```
 
 **Invariants:**
 
