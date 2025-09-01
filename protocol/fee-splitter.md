@@ -10,7 +10,7 @@
 
 ## Purpose
 
-Enabling both the Superchain and OP Stack chain operators to manage their revenue in an easy to configure and transparent way will help to enable sustainable onchain businesses. The goals of this design doc are to enshrine fee split contracts as predeploys so that any existing or future OP Stack chain can easily benefit from battle tested fee split logic.
+Enabling both Superchain and OP Stack chain operators to manage their revenue in a simple, transparent, and easily configurable way will support the development of sustainable onchain businesses. This design aims to enshrine fee split contracts as predeploys, ensuring that any existing or future OP Stack chain can benefit from battle-tested fee-split logic.
 
 ## Summary
 
