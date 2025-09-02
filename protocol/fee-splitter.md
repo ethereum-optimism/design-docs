@@ -28,6 +28,8 @@ Fixed fee shares are too rigid: chains want custom splits, L1/L2 destinations, a
 
 ## Proposed Solution
 
+<img width="850" height="625" alt="rev-overview" src="https://github.com/user-attachments/assets/160550c6-5c1c-4bc6-9fde-5cd590540327" />
+
 The `FeeSplitter` will be a predeploy with a modular config. The `SharesCalculator` and each `Recipient` are external entities that integrate into the system.
 
 High‑level flow:
