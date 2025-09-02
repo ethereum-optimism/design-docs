@@ -109,4 +109,4 @@ While at it, it is proposed to also add support for different superchainConfigs 
 ## Failure Mode Analysis
 
 - **A chain might be upgraded when it's superchainConfig is not upgraded:**
-    - Mitigation: We can implement a simple loop to assert that all chains in the array are of the same superchain and have tests for this.
+    - Mitigation: We can implement a simple loop to assert that the versions of the superchainConfig of all chains in the array is greater than or equal to the expected version.
