@@ -89,10 +89,10 @@ We don't know enough about this feature to be sure that it will have the intende
 
 ![Additional Costs for Chain Operators](images/minbasefee-additional-costs.png)
 
-It was considered that the state growth derived from the additional parameter might cause additional infrastructure costs for chain operators. Upon further investigation, we concluded that activating the minimum base fee will result in an extra 16MB (approximately) of DB growth for all full or archive nodes (storing the full history of the chain). This is because this feature adds a single extra byte to every block, and we are assuming a 2s block time. This is calculated as 
+It was considered that the state growth derived from the additional parameter might cause additional infrastructure costs for chain operators. Upon further investigation, we concluded that activating the minimum base fee will result in an extra 126MB (approximately) of DB growth for all full or archive nodes (storing the full history of the chain). This is because this feature adds eight extra bytes to every block, and we are assuming a 2s block time. This is calculated as 
 
 ```
-(1 byte / 2 seconds) x 365 days × 24 hours × 60 minutes × 60 seconds = 15,768,000 bytes in 1 year.
+(8 bytes / 2 seconds) x 365 days × 24 hours × 60 minutes × 60 seconds = 126,144,000 bytes in 1 year.
 ```
 
 This is a small increase in DB growth rate, and therefore does not require any additional mitigations at this time. There is no impact on state growth with this feature, since it is affects blocks (history) and not state.
