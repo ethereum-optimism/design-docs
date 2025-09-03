@@ -41,6 +41,7 @@ Problem Statement section in a bulleted list. -->
 
 - Mitigate the impact of a malicious majority of owners capable to execute a single transaction.
 - Mitigate the impact of an honest majority approving a malicious or erroneous transaction.
+- Maintain the ability to execute transactions quickly in a worst-case scenario. <-- NOT ADDRESSED
 - Keep code as minimal as possible to avoid complex logic in Safe modules/guards.
 - Limit mental overhead for Safe owners and multisig leads, don't break workflows if possible.
 - Apply cleanly for all of the major multisigs.
@@ -68,19 +69,18 @@ configure it during installation. To be explored during implementation.
 
 ### Configuration
 
-The owners of a Safe configure the Guard by executing a transaction within the Safe that sets a
-delay period which can be zero.
+A transaction from the Safe configures the Guard by executing a transaction that optionally sets
+a delay period. If the delay period is not set, the TimelockGuard is enabled with no delay.
 
 ### Transaction Execution Flow
 
 1. Users sign the transaction normally, either via the UI or via `superchain-ops`.
-2. Anyone can collect the signatures and, send the transaction calldata along with the signatures
+2. Anyone can collect the signatures and send the transaction calldata along with the signatures
   to `TimelockGuard.schedule`, instead of executing via `Safe.execTransaction`. This function has
   the exact same inputs as `execTransaction` and is therefore compatible with both the standard
   Safe and the proposed nonceless execution module.
 3. `TimelockGuard.schedule` verifies the signatures attached to the transaction and starts a timer
-  for execution of the transaction. If a threshold of signers have signed the timer is set to one
-  value, if all signers have signed the timer is set to some second (presumably shorter) value.
+  for execution of the transaction.
 4. After the specified time, anyone can then call `Safe.execTransaction` as normal and execution
   will complete as expected.
 
@@ -90,45 +90,44 @@ which already include a nonce for replayability protection. Cancelled transactio
 as cancelled so that they can't be scheduled again with the same signatures.
 
 ### Storage Of Scheduled Transactions
-Scheduled transactions will be stored with as many of its parameters as possible, limited by
-projected gas block limits and gas required to execute the most complex expected transactions. Rich
-transaction data helps with identifying the effects of a transaction, in particular to external
-operators such as bug bounty hunters that might lack the tools or the context from internal operators.
+Scheduled transactions will be stored with as many of its parameters as possible, limited by the
+gas required to execute the most complex expected transactions withi projected block gas limits.
+Rich transaction data helps with identifying the effects of a transaction, in particular to
+external operators such as bug bounty hunters that might lack the tools or the context from
+internal operators.
 
 ### Transaction Cancellation Flow
-To cancel a scheduled transaction, a `cancellation_threshold` number of owners would need to signal
-that they agree with it. Cancelled transactions would need to be signed again to be scheduled again.
+To cancel a scheduled transaction, a `cancellation_threshold` number of owners would need to
+signal that they agree with the cancellation. Cancelled transactions would need to be signed again
+to be scheduled again.
 
 In nested safe setups, the owners of a child multisig would need to signal the rejection of the
 transaction in numbers no less than the `cancellation_threshold` of the child multisig, for the
 child multisig to signal rejection of the transaction to the parent multisig.
 
 #### Dynamic `cancellation_threshold`
-We define a "blocking minority" as the minimum number of `owners` that can stop the multisig
-from approving transactions, which is `min(quorum, total_owners - quorum + 1)`. If the `cancellation_threshold`
-would be less than a blocking minority then it becomes the new blocking minority as it can stop any
-transactions (including modifying ownership, or responding to liveness challenges) from execution.
-A `cancellation_threshold` that is set too low can be abused in this way by malicious owners to
-permanently block the multisig from executing transactions if a LivenessModule hasn't been
-installed. For this reason, `cancellation_threshold >= blocking_minority`.
-
 A `cancellation_threshold` of 1 is convenient for usability as it requires the least
 number of owners to signal their agreement to cancel a transaction in an emergency situation.
-However, it is not the most secure option as it can be abused by malicious owners to permanently
-block the multisig from executing transactions.
+
+However, a `cancellation_threshold` that is set too low can also be abused by malicious owners to
+permanently block the multisig from executing transactions, inducing a liveness failure.
 
 A dynamic `cancellation_threshold` is chosen as a best compromise between security and usability.
 The `cancellation_threshold` would start at 1 and increase by 1 with each successful consecutive
 cancellation. The `cancellation_threshold` would reset to 1 with the successful execution of an
 scheduled transaction.
 
+The upper boundary to the `cancellation_threshold` would be the "blocking minority", defined as
+the minimum number of `owners` that can stop the multisig from approving transactions, which is
+`min(quorum, total_owners - quorum + 1)`.
+
 ## Alternatives Considered
 <!-- Describe any alternatives that were considered during the development of this design. Explain
 why the alternative designs were ultimately not chosen and where they failed to meet the product
 requirements. -->
 
-Other potential designs here make trade-offs for security or usability that are undesireable enough
-to not really be worth considering. Examples of this are:
+Other potential designs that were considered make trade-offs for security or usability that are
+suboptimal. Examples of this are:
 
 - Allowing any user to reveal a transaction for later execution, which creates more considerations
   for monitoring/offchain infrastructure and changes the transaction flow.
