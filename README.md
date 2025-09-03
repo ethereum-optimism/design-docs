@@ -1,6 +1,6 @@
 # Design Docs
 
-Welcome to the design docs repository. This repo is used to coordinate
+Welcome to the design docs. This repo is used to coordinate
 around engineering design and risk analysis.
 
 The design review process is important for sharing context and aligning
