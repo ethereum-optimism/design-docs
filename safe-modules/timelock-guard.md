@@ -155,9 +155,15 @@ previously required to do.
 ### Time Critical Transactions
 Some multisigs may face scenarios where they need to be able to execute transactions very quickly
 in a worst-case scenario. We should do our best to avoid these situations as much as possible and
-use other protocol features (like the Pause) to mitigate them entirely. We need to confirm with
-users of finance multisigs that this is not expected to be common. We should avoid instant
-execution at all costs, even if a signature from all owners would reduce the time to, say, 1 hour.
+use other protocol features (like the Pause) to mitigate them entirely.
+
+However, we do not have an alternative to an emergency upgrade for production failures on the
+deposit flow. Until that is implemented, we need to be able to execute transactions quickly in a
+worst-case scenario. For this reason, the delay will be no longer that is required for a
+transaction review by already engaged security researchers.
+
+Instant execution is not required for finance multisigs. The delay will however be no longer than
+the time required for a transaction review by trained finance staff.
 
 ### Interaction with the LivenessModule
 When using a LivenessModule, the liveness challenges are responded with a regular transaction which
