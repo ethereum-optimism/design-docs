@@ -62,9 +62,8 @@ leads.
 parameters. Any Safe on any network can choose to configure the Guard and then enable the Guard
 within the Safe.
 
-It would be convenient if we can have one singleton timelock + liveness contract that we install
-as both a guard and module, and can install the exact same contract address on any safe and just
-configure it during installation. To be explored during implementation.
+The timelock guard will be merged with the liveness module contract that we install so that we can
+install the exact same contract address on any safe and just configure it during installation.
 
 ### Configuration
 
