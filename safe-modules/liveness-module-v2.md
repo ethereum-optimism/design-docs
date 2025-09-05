@@ -129,8 +129,7 @@ gain control of the multisig enabling the LivenessModule.
 To mitigate this, we will require monitoring that will alert us of unexpected liveness challenges.
 
 ### Blocking Minority is Below Quorum
-If a multisig uses a simple majority or less as quorum this module will be ineffective for the
-stated scenario, because malicious actors will reach quorum before the reach a blocking minority.
+In order for the module to be effective for the stated scenario, a multisig must require at least a simple majority (defined as `threshold > (total + 1 )/ 2`)  as quorum, otherwise malicious actors will reach quorum before reaching a blocking minority.
 
 Instead of implementing a module that would address this scenario, we accept that this module
 is intended for multisigs where the quorum is greater than a simple majority.
