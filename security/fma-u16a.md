@@ -57,7 +57,7 @@ Chains may incorrectly configure the system-level feature toggles introduced in 
 
 #### Action Items
 
-- [ ] Update standard validator to verify lockbox/feature flag configuartion
+- [x] Update standard validator to verify lockbox/feature flag configuartion
 - [ ] Set up system feature flag monitor
 - [ ] Set up portal/lockbox balance monitor
 
