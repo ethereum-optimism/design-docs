@@ -120,10 +120,6 @@ The upper boundary to the `cancellation_threshold` would be the "blocking minori
 the minimum number of `owners` that can stop the multisig from approving transactions, which is
 `min(quorum, total_owners - quorum + 1)`.
 
-### Disabled Timelock
-The TimelockGuard should be able to be installed in an inactive state, where the delay is zero and
-regular execution through `safe.execTransaction(...)` in a single step is possible.
-
 ### Interaction with the LivenessModule
 The LivenessModule will execute an ownership change through the safe if a challenge is successful,
 this ownership challenge should not be cancellable, so it shouldn't be subject to the scheduling
