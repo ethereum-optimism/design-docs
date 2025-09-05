@@ -31,8 +31,8 @@ this guard, as well as any 3rd parties who rely on the security properties of th
 
 <!-- Identify at least one customer who should be involved in the review of this document. -->
 
-- Optimism Foundation (`LivenessModule` user)
-- Optimism Security Council (`LivenessModule` user)
+- Optimism Foundation (`TimelockGuard` user)
+- Optimism Security Council (`TimelockGuard` user)
 
 ## Requirements and Constraints
 
