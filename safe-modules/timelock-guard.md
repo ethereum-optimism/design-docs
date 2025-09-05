@@ -68,8 +68,8 @@ configure it during installation. To be explored during implementation.
 
 ### Configuration
 
-A transaction from the Safe configures the Guard by executing a transaction that optionally sets
-a delay period. If the delay period is not set, the TimelockGuard is enabled with no delay.
+A transaction from the Safe configures the Guard by executing a transaction that sets
+a delay period.
 
 ### Transaction Execution Flow
 
@@ -119,6 +119,10 @@ scheduled transaction.
 The upper boundary to the `cancellation_threshold` would be the "blocking minority", defined as
 the minimum number of `owners` that can stop the multisig from approving transactions, which is
 `min(quorum, total_owners - quorum + 1)`.
+
+### Disabled Timelock
+The TimelockGuard should be able to be installed in an inactive state, where the delay is zero and
+regular execution through `safe.execTransaction(...)` in a single step is possible.
 
 ### Interaction with the LivenessModule
 The LivenessModule will execute an ownership change through the safe if a challenge is successful,
