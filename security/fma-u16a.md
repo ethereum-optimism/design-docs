@@ -27,7 +27,7 @@ The OPCM supports both `U15 => U16a` and `U16 => U16a` upgrade paths. It include
 
 ### Pause mechanism identifier change
 
-Chains without ETHLockbox will use the `OptimismPortal` address as their identifier instead of the lockbox address. Incident response runbooks will be updated accordingly.
+Chains without ETHLockbox will use the `OptimismPortal` address as their identifier instead of the lockbox address. Incident response runbooks will be updated accordingly. Chains retain `address(0)` as the global pause identifier in either case.
 
 ## Failure Modes
 
@@ -93,6 +93,7 @@ Chains upgrading from U15 directly to U16a cannot adopt ETHLockbox until a later
 #### Action Items
 
 - [ ] Update incident response runbooks to handle both ETHLockbox and non-ETHLockbox chains
+- [ ] Update pause tooling to handle both ETHLockbox and non-ETHLockbox chains
 - [x] Ensure test coverage includes both scenarios
 - [ ] Do a training session about this new state of affairs
 
@@ -169,3 +170,29 @@ U16a removes interop withdrawal-proving code paths that were introduced in U16. 
 - Revert to U16 if critical dependencies are discovered.
 - Develop alternative solutions for affected parties.
 - Delay full rollout until dependencies are resolved.
+
+### FM5: Tech Debt
+
+#### Description
+
+We're adding a number of new branches to the code as a result of both `ETHLockbox` and `OptimismPortalInterop`. If we don't start to resolve/simplify the logic by mainlining as much code as possible, we'll potentially create a non-trivial amount of tech debt that will need to be resolved eventually or could potentially create bugs for other features.
+
+#### Risk Assessment
+
+- Impact: UNCLEAR
+  - Reasoning: Impact here is not obvious, it fully depends on what type of bug this could potentially create. It likely falls into low/medium but the long-term impact of tech debt on execution can be high.
+- Likelihood: MEDIUM
+  - Reasoning: This is the first time we're introducing a feature like this, it's reasonably likely that it will create issues at some point. We'll definitely have to resolve the tech debt, so that's a 100% certainty, but the chance of creating a real issue is probably low/medium.
+
+#### Mitigations
+
+- Primary mitigation here is to start the project of resolving this tech debt as quickly as possible.
+- Ensure that each of these code paths are being sufficiently tested.
+
+#### Detection
+
+- N/A
+
+#### Action Items
+
+- [ ] Kick off conversation with proofs team for how to mainline the interop changes again.
