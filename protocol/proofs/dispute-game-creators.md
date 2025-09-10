@@ -1,26 +1,31 @@
 # Purpose
 
-The current fault-proof system requires a redeployment of the `DisputeGame.sol`, `DisputeGameFactory.sol`, and `AnchorStateRegistry.sol` for new L2 chains due to chain-specific immutable variables (like `anchorStateRegistry`, `absolutePrestate`) in their constructor. This document proposes changes to simplify the Fault Dispute Game contract setup, enabling reuse of a single implementation across chains by moving the chain-specific configuration from immutable variables stored as immutable variables to variables stored as part of the payload for clones with immutable args (CWIA).
+The process of deploying the fault proof system is suboptimal for a number of reasons. It requires the `OPContractsManager` (OPCM) to redeploy core contracts on a per-chain basis when ideally these contracts would be shared across all chains in the Superchain. This is expensive in terms of gas, and it is overly complex, requiring [core parameters](https://github.com/ethereum-optimism/optimism/blob/c9f845e7839075674f1698e79ec5293bfddb1f8a/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L1669-L1672) on these contracts to be configured for every L2 deployed. 
+
+This document recommends reworking this deployment process to decrease complexity and improve efficiency.
 
 # Summary
 
-This proposal recommends modifying the `FaultDisputeGame.sol` contract to remove chain-specific immutable arguments. These parameters would instead be provided during proxy creation via a `bytes` payload constructed by the `DisputeGameFactory.sol`. The factory should be updated to store base configuration per `GameType` in a `gameArgs` mapping and combine it with game-specific data (`rootClaim`, `extraData`) at creation time of the proxy contract. This would allow new chain deployments to use proxies pointing to a canonical implementation, configured by the factory, eliminating the need for full contract redeployments.
+This proposal recommends modifying the dispute game implementation contracts (`FaultDisputeGame.sol`, `PermissionedDisputeGame`, etc) to remove chain-specific immutable arguments. These parameters would instead be provided during [game creation](https://github.com/ethereum-optimism/optimism/blob/2850953d58334025b2159a0b1cd946c0c34a72af/packages/contracts-bedrock/src/dispute/DisputeGameFactory.sol#L133-L142) via configuration stored in the `DisputeGameFactory`.
+
+This new approach allows the OPCM to embed a fixed reference to a single canonical game contract implementation per `GameType`. These implementations can then be reused across all L2 chains. This eliminates the need for full game implementation contract deployments for every L2 chain. It also allows core game configuration parameters (such as [splitDepth, maxClockDuration, etc](https://github.com/ethereum-optimism/optimism/blob/2850953d58334025b2159a0b1cd946c0c34a72af/packages/contracts-bedrock/src/dispute/FaultDisputeGame.sol#L1098-L1116)) to be defined immutably as [part of the OPCM deployment](https://github.com/ethereum-optimism/optimism/blob/2850953d58334025b2159a0b1cd946c0c34a72af/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L1716-L1731).
 
 # Problem Statement + Context
 
-The Fault Dispute Game system relies on several core contracts, including `DisputeGameFactory.sol` and `FaultDisputeGame.sol`. Currently, the `FaultDisputeGame.sol` implementation contains immutable arguments specific to a particular chain deployment (e.g., WETH address, L2 Chain ID). This requires deploying a new `FaultDisputeGame.sol` implementation and, consequently, a new `DisputeGameFactory.sol` for each chain.
+The fault proof system uses a `DisputeGameFactory` contract to deploy new dispute games. This factory stores [a mapping (`gameImpls`)](https://github.com/ethereum-optimism/optimism/blob/2850953d58334025b2159a0b1cd946c0c34a72af/packages/contracts-bedrock/src/dispute/DisputeGameFactory.sol#L57-L59) from `GameType` to game implementation. When `DisputeGameFactory.create` is called, the factory deploys a game, which is a proxy contract that points to the appropriate `gameImpls` implementation. 
 
-The goal is to allow a single, canonical `FaultDisputeGame.sol` implementation to be reused, with chain-specific parameters injected during the proxy creation process, simplifying deployments and upgrades.
+The game implementation contracts (`FaultDisputeGame`, `PermissionedDisputeGame`, etc) currently store chain-specific parameters (like `l2ChainId`, `absolutePrestate`, etc) as immutable variables. This in turn means that in order to [deploy](https://github.com/ethereum-optimism/optimism/blob/2850953d58334025b2159a0b1cd946c0c34a72af/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L1047-L1070), [upgrade](https://github.com/ethereum-optimism/optimism/blob/2850953d58334025b2159a0b1cd946c0c34a72af/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L794-L802), or [configure](https://github.com/ethereum-optimism/optimism/blob/2850953d58334025b2159a0b1cd946c0c34a72af/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L476-L484) any given L2 chain, the OPCM must redeploy these game implementation contracts.
 
-An important nuance here is that each `FaultDisputeGame.sol` deployment has both a minimal proxy with immutable args deployed that points at an implementation specific to the `FaultDisputeGameFactory.sol`. The two sets of immutable args are first specific to the fault dispute game, then the second set on the implementation are specific to the rollup.
+When [deploying a new chain](https://github.com/ethereum-optimism/optimism/blob/2850953d58334025b2159a0b1cd946c0c34a72af/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L1668-L1672) or [configuring a new game type](https://github.com/ethereum-optimism/optimism/blob/2850953d58334025b2159a0b1cd946c0c34a72af/packages/contracts-bedrock/src/L1/OPContractsManager.sol#L1747-L1750), game implementation constructor arguments must be passed to `OPContractsManager` (OPCM), increasing the risk of misconfiguration. Additionally, redeploying the full contract is expensive in terms of gas. 
+
 
 # Proposed Solution
 
-The `FaultDisputeGame.sol` contract be modified to remove chain-specific immutable variables (like `WETH`, `ANCHOR_STATE_REGISTRY`, `L2_CHAIN_ID`, etc.). Instead, these configuration parameters should be read dynamically from the `clones-with-immutable-args` (CWIA) data payload.
+This document proposes changes to simplify the deployment of game contracts, enabling reuse of a single implementation per `GameType` across all chains. This is accomplished by removing chain-specific configuration from immutable variables on the game implementation contracts and instead using clone with immutable arguments (CWIA) to pass this data into the game proxy contract at game creation time. 
 
 The `DisputeGameFactory.sol` should be updated to facilitate this. It would include a `gameArgs` mapping (`GameType => bytes`) to store the necessary chain-specific configuration data for each game type. When `create()` is called, the factory would retrieve the appropriate `gameArgs` for the requested `GameType`, concatenate it with the game-specific data (`rootClaim`, `extraData`, etc.), and pass this combined `bytes` payload to the `clone` function.
 
-This approach would allow a single canonical `FaultDisputeGame` implementation to be deployed and reused across multiple chains or configurations. The factory would handle injecting the specific parameters needed for each instance via the CWIA payload. The implementation contract would still retain immutable arguments related to the core bisection game logic (e.g., `MAX_GAME_DEPTH`, `SPLIT_DEPTH`), but all chain-specific configuration would be externalized to the factory and the cloning process. This would simplify deployment for new chains, requiring only a factory configuration update and proxy deployment rather than a full implementation redeployment.
+This approach would allow a single canonical game implementation to be deployed and reused across multiple chains. The factory would handle injecting the chain-specific parameters needed for each instance via the CWIA payload. The implementation contract would still retain immutable arguments related to the core bisection game logic (e.g., `MAX_GAME_DEPTH`, `SPLIT_DEPTH`), but all chain-specific configuration would be externalized to the factory and the cloning process. This would simplify deployment for new chains, requiring only a factory configuration update and proxy deployment rather than a full implementation redeployment.
 
 **Illustrative Code Changes:**
 
@@ -38,7 +43,7 @@ function absolutePrestateClaim() public pure returns (Claim claim_) {
 *Example: Adding `gameArgs` and modifying `create` in `DisputeGameFactory.sol`*
 
 ```solidity
-/// @notice Maps each Game Type to an assosiated configuration to use with it...
+/// @notice Maps each Game Type to an associated configuration to use with it...
 mapping(GameType => bytes) public gameArgs;
 
 function create(GameType _gameType, Claim _rootClaim, bytes calldata _extraData) ... {
