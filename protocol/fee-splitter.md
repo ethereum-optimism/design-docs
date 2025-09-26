@@ -28,7 +28,8 @@ Fixed fee shares are too rigid: chains want custom splits, L1/L2 destinations, a
 
 ## Proposed Solution
 
-<img width="850" height="625" alt="rev-overview" src="https://github.com/user-attachments/assets/160550c6-5c1c-4bc6-9fde-5cd590540327" />
+<img width="1651" height="509" alt="image" src="https://github.com/user-attachments/assets/3f6e783b-aa58-4d80-9434-da64091060fe" />
+
 
 The `FeeSplitter` will be a predeploy with a modular config. The `SharesCalculator` and each `Recipient` are external entities that integrate into the system.
 
@@ -42,62 +43,7 @@ High‑level flow:
 3. The `FeeSplitter` calls the chain‑configured `SharesCalculator` with:
     - The revenue per vault as input to compute disbursements.
     - Receives data from `SharedCalculator` (amounts and outputs).
-4. Finally, the `FeeSplitter` transfers the respective amount to each recipient and emit `FeesDisbursed`.
-
-```mermaid
-graph LR
-
-User((User))
-
-%% -------- Vaults row --------
-subgraph Vaults_L2["Fee Vaults"]
-  direction TB
-  BaseFeeVault[BFVault]
-  L1FeeVault[L1FVault]
-  SequencerFeeVault[SFVault]
-  OperatorFeeVault[OFVault]
-end
-
-%% -------- Fee Splitter zone --------
-subgraph SplitterZone["Fee Splitter"]
-  direction LR
-  FeeSplitterNode[[FeeSplitter]]
-  SharesCalculator[SharesCalculator]
-  L2Recipient[EOA Recipient]
-  L2SC[Contracts]
-  L1Withdrawer[L1 Withdrawer]
-  L2ToL1MessagePasser[L2ToL1MP]
-end
-
-%% -------- L1 side --------
-subgraph L1Zone["L1 Contracts"]
-  direction TB
-  Prover((User))
-  OptimismPortal[OptimismPortal]
-  L1Recipient[L1 Recipient]
-end
-
-%% -------- Flows --------
-User -->|"(1) disburseFees"| FeeSplitterNode
-
-BaseFeeVault -->|"(2) withdraw"| FeeSplitterNode
-L1FeeVault -->|"(2) withdraw"| FeeSplitterNode
-SequencerFeeVault -->|"(2) withdraw"| FeeSplitterNode
-OperatorFeeVault -->|"(2) withdraw"| FeeSplitterNode
-
-FeeSplitterNode -->|"(3) getSharesRecipients"| SharesCalculator
-SharesCalculator -.-> FeeSplitterNode
-
-FeeSplitterNode -->|"(4) send"| L2Recipient
-FeeSplitterNode -->|"(4) send"| L2SC
-FeeSplitterNode -->|"(4) send"| L1Withdrawer
-
-L1Withdrawer -->|"initiateWithdrawal"| L2ToL1MessagePasser
-L2ToL1MessagePasser -.-> OptimismPortal
-Prover -->|"prove and finalize"| OptimismPortal
-OptimismPortal -->|"deliver"| L1Recipient
-
-```
+4. Finally, the `FeeSplitter` transfers the respective amount to each recipient and emit `FeesDisbursed`. One possible subsequent flow is for the `L1Withdrawer` to withdraw to the `FeesDepositor`, which automatically triggers a deposit on the `OptimismPortal` on L1.
 
 **Invariants:**
 
