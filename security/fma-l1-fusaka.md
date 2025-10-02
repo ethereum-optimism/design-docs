@@ -1,15 +1,5 @@
 # Upgrade 16b (L1 Fusaka Defense): Failure Modes and Recovery Path Analysis
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Introduction](#introduction)
-- [Generic Items](#generic-items)
-- [Audit Requirements](#audit-requirements)
-- [Action Items](#action-items)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 |                     |                     |
 | ------------------- | ------------------- |
 | Author              | George Knee         |
