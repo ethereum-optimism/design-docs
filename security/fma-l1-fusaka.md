@@ -1,4 +1,4 @@
-# Upgrade 12 (L1 Pectra Defense): Failure Modes and Recovery Path Analysis
+# Upgrade 16b (L1 Fusaka Defense): Failure Modes and Recovery Path Analysis
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
