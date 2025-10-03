@@ -42,7 +42,7 @@ High‑level flow:
 3. The `FeeSplitter` calls the chain‑configured `SharesCalculator` with:
     - The revenue per vault as input to compute disbursements.
     - Receives data from `SharedCalculator` (amounts and outputs).
-4. Finally, the `FeeSplitter` transfers the respective amount to each recipient and emit `FeesDisbursed`. One possible subsequent flow is for the `L1Withdrawer` to withdraw to the `FeesDepositor`, which automatically triggers a deposit on the `OptimismPortal` on L1.
+4. Finally, the `FeeSplitter` transfers the respective amount to each recipient and emit `FeesDisbursed`. One possible subsequent flow is for the `L1Withdrawer` to withdraw to the `FeesDepositor`, which automatically triggers a deposit on the `OptimismPortal` on L1. This subsequent flow is expected when an OP Stack Chain shares its revenue with the Superchain ecosystem.
 
 **Invariants:**
 
@@ -110,7 +110,31 @@ To calculate the share to send to the `revenueShareRecpient`, it will get the `g
 
 ## Risks & Uncertainties
 
-- If a calculator misbehaves (sum mismatch or downstream recipients revert), disbursements will revert. We’ll validate outputs and keep calculator swaps gated by `ProxyAdmin.owner()`.
+### Chain’s collected fees are lost
+
+Bugs or misconfigurations in `FeeSplitter`, `SharesCalculator`, any `FeeVault`, and recipients (including withdrawal flows) could result in funds being transferred to the wrong party or to an address that can’t recover them. The most likely vectors include:
+
+- Wrong `FeeVault` migration process
+- Faulty recipient list in a `SharesCalculator`
+- Faulty recipient in the `L1Withdrawer`
+- Faulty recipient in the `FeeDepositor`
+- Critical bugs in any piece of the system
+
+These risks are mitigated with proper testing and by reducing the access-control surfaces to the `ProxyAdmin.owner()`. Chain operators must be aware of the proper setup of each recipient and if other kind of `SharesCalculator` is used. Superchain Ops scripts should be included in the audit scope to mitigate the risk of the migration process.
+
+### Collected Fees are Stuck
+
+Disbursements can fail (and keep failing) if the logic reverts at any step. Cases where this could happen include
+
+- Issues in the `FeeVault` migration process.
+- `FeeSplitter` misconfiguration, such as an excessively large disbursement interval (even if permitted by an unreasonable maximum).
+- `SharesCalculator`-induced reverts due to bugs or issues in the set of recipients.
+
+These risks are mitigated through thorough testing and access controls to change thresholds or recipients safely. The `SuperchainRevSharesCalculator` as well as any other `SharesCalculator`, requires an audit and proper documentation to avoid DoS and revert scenarios.
+
+### Recipient Receiving a Wrong Amount
+
+An incorrect distribution may occur if there is a bug in a `SharesCalculator`. A standard smart-contract audit must mitigate this possibility.
 
 ## Appendix
 
