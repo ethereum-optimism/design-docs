@@ -128,10 +128,10 @@ Below are references for this project:
 
 ## Generic Items
 
-Although this upgrade is technically a soft fork, many of the items in [fma-generic-hardfork.md](./fma-generic-hardfork.md) apply:
+This upgrade is an unnamed L2 hardfork, activated by an L1 hardfork: so the items in [fma-generic-hardfork.md](./fma-generic-hardfork.md) apply:
 
 - Chain Halt at activation  
-- Invalid `DisputeGameFactory.setImplementation` execution  
+- Invalid absolute prestate provided.  
 - Chain split across clients  
 
 - [x] Confirm these items have been considered and updated if necessary.

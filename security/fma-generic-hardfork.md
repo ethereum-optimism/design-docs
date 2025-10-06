@@ -62,9 +62,9 @@ Since there is no chain halt, we can just live with it and fix it in an upcoming
 - **Recovery Path(s)**: Reschedule the upgrade, releasing a new binary (without immediate urgency). 
 
 
-#### Invalid `DisputeGameFactory.setImplementation` execution
+#### Invalid prestate supplied to the OP Contracts Manager (OPCM)
 
-- **Description:** This occurs when either the call to the `DisputeGameFactory` could not be made due to grossly unfavorable base fees on L1, an invalidly approved safe nonce, or a successful execution to a misconfigured dispute game implementation.
+- **Description:** This occurs when either the call to the `OPCM` could not be made due to grossly unfavorable base fees on L1, an invalidly approved safe nonce, or a successful execution to an incorrect prestate.
 
 - **Risk Assessment:**
     - Low likelihood. The low likelihood is a result of tenderly simulation testing of safe transactions, code review of the upgrade playbook, and manual review of the dispute game implementations (which are deployed on mainnet and specified in the governance proposal so they may be reviewed).
