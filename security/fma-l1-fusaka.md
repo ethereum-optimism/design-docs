@@ -126,6 +126,27 @@ Below are references for this project:
 
 ---
 
+### FM4: New chain deployments consume more than 16,777,216 gas
+
+- **Description:**  
+ EIP [7825](https://eips.ethereum.org/EIPS/eip-7825) introduces a
+ per-transaction gas cap, which our standard deployment 
+ might well exceed (especially with more dispute game types being deployed).,
+
+- **Risk Assessment:** Low severity, High Likelihood
+- **Mitigations:**
+  - Deploy Fusaka goes live (not ideal)
+  - Avoid expanding the set of standard contracts deployed
+  - Tune the "padding" we apply in `op-deployer` (see https://github.com/ethereum-optimism/optimism/pull/17710)
+  - Rearchitect the deployment script to break up the transaction into several smaller transactions
+- **Detection:**
+  - Obvious, deployment transaction reverts
+- **Recovery Path(s):**
+  - N/A
+
+---
+
+
 ## Generic Items
 
 This upgrade is an unnamed L2 hardfork, activated by an L1 hardfork: so the items in [fma-generic-hardfork.md](./fma-generic-hardfork.md) apply:
