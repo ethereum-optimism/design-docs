@@ -58,7 +58,29 @@ Below are references for this project:
 
 ---
 
-### FM2: `op-node` or `kona` node release not rolled out in time
+### FM2a: `op-node` or `kona` node release not rolled out in time (blob verification)
+
+- **Description:**  
+  There is a chance we don't ship the changes we need to `op-node` or `kona` before the forks activate on L1.  
+  Changes to the beacon API https://ethereum.github.io/beacon-APIs/?urls.primaryName=dev are breaking with respect
+  to the current op-node, op-program and kona. Both rely on the `/eth/v1/beacon/blob_sidecars` API which is being
+  deprecated. It will be replaced with `/eth/v1/beacon/blobs`, which has the notable difference that it does 
+  not return KZG commitments or KZG blob proofs (see [EIP 4844](https://eips.ethereum.org/EIPS/eip-4844)). The
+  affected components will be updated to i) pull blobs from the new endpoint once it is available and ii) perform
+  blob verification _without_ the aid of a KZG proof. If either fix fails to deploy in time there would be a
+  safe head stall and possible eventual sequencer window expiry.
+
+- **Risk Assessment:** Medium severity, Medium Likelihood  
+- **Mitigations:**
+  - Prepare release candidate early and test on L1-Fusaka-enabled devnets
+  - Communicate clearly about upgrade requirements
+  
+- **Detection:**
+  - Usual monitoring / alerts
+- **Recovery Path(s):** 
+  - Switch the batcher to use calldata
+
+### FM2c: `op-node` or `kona` node release not rolled out in time (blob base fee calculation)
 
 - **Description:**  
   There is a chance we don't ship the changes we need to `op-node` or `kona` before the forks activate on L1.  
