@@ -131,11 +131,11 @@ Below are references for this project:
 - **Description:**  
  EIP [7825](https://eips.ethereum.org/EIPS/eip-7825) introduces a
  per-transaction gas cap, which our standard deployment 
- might well exceed (especially with more dispute game types being deployed).,
+ might well exceed (especially with more dispute game types being deployed).
 
 - **Risk Assessment:** Low severity, High Likelihood
 - **Mitigations:**
-  - Deploy Fusaka goes live (not ideal)
+  - Deploy before Fusaka goes live (only works for a short time)
   - Avoid expanding the set of standard contracts deployed
   - Tune the "padding" we apply in `op-deployer` (see https://github.com/ethereum-optimism/optimism/pull/17710)
   - Rearchitect the deployment script to break up the transaction into several smaller transactions
