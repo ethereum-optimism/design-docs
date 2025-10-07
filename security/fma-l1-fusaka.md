@@ -63,7 +63,7 @@ Below are references for this project:
 - **Description:**  
   There is a chance we don't ship the changes we need to `op-node` or `kona` before the forks activate on L1.  
   Changes to the beacon API https://ethereum.github.io/beacon-APIs/?urls.primaryName=dev are breaking with respect
-  to the current op-node, op-program and kona. Both rely on the `/eth/v1/beacon/blob_sidecars` API which is being
+  to the current op-node, op-program and kona. All three rely on the `/eth/v1/beacon/blob_sidecars` API which is being
   deprecated. It will be replaced with `/eth/v1/beacon/blobs`, which has the notable difference that it does 
   not return KZG commitments or KZG blob proofs (see [EIP 4844](https://eips.ethereum.org/EIPS/eip-4844)). The
   affected components will be updated to i) pull blobs from the new endpoint once it is available and ii) perform
