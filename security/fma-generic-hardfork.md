@@ -19,7 +19,7 @@
 
 - **Risk Assessment:** Medium severity as no funds are at risk, though it is a full liveness failure that would be messy to recover from and require releasing and distributing an updated configuration and/or release. Likelihood is low, especially if we use the mechanics for dynamically upgrading L2 contracts established in the Ecotone hardfork: namely, inserting appropriate deposit transactions in the activation block.
 
-- **Mitigations:** 
+- **Mitigations:**
 
 - [ ] ACTION ITEM (BLOCKING): We have implemented extensive unit and end-to-end testing of the activation flow.
 - [ ] ACTION ITEM (BLOCKING): We have implemented multi-client testing to reduce the chance of bugs
@@ -44,39 +44,39 @@
 
 - **Detection:** We can read the state of L1 after the activation time and compare it with expectations
 
-- [ ] ACTION ITEM (non-BLOCKING): The superchain-ops task to upgrade any contract should check if the semantic versions and bytecodes after the upgrade are as expected. 
+- [ ] ACTION ITEM (non-BLOCKING): The superchain-ops task to upgrade any contract should check if the semantic versions and bytecodes after the upgrade are as expected.
 
-- **Recovery Path(s)**:  
+- **Recovery Path(s)**:
 Since there is no chain halt, we can just live with it and fix it in an upcoming upgrade.
 
 #### Activation Failure without chain halt: Node software
 
 - **Description:** The upgrade may be misconfigured in the node software (e.g. superchain-registry dependency was not updated) and fail to take place.
 
-- **Risk Assessment:** Low severity if there were no L1 contract changes or if there were L1 contract changes but they also failed to apply, since the chain would continue on as if the upgrade never happened. 
+- **Risk Assessment:** Low severity if there were no L1 contract changes or if there were L1 contract changes but they also failed to apply, since the chain would continue on as if the upgrade never happened.
 
 - **Mitigations:** As above
 
 - **Detection:**  Node software startup logs should indicate whether the hardfork has activated properly.
 
-- **Recovery Path(s)**: Reschedule the upgrade, releasing a new binary (without immediate urgency). 
+- **Recovery Path(s)**: Reschedule the upgrade, releasing a new binary (without immediate urgency).
 
 
 #### Invalid prestate supplied to the OP Contracts Manager (OPCM)
 
-- **Description:** This occurs when either the call to the `OPCM` could not be made due to grossly unfavorable base fees on L1, an invalidly approved safe nonce, or a successful execution to an incorrect prestate.
+- **Description:** For hardforks that require updating the fault proof system, the OPCM's `addGameType()` or `updatePrestate()` methods are used to deploy new dispute game implementations with updated prestates. This risk occurs when either: (1) the call to the OPCM could not be made due to grossly unfavorable base fees on L1 or an invalidly approved safe nonce, or (2) a successful execution supplies an incorrect prestate to the new game implementation. The OPCM manages the fault proof system by deploying new dispute games through the `DisputeGameFactory` and linking them with the correct prestates for the hardfork.
 
 - **Risk Assessment:**
-    - Low likelihood. The low likelihood is a result of tenderly simulation testing of safe transactions, code review of the upgrade playbook, and manual review of the dispute game implementations (which are deployed on mainnet and specified in the governance proposal so they may be reviewed).
-    - High impact as Fault proofs remains incompatible with the new hardfork which would brick new bridge withdrawals. If we did nothing, i.e. ignored dispute-mon alerts and did not apply the FP recovery runbook, then an attacker would be able to steal the bonds of “honest” challengers that have upgraded their op-program by using the non-upgraded fork chain to generate a fault proof. In this scenario, the attacker would be unable to steal funds from the bridge so long as there exists an honest challenger that is configured to generate pre-upgrade execution traces. That said, the actual impact would be equivalent to [FP recovery](https://www.notion.so/8dad0f1e6d4644c281b0e946c89f345f?pvs=21) as it would trigger the runbook, where we would have the opportunity to use overrides to recover the system.
+    - Low likelihood. The low likelihood is a result of tenderly simulation testing of safe transactions, code review of the upgrade playbook, and manual review of the dispute game implementations and prestates (which are deployed on mainnet and specified in the governance proposal so they may be reviewed).
+    - High impact as fault proofs would remain incompatible with the new hardfork, which would brick new bridge withdrawals. If we did nothing, i.e. ignored dispute-mon alerts and did not apply the FP recovery runbook, then an attacker would be able to steal the bonds of "honest" challengers that have upgraded their op-program by using the non-upgraded fork chain to generate a fault proof. In this scenario, the attacker would be unable to steal funds from the bridge so long as there exists an honest challenger that is configured to generate pre-upgrade execution traces. That said, the actual impact would be equivalent to [FP recovery](https://www.notion.so/8dad0f1e6d4644c281b0e946c89f345f?pvs=21) as it would trigger the runbook, where we would have the opportunity to use overrides to recover the system.
 
 - **Mitigations:** There are two cases:
-    - If the safe transaction couldn’t be successfully executed, then: Revert `OptimismPortal` to use the permissioned fault dispute game as its respected game type. Depending on how much time till the upgrade, a superchain pause would be needed in order to gather necessary the signatures to change the `OptimismPortal`.
-    - If the game implementation was misconfigured and this was detected prior to fork activation, then do the above. If detection occurs post-fork activation, then follow the [Fault Proofs Recovery Runbook](https://www.notion.so/8dad0f1e6d4644c281b0e946c89f345f?pvs=21) (includes the [Superchain Pause Incident Response Runbook](https://docs.google.com/document/d/1ooKn16PYXl_iKkv9sK4CemzgqoiQkzUX-ufPzfY9L20/edit?pli=1&tab=t.0).).
+    - If the safe transaction couldn't be successfully executed, then: Fallback to using the permissioned fault dispute game as the respected game type. Depending on how much time until the upgrade, a superchain pause may be needed in order to gather the necessary signatures to change the respected game type.
+    - If the game implementation was misconfigured with an incorrect prestate and this was detected prior to fork activation, then do the above. If detection occurs post-fork activation, then follow the [Fault Proofs Recovery Runbook](https://www.notion.so/8dad0f1e6d4644c281b0e946c89f345f?pvs=21) (includes the [Superchain Pause Incident Response Runbook](https://docs.google.com/document/d/1ooKn16PYXl_iKkv9sK4CemzgqoiQkzUX-ufPzfY9L20/edit?pli=1&tab=t.0).).
 
-- **Detection:** An un-executed safe transaction is easily detectable. In the case of a misconfigured game implementation, the op-dispute-mon will alert proofs-squad and security on any attempt to exploit this misconfiguration.
+- **Detection:** An un-executed safe transaction is easily detectable. In the case of a misconfigured game implementation with an incorrect prestate, op-dispute-mon will alert proofs-squad and security on any attempt to exploit this misconfiguration.
 
-- **Recovery Path(s)**: Reschedule the upgrade, releasing a new binary (without immediate urgency).
+- **Recovery Path(s)**: If the safe transaction fails to execute, resubmit with appropriate gas settings or correct nonce. If an incorrect prestate was used, follow the FP recovery runbook to pause the system and deploy corrected game implementations via the OPCM.
 
 ### Chain split (across clients)
 
