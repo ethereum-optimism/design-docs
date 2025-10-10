@@ -33,7 +33,7 @@ Below are references for this project:
 - [Github tracker](https://github.com/ethereum-optimism/optimism/issues/17471)
 - [Specs clarification](https://github.com/ethereum-optimism/specs/pull/790)
 - [OP Contracts Manager specs](https://specs.optimism.io/experimental/op-contracts-manager.html?highlight=opcm#op-contracts-manager)
-- [Optimism Docs on Fusaka (including L1 activation times)](https://oplabs.notion.site/fusaka-upgrade-readiness-doc)
+- [Optimism Docs on Fusaka (including L1 activation times)](https://docs.optimism.io/notices/fusaka-notice)
 
 ## Failure Modes and Recovery Paths
 
