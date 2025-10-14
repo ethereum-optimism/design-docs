@@ -86,3 +86,13 @@ Since there is no chain halt, we can just live with it and fix it in an upcoming
 - [ ] ACTION ITEM (BLOCKING): We have implemented extensive cross-client / differential testing of the new functionality for both scenarios a) when chains activate the fork at genesis and b) when they activate it after genesis. This is part of our alphanet / betanet [devnet process](https://devnets.optimism.io/).
 - **Detection:** Replicas of one kind of client will diverge from the sequencer. If the bug made it to production, replica healthcheck alerts would fire as nodes diverged.
 - **Recovery Path(s)**: Divergent clients would need to be patched to resolve any discrepancies with the canonical chain (which should ideally be the one described by the specification, but could be the e.g. op-node/op-geth chain if that is considered the reference implementation).
+
+### Chain split driven by L1 chain split
+
+- **Description:** Particularly for "L1 fork defense" upgrades (e.g. Pectra, Fusaka), in addition for L2 nodes being updated in time and being well configured, any L1 nodes which the L2 is connected to must _also_ be updated and well-configured. Failure to do so can result in different L2 nodes talking to divergent L1 nodes. Because L2 blocks always reference L1 blocks, this can cause a chain split on L2 in addition.
+- **Risk Assessment:** medium severity / medium likelihood
+- **Mitigations:**
+- [ ] ACTION ITEM (BLOCKING): We have been very explicit in our notice documentation for node operators about the need to upgrade. 
+- [ ] ACTION ITEM (BLOCKING): We have published a public runbook about what to do when this failure mode is detected.
+- **Detection:** Replicas will diverge from reference endpoints, healthcheck alerts would fire.
+- **Recovery Path(s)**: Shut down the batcher until the version and configuration discrepancies are fixed and the sequencer has performed any re-orgs. Then restart the batcher. 
