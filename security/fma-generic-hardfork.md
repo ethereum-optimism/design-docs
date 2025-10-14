@@ -93,6 +93,6 @@ Since there is no chain halt, we can just live with it and fix it in an upcoming
 - **Risk Assessment:** medium severity / medium likelihood
 - **Mitigations:**
 - [ ] ACTION ITEM (BLOCKING): We have been very explicit in our notice documentation for node operators about the need to upgrade. 
-- [ ] ACTION ITEM (BLOCKING): We have published a public runbook about what to do when this failure mode is detected.
+- [ ] ACTION ITEM: We have published a public runbook about what to do when this failure mode is detected.
 - **Detection:** Replicas will diverge from reference endpoints, healthcheck alerts would fire.
 - **Recovery Path(s)**: Shut down the batcher until the version and configuration discrepancies are fixed and the sequencer has performed any re-orgs. Then restart the batcher. 
