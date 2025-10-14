@@ -179,8 +179,6 @@ Below is what needs to be done before launch to reduce the chances of the above 
     * https://github.com/ethereum-optimism/optimism/releases/tag/op-node%2Fv1.10.0
     * https://github.com/ethereum-optimism/op-geth/releases/tag/v1.101411.2
     * https://github.com/paradigmxyz/reth/releases/tag/v1.1.2
-    * https://github.com/ethereum-optimism/k8s/pull/5032
-    * https://github.com/ethereum-optimism/k8s/pull/5053
 
 - [x] (BLOCKING): we will re-architect the batcher to eliminate the cases above
     * [Holocene-D: Batcher Hardening](https://github.com/ethereum-optimism/optimism/issues/12120)
