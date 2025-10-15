@@ -1,4 +1,4 @@
-# [Operator Fee]: Failure Modes and Recovery Path Analysis
+# [Operator Fee Fix]: Failure Modes and Recovery Path Analysis
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
