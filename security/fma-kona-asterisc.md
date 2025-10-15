@@ -45,7 +45,6 @@ fault proof component. The Failure Modes and Recovery Paths below detail this as
 Below are references for this project:
 
 - ["Stage 1.4" internal project document](https://www.notion.so/oplabs/Stage-1-4-Partway-a6f57ad777b148dda01488f2646cff17)
-- [Kona Documentation](https://anton-rs.github.io/kona/).
 - [Kona Repository](https://github.com/anton-rs/kona).
 - [Asterisc Repository](https://github.com/ethereum-optimism/asterisc)
 
