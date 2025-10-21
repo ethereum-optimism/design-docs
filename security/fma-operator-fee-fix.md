@@ -22,7 +22,7 @@
 | Initial Reviewers     |                                    |
 | Need Approval From    | Matt Solomon                       |
 | Need Re-Approval From |                                    |
-| Status                | Draft                              |
+| Status                | Final                              |
 
 ## Introduction
 
@@ -99,7 +99,7 @@ Below are references for this project:
 
   - The calculation cannot overlow or underflow. See context below:
 
-    > `gas` is a uint64, so `(gasUsed * operatorFeeScalar * 100) + operatorFeeConstant` can be at most `(u64.max * u32.max * 100) + u64.max ~= 7.924660923989131e+33`, which is an int of bit length 103 and fits comfortably within a uint256 variable allocation.
+    > `gas` is a uint64 in most execution client implementations (and further bounded by the block gas limit), so `(gasUsed * operatorFeeScalar * 100) + operatorFeeConstant` can be at most `(u64.max * u32.max * 100) + u64.max ~= 7.924660923989131e+33`, which is an int of bit length 103 and fits comfortably within a uint256 variable allocation.
 
 - **Recovery Paths(s):**
   - A bug within the OP EVM would critical and would require an emergency upgrade of the sequencer and bridge.
@@ -111,6 +111,7 @@ Below is what needs to be done before launch to reduce the chances of the above 
 **Initial review**
 
 - [ ] (NON-BLOCKING): Coordinate with wallet providers to update their fee estimation logic (assignee: TBD).
+- [ ] (BLOCKING): Ensure release notice states "any chain currently using a nonzero `operatorFeeScalar` needs to adjust it _prior_ to the activation of the Jovian fork on their chain."
 
 **Testing**
 
