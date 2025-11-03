@@ -195,7 +195,7 @@ To accurately charge the fees for execution and data availability, chain governo
 
 As part of the feature flag system, during the deployment in genesis, the CGT version comes up with the `isCustomGasToken()` flag activated, adding the new `NativeAssetLiquidity` and `LiquidityController` predeploy contracts, and seeding an amount of liquidity into the  `NativeAssetLiquidity`.
 
-The deployment flow should look like this:
+The deployment flow would look like this:
 
 ```mermaid
 sequenceDiagram
@@ -212,8 +212,8 @@ sequenceDiagram
     Genesis->>Liquidity: create & pre-fund native supply
     Genesis->>Controller: create & set token metadata
     end
-    Governor->>Controller: mint(initialSupply)
-    Controller->>Liquidity: withdraw()
+    Governor->>Controller: authorize (this address or any other) and mint
+    Controller->>Liquidity: withdraw
     Liquidity-->>Governor: native asset
     Governor->>Deployer: transfer native asset
     Deployer->>Deployer: deploy external contracts (a bridge, a converter...)
