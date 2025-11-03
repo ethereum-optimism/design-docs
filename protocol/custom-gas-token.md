@@ -20,7 +20,7 @@ The proposed Custom Gas Token upgrade lets any OP Stack chain introduce its nati
 The [prior CGT design](https://github.com/ethereum-optimism/specs/blob/5887eb2f74821b4125c2f47523d6d54379fd46d8/specs/experimental/custom-gas-token.md) anchored the gas token to an L1 ERC‑20, hard‑coding bridge paths, and cluttering core contracts with token metadata. These restrictions make it hard to handle the following scenarios properly:
 
 - Integrates with a token that doesn’t live on L1.
-- Launch chains whose native asset does not yet exist or have an ERC20 representation somewhere.
+- Launch chains whose native assets do not yet exist or have an ERC20 representation elsewhere.
 - Experiment with custom supply management or economics.
 - Implement any novel or non-conventional bridging mechanisms.
 
@@ -42,15 +42,15 @@ The presented design has been thought out based on the following principles:
 
 The `isCustomGasToken()` view function becomes the unique one that brings awareness to the system about whether or not the CGT mode is being used. It is a boolean flag that other functions in other contracts use to check if they can receive ETH values or not.
 
-In L1 placed in `OptimismPortal`, it will block `depositTransaction` calls that contain `msg.value`. The same will occur in their pair functions `sendMessage` in `L1CrossDomainMessenger` and ETH bridging in `L1StandardBridge`. The `SystemConfig` reads this setting from the `OptimismPortal`, since it is a relevant configuration parameter for the chain.
+In L1 placed in `SystemConfig` to be read by `OptimismPortal`, it will block `depositTransaction` calls that contain `msg.value`. The same will occur in their pair functions `sendMessage` in `L1CrossDomainMessenger` and ETH bridging in `L1StandardBridge`.
 
-In L2 placed in `L1Block`, it will block `initiateWithdrawal` call, which contains `msg.value` in `L2ToL1MessagePasser`. The same will happen in `sendMessage` in `L2CrossDomainMessenger` and ETH bridging methods in `L2StandardBridge` and `FeeVaults`.
+In L2 placed in `L1Block` to be read by `L2ToL1MessagePasser`, it will block `initiateWithdrawal` calls, that contain `msg.value` in `L2ToL1MessagePasser`. The same will occur in `sendMessage` in `L2CrossDomainMessenger` and ETH bridging methods in `L2StandardBridge` and `FeeVaults`.
 
-As a consequence, native asset mints and burns are decoupled from system transactions (deposits) in normal operations, and those are moved into the application layer with the newly introduced predeploys.
+As a consequence, native asset mints and burns are decoupled from deposits (system transactions) and withdrawals in normal operations, and those are moved into the application layer with the newly introduced predeploys.
 
 **`NativeAssetLiquidity` and `LiquidityController` Predeploys**
 
-A very large amount of native assets is pre-minted and stored in `NativeAssetLiquidity`, which is managed through the `LiquidityController`, which has the rights to withdraw and deposit to this contract.
+A arbitrary amount of native assets is pre-minted and stored in `NativeAssetLiquidity`, which is managed through the `LiquidityController`, which has the rights to withdraw and deposit to this contract.
 
 A code example of both contracts would look like this:
 
@@ -72,8 +72,15 @@ contract NativeAssetLiquidity {
 
 ```solidity
 contract LiquidityController {
-	// Authorized addresses to manage liquidity of NativeAssetLiquidity
+	// Authorized addresses to manage the liquidity of NativeAssetLiquidity
 	mapping(address => bool) public minters;
+
+    // Metadata is set in contract initialization, for backward compatibility with L1Block and WETH
+    string public gasPayingTokenName;
+
+    string public gasPayingTokenSymbol;
+
+    }
 
 	// Authorizes an address from performing liquidity control operations
 	function authorizeMinter(address _minter) external {
@@ -104,10 +111,6 @@ contract LiquidityController {
         INativeAssetLiquidity(Predeploys.NATIVE_ASSET_LIQUIDITY).deposit{ value: msg.value }();
 		(...)
 	}
-	
-	function gasPayingAssetName() external view returns (string name) {}
-	
-	function gasPayingAssetSymbol() external view returns (string symbol) {}
 	
 }
 ```
@@ -165,10 +168,10 @@ sequenceDiagram
 
 ### Native Asset Value
 
-Since native assets are pre-minted from genesis, the chain governor can decide how to assign value or give it meaning. This is done by understanding where the supply originates and how it reflects in `NativeAssetLiquidity` and `LiquidityController` management. There are at least three main cases:
+Since native assets are pre-minted from genesis, the chain governor can decide how to assign value or give it meaning. This is achieved by understanding where the supply originates and how it is reflected in `NativeAssetLiquidity` and `LiquidityController` management. There are at least three main cases:
 
-- The simplest is to make an existing L1 ERC20 be the native asset.
-- Introduce an ERC20 in L2 that contains utility functions (governance, DeFi); meanwhile, their native asset version serves as the medium to pay for gas.
+- The simplest is to make an existing ERC20 the native asset, bridged by any mean.
+- Introduce an ERC20 representation in L2 that contains utility functions (governance, DeFi); meanwhile, their native asset version serves as the medium to pay for gas.
 - Do not depend on an existing asset, emulating how some L1 currently works.
 
 The design allows for the inclusion of any desired features, such as rate limits, emission schedules, and a max. cap the supply, coupled with any bridge mechanism, etc. The architecture also doesn’t restrict the use of any token framework (e.g., OFT, xERC20, SuperchainERC20, etc.) to be coupled with the native asset eventually.
@@ -177,7 +180,7 @@ Existing CGT chains using the old design can perform a hard fork to set such con
 
 ### Wrapped Native Asset
 
-The `WETH` (now `WNA`) predeploy would stay the same as its old version, to preserve backward compatibility with existing chains.
+The `WETH` (now the wrapped version of the native asset) predeploy would stay the same as its old version, to preserve backward compatibility with existing chains.
 
 To align with the new design, the metadata, specifically the `name()` and `symbol()` functions, will now be sourced from the `LiquidityController` instead of the `SystemConfig` contract used in the previous design. These functions will return the name and symbol of the wrapped native asset, prefixed with "W" and "Wrapped".
 
@@ -189,7 +192,7 @@ To accurately charge the fees for execution and data availability, chain governo
 
 ### Chain Deployment
 
-During the deployment in genesis, the CGT version comes up with the `isCustomGasToken()` flag activated, adding the new `NativeAssetLiquidity` and `LiquidityController` predeploy contracts.
+As part of the feature flag system, during the deployment in genesis, the CGT version comes up with the `isCustomGasToken()` flag activated, adding the new `NativeAssetLiquidity` and `LiquidityController` predeploy contracts, and seeding an amount of liquidity into the  `NativeAssetLiquidity`.
 
 The deployment flow should look like this:
 
@@ -206,7 +209,7 @@ sequenceDiagram
 		note over Liquidity: Genesis Phase
     Genesis->>OP Stack: Genesis core actions
     Genesis->>Liquidity: create & pre-fund native supply
-    Genesis->>Controller: create and assign a minter
+    Genesis->>Controller: create & set token metadata
     end
     Governor->>Controller: mint(initialSupply)
     Controller->>Liquidity: withdraw()
@@ -220,7 +223,7 @@ These predeploys are specific to CGT-enabled chains, meaning OP Stack chains not
 
 By default, the `ProxyAdmin` owner can release the supply at the beginning and distribute the minimal supply needed to ensure the CGT-specific contracts related to their use case are deployed. The chain governor may also opt to withdraw any excess native supply and burn it to reduce the total supply recorded in the chain’s state, for example by using the `burn()` function held in `L2ToL1MessagePasser`.
 
-Chain Governors must define the `SYMBOL` and `NAME` of the `WNA` in `LiquidityController`.
+Chain Governors must define the `SYMBOL` and `NAME` of the `WETH` in `LiquidityController`.
 
 ### ERC20 Coupling and External Bridging
 
@@ -271,7 +274,7 @@ No major changes are expected. However, the resource pricing needs to be adjuste
 
 ### Single Point of Failure and Multi Client Considerations
 
-Since the `NativeAssetLiquidity` contains a large amount of pre-minted native assets, managing the supply properly becomes fundamental. Failures would affect the value of the native asset, ruining their economics and severely affecting the user-experience.
+Since the `NativeAssetLiquidity` can contain a large amount of pre-minted native assets, managing the supply properly becomes fundamental. Failures would affect the value of the native asset, ruining their economics and severely affecting the user-experience.
 
 Regarding existing clients, no major impact is expected from this design. The respective rollup config files must be updated to reflect whether the CGT mode is activated or not.
 
@@ -294,7 +297,11 @@ The developers will present several changes with respect to an OP Stack chain th
 
 **Maintain the old design.**
 
-The old design required a token to exist in L1 previously. This also needed to introduce a `depositERC20Transaction` as well as the `GasToken` library that contains the relevant gas token functions to derive in L2. This design restricts native asset management by only minting new assets through a `depositTransaction`, digested by the `op-node` through a system transaction (type 126).
+The old design required a token to exist in L1 previously. This also needed to introduce a `depositERC20Transaction` as well as the `GasPayingToken` library that contains the relevant gas token functions to derive in L2. This design restricts native asset management by only minting new assets through a `depositTransaction`, digested by the `op-node` through a system transaction (type 126).
+
+**Special mint deposit function in L1.**
+
+It is possible to add a `mint` function in `OptimismPortal` that grants permissions to an `authorizedMinter`, similar to the `LiquidityController`, as a minimalist design of the old one, since it wouldn't require the `GasPayingToken` library and ERC20-related code. However, this path is not considered a winning solution since it provides async minting, which is not suitable for all use cases, and doesn't have a clean correspondence with a withdrawal flow, while preserving the same risk tree as in `LiquidityController`. However, this mechanism can be thought of as a way to avoid hard forks if more asset is required to be minted for some reason as a future feature.
 
 **Modify derivation rules to allow custom minting rules.**
 
@@ -311,7 +318,7 @@ As an alternative to the proposed architecture, both predeploys might be merged 
 ## Risks & Uncertainties
 
 - Any minters granted to interact with the `LiquidityController` require proper audits to ensure native asset logic can’t be broken in production, as the recovery would be costly.
-    - There are two potential paths to minimize the impact: adding rate limits, and burn the unneeded supply during chain's deployment.
+    - There are two potential paths to minimize the impact: adding rate limits, and burn the unneeded supply after chain's deployment.
 - There is an open discussion on how to support tokens that have other than 18 decimals. This is a concern for the minter that is placed on top of the `LiquidityController`.
     - One possible solution might be adding `decimals()` in the `LiquidityController`, or fully handling it through the minters.
 - Existing OP Stack chains using old designs would need to upgrade to the new version, the solution of which is actively being architected.
@@ -319,7 +326,9 @@ As an alternative to the proposed architecture, both predeploys might be merged 
     - For example, `ETHLiquidity` and `NativeAssetLiquidity` might share the same address, and the ERC20 version of the native asset might be created with a deterministic method to enable interoperability through a `SuperchainERC20` version.
     - A new `SuperchainWETH` version might be introduced to enable interoperability for the ETH transfer.
 - `L1FeeVault` might not receive the amount in value to pay for data availability, since the mismatch is corrected via `minBaseFee` and `operatorFees`. The introduction of parameters or oracles is actively being discussed.
+- The CGT predeploys serve as a set of audited contracts that are ready to use, but nothing prevents the chain governor from withdrawing arbitrary amounts of liquidity and using their own contracts without relying on the predeploys at all.
 - Native asset custom features are in early research phase, but the design is minimal enough not to block a future upgrade of this kind.
+
 ### NativeAssetLiquidity Drained
 A bug or a compromise on `NativeAssetLiquidity` or the `LiquidityController` could lead to a massive asset loss either in the canonical bridge or third party bridges. Given the low complexity of `LiquidityController`, the most likely vector would be an access control bug or attack.
 
@@ -368,20 +377,24 @@ When CGT mode is activated, all bridging methods related to ETH on L1 are disabl
     participant SB as L1StandardBridge
     participant XDM as L1CrossDomainMessenger
     participant OP as OptimismPortal
+	participant SC as SystemConfig
     
     U->>SB: depositETH / bridgeETH / receive(...)
     SB->>XDM: sendMessage(...)
     XDM->>OP: depositTransaction(...)
-    OP->>OP: isCustomGasToken() returns true
+    OP->>SC: isCustomGasToken()
+	SC-->>OP: returns true
     OP->>OP: revert
 
     U->>XDM: sendMessage(...), value > 0
     XDM->>OP: depositTransaction(...)
-    OP->>OP: isCustomGasToken() returns true
+    OP->>SC: isCustomGasToken()
+	SC-->>OP: returns true
     OP->>OP: revert
 
     U->>OP: depositTransaction / receive(...), value > 0
-    OP->>OP: isCustomGasToken() returns true
+    OP->>SC: isCustomGasToken()
+	SC-->>OP: returns true
     OP->>OP: revert
 
 ```
@@ -396,24 +409,24 @@ sequenceDiagram
     participant SB as L2StandardBridge
     participant XDM as L2CrossDomainMessenger
     participant OP as L2ToL1MessagePasser
-    participant SC as L1Block
+    participant LB as L1Block
     
     U->>SB: withdraw / bridgeETH / receive(...)
     SB->>XDM: sendMessage(...)
     XDM->>OP: initiateWithdrawal(...)
-    OP->>SC: isCustomGasToken()
-	SC-->>OP: returns true
+    OP->>LB: isCustomGasToken()
+	LB-->>OP: returns true
     OP->>OP: revert
 
     U->>XDM: sendMessage(...), value > 0
     XDM->>OP: initiateWithdrawal(...)
-    OP->>SC: isCustomGasToken()
-	SC-->>OP: returns true
+    OP->>LB: isCustomGasToken()
+	LB-->>OP: returns true
     OP->>OP: revert
 
     U->>OP: initiateWithdrawal(...), value > 0
-    OP->>SC: isCustomGasToken()
-	SC-->>OP: returns true
+    OP->>LB: isCustomGasToken()
+	LB-->>OP: returns true
     OP->>OP: revert
 
 ```
@@ -486,6 +499,6 @@ sequenceDiagram
 
 **Mixed and Other Cases**
 
-An L2 token coupled to native asset liquidity may also be bridgeable, or the native asset may have another token representation, as already occurs with the `WNA` predeploy contract. The desired supply management will determine the supply relationship between an ERC20 and the native asset. It is up to the governor to decide where the supply originates, under which mechanism it is created, and how the native asset is released.
+An L2 token coupled to native asset liquidity may also be bridgeable, or the native asset may have another token representation, as already occurs with the `WETH` predeploy contract. The desired supply management will determine the supply relationship between an ERC20 and the native asset. It is up to the governor to decide where the supply originates, under which mechanism it is created, and how the native asset is released.
 
-Also, it is entirely possible to do not depend on an ERC20 and be released by any supply liberation mechanism, such as mining based on other actions, conditions, etc.
+Also, it is entirely possible to not depend on an ERC20 and be released by any supply liberation mechanism, such as mining based on other actions, conditions, etc.
