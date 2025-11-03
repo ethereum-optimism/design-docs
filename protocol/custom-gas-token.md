@@ -72,6 +72,7 @@ contract NativeAssetLiquidity {
 
 ```solidity
 contract LiquidityController {
+
 	// Authorized addresses to manage the liquidity of NativeAssetLiquidity
 	mapping(address => bool) public minters;
 
