@@ -81,6 +81,19 @@ A given set of upgrade transactions will typically perform the following actions
     1. This function will `DELEGATECALL` the new `L2ContractsManager`'s `upgrade()` function.
     2. For all predeploys being upgrade, `L2ContractsManager.upgrade()` will make a call to that predeploy's `upgradeTo()` function
 
+Regarding step 1 "deploy new implementations", we must preserve the following properties of the L1 OPCM system:
+
+1. If a contract's bytecode is unchanged, then the implementation address will be unchanged. This
+   is achieved on L1 in the DeployImplemenations script's [use](https://github.com/ethereum-optimism/optimism/blob/60f0c8d0beb2ea22f0ebc11416a22978b182dbfa/packages/contracts-bedrock/scripts/deploy/DeployImplementations.s.sol#L260) of [`createDeterministic`](https://github.com/ethereum-optimism/optimism/blob/60f0c8d0beb2ea22f0ebc11416a22978b182dbfa/packages/contracts-bedrock/scripts/libraries/DeployUtils.sol#L145).
+2. A developer does not need to think about whether or not to include a given Predeploy in the
+   upgrade. The Predeploy will always be upgraded to the latest implementation address. If
+   the contract is unchanged, then its bytecode and implementation address will be unchanged, but
+   regardless the upgrade call will always be included in the `L2ContractsManager` so that it need not
+   be edited between upgrades.
+
+The final implementation which meets these needs is not included in this design, and will be
+identified during the development process.
+
 ### New L2 ProxyAdmin
 
 The `ProxyAdmin` predeploy (at `0x42...18`) will be upgraded with a new implementation which:
@@ -92,7 +105,7 @@ The `ProxyAdmin` predeploy (at `0x42...18`) will be upgraded with a new implemen
 
 ### The L2ContractsManager contract
 
-The initial version of the L2ContractsManager developed for this work will be minimal, and its `upgrade()` function must not accept any arguments in order to maintain the determinism of the upgrade bundle.
+The initial version of the `L2ContractsManager` developed for this work will be minimal, and its `upgrade()` function must not accept any arguments in order to maintain the determinism of the upgrade bundle.
 
 In pseudocode it will do the following:
 
