@@ -177,20 +177,24 @@ It is not necessary run L2 upgrade tests in CI for all OP Chains, but it should 
 
 ### Feature flags
 
-**Features flagging this feature**
+**Features flagging THIS feature**
 
 Features flags are not considered necessary for this feature, because it does not require significant changes to the L2 predeploys, and it will not be ‘activated’ until it is implemented in an upgrade.
 
-**Supporting dev feature flags**
+**Supporting dev feature flags in upgrades**
 
 The design proposed here must support feature flagging of L2 Predeploys, and should do so using the patterns described in [Smart Contract Feature Flagging & System Customizations](https://www.notion.so/Smart-Contract-Feature-Flagging-System-Customizations-28cf153ee16280e884c1f6fed632d5c8?pvs=21).
 In order to achieve this, we can insert the `FeatureFlags` [contract](https://github.com/ethereum-optimism/optimism/blob/d09c836f818c73ae139f60b717654c4e53712743/packages/contracts-bedrock/test/setup/FeatureFlags.sol#L17) at some address using `vm.etch()`, and set the `devFeatureBitmap` using `vm.store()`.
+The L2CM can then set a custom config values, or upgrade a contract to an experimental feature flagged implementation address based on the
+values in the `devFeatureBitmap`.
 
 This should work for all environments where feature flags must be supported ([foundry tests and alphanets](https://www.notion.so/Smart-Contract-Feature-Flagging-System-Customizations-28cf153ee16280e884c1f6fed632d5c8?pvs=21)).
 
 ### Configurable features
 
-Similar to feature flags, any production features (ie. those which can be enabled or disabled by config) which affect L2 contracts will also require different bundles to be generated and executed.
+Any configurable production features are expected to be configued in the `L1Block` contract.
+Just like with dev features, the L2CM will activate any configurable values, or set config specific
+implementations based on the data available in `L1Block`.
 
 ## Risks & Uncertainties
 
