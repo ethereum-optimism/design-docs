@@ -68,7 +68,7 @@ This design also does not attempt to address Standard Genesis generation, which 
 
 Network upgrade transactions will continue to be executed at a [specified fork block height](https://github.com/ethereum-optimism/optimism/blob/2fdd97053ba8fb2bc27dcb38dcdc42ade7c8c78d/op-node/rollup/derive/attributes.go#L148-L154), except that rather than executing a set of transactions defined in a stand alone go file, the transactions will be read from a JSON file.
 
-NUT files will be stored in the superchain registry. The schema of these files will be similar to the one used for a Gnosis Safe transaction bundle.
+The NUT file will be stored in the monorepo, and tracked by git. It will be updated by the `just snapshots` command.
 
 ### What upgrade transactions will do
 
