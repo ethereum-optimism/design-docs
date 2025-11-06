@@ -74,14 +74,17 @@ The NUT file will be stored in the monorepo, and tracked by git. It will be upda
 
 A given set of upgrade transactions will typically perform the following actions:
 
-1. deploy new implementations
+1. deploy new `ConditionalDeployer` contract
+2. deploy new implementations via the `ConditionalDeployer`
 2. deploy a new `L2ContractsManager`
 3. update the `ProxyAdmin` (This step will only be needed the first time this scheme is used)
 4. execute a call to `ProxyAdmin.upgradePredeploys()`
     1. This function will `DELEGATECALL` the new `L2ContractsManager`'s `upgrade()` function.
     2. For all predeploys being upgrade, `L2ContractsManager.upgrade()` will make a call to that predeploy's `upgradeTo()` function
 
-Regarding step 1 "deploy new implementations", we must preserve the following properties of the L1 OPCM system:
+### New ConditionalDeployer
+
+A new `ConditionalDeployer` contract is needed to ensure that step 2 "deploy new implementations" can preserve the following properties of the L1 OPCM system:
 
 1. If a contract's bytecode is unchanged, then the implementation address will be unchanged. This
    is achieved on L1 in the DeployImplemenations script's [use](https://github.com/ethereum-optimism/optimism/blob/60f0c8d0beb2ea22f0ebc11416a22978b182dbfa/packages/contracts-bedrock/scripts/deploy/DeployImplementations.s.sol#L260) of [`createDeterministic`](https://github.com/ethereum-optimism/optimism/blob/60f0c8d0beb2ea22f0ebc11416a22978b182dbfa/packages/contracts-bedrock/scripts/libraries/DeployUtils.sol#L145).
@@ -91,8 +94,13 @@ Regarding step 1 "deploy new implementations", we must preserve the following pr
    regardless the upgrade call will always be included in the `L2ContractsManager` so that it need not
    be edited between upgrades.
 
-The final implementation which meets these needs is not included in this design, and will be
-identified during the development process.
+The `ConditionalDeployer` contract will be very minimal contract which will receive the initcode and then:
+1. determine whether a create2 collision will occur
+2. if not: forward the initcode to the [determinstic-deployer](https://github.com/Arachnid/deterministic-deployment-proxy/blob/master/source/deterministic-deployment-proxy.yul#L13) contract.
+3. if yes: return
+
+The `ConditionalDeployer` should not revert if called with properly formed inputs.
+
 
 ### New L2 ProxyAdmin
 
