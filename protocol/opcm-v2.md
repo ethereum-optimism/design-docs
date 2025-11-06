@@ -125,6 +125,29 @@ Generate the Go glue code between OPCM and op-deployer from Solidity interfaces:
 - Developers only need to add new CLI arguments to op-deployer when introducing net-new inputs
 - Reduces knowledge burden—developers don't need to understand integration layer
 
+### Implementation Flow
+
+Both `deploy()` and `upgrade()` follow a unified three-phase flow:
+
+**Phase 1: Chain World Assembly (Load-or-Deploy Pattern)**
+
+Both functions begin by gathering the complete set of contracts for the chain—the "chain world"—which includes SystemConfig, OptimismPortal, AnchorStateRegistry, and all other chain contracts.
+
+The load-or-deploy pattern attempts to load each contract address from an expected source (e.g., a known deployment address for upgrades, or a predictable location). If the contract cannot be found at the expected location, it is deployed instead. This unified pattern means the same chain world loading function serves both deploy and upgrade operations.
+
+**Phase 2: Input Gathering**
+
+After assembling the chain world, both functions gather the configuration inputs needed to properly configure the proxy contracts:
+
+- **Deployments**: All configuration input comes directly from the deploy input parameter
+- **Upgrades**: Only a subset of configuration is provided in the upgrade input; the remaining configuration is gathered automatically from the existing deployed contracts
+
+This asymmetry allows upgrades to specify only what changes, while deployments must provide complete configuration.
+
+**Phase 3: Common Transformation**
+
+Both functions feed into a shared transformation function that takes the proxies and configuration as input and updates/initializes those proxies appropriately. This common transformation path ensures consistent behavior between initial deployments and subsequent upgrades, eliminating the need for deployment-specific vs. upgrade-specific initialization logic.
+
 ### Requirements Mapping
 
 - **Deploy new chains**: `deploy()` function
