@@ -139,6 +139,19 @@ def upgrade():
 	upgrade_and_set_config(l2Config)
 ```
 
+### Gas limits for activation blocks
+
+Upgrade transactions must be included in the L2 block and must fit within the block gas limit. Currently, there is only 1M gas guaranteed to be available for upgrade transactions. This limit comes from `_resourceConfig.systemTxMaxGas` being set to 1,000,000, which constrains the amount of gas available for system transactions including upgrades. While L2 block gas limits are typically set much higher in practice, the system only guarantees a minimum of `SystemConfig.minimumGasLimit()`, and the `systemTxMaxGas` constraint means upgrade transactions cannot exceed 1M gas.
+
+The upgrade transactions described in this design will almost certainly exceed 1M gas, making the current limit insufficient.
+
+**Solution: Additional Upgrade Gas**
+
+Rather than increasing `systemTxMaxGas` (which would require L1 changes and still wouldn't be future-proof), we will implement a mechanism that guarantees sufficient gas for upgrade transactions regardless of the regular block gas limit. This will be achieved by introducing the concept of additional upgrade gas, which allows upgrade transactions to use gas beyond the normal `systemTxMaxGas` limit.
+
+The implementation involves modifications to `op-node/rollup/derive/attributes.go` to handle upgrade gas allocation, similar to what can be seen in [this PR](https://github.com/ethereum-optimism/optimism/pull/14797). We should consider simply hardcoding the upgrade block gas amount very high (50M?),
+and testing to ensure it is not exceeded by a future upgrade.
+
 ### Generating deterministic JSON NUT bundles
 
 The NUT bundle will be generated via a solidity script. Similar to the
