@@ -74,7 +74,7 @@ The NUT file will be stored in the monorepo, and tracked by git. It will be upda
 
 A given set of upgrade transactions will typically perform the following actions:
 
-1. deploy new `ConditionalDeployer` contract
+1. deploy new `ConditionalDeployer` contract (This step will only be needed the first time this scheme is used)
 2. deploy new implementations via the `ConditionalDeployer`
 2. deploy a new `L2ContractsManager`
 3. update the `ProxyAdmin` (This step will only be needed the first time this scheme is used)
