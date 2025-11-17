@@ -14,6 +14,8 @@ The Proofs team is most heavily impacted by OPCM v1's limitations. When protocol
 
 4. **High knowledge burden**: Developers need deep understanding of how OPCM integrates with op-deployer (the Go deployment tool), including the glue code that connects Solidity contracts to Go tooling. This prevents developers from focusing on their specific domain without understanding the entire system.
 
+5. **Input changes are hard**: Changes to the inputs of OPCM cascades into many different changes across the repository, and the places in which those changes should be made are not always obvious.
+
 The cumulative effect of these issues, combined with our improved understanding of the right architectural direction, makes this the appropriate time to redesign OPCM. OPCM v2 aims to simplify the interface, eliminate hardcoded assumptions, unify deployment and upgrade paths, and reduce the knowledge burden on developers while maintaining full backwards compatibility with existing functionality.
 
 **Key constraints:**
@@ -80,8 +82,8 @@ OPContractsManager v2 redesigns the architecture around three core principles: *
 ### Architecture Overview
 
 OPCM v2 consolidates the 5 separate functions of v1 into 2 primary functions:
-- `deploy(Config memory config)`: Deploys a new OP Stack chain
-- `upgrade(Config memory config)`: Upgrades an existing chain
+- `deploy(DeployConfig memory deployConfig)`: Deploys a new OP Stack chain
+- `upgrade(UpgradeConfig memory upgradeConfig)`: Upgrades an existing chain
 
 Both functions share the same initialization path for contracts, eliminating the special upgrade functions that previously required maintenance between releases.
 
@@ -91,15 +93,23 @@ Both functions share the same initialization path for contracts, eliminating the
 
 Replace hardcoded assumptions about game types with dynamic arrays:
 ```solidity
-struct GameConfig {
+struct DisputeGameConfig {
+    bool enabled;
+    uint256 initBond;
     GameType gameType;
-    address implementation;
-    bytes32 prestate;
+    bytes gameArgs; // ABI-encoded struct specific to this game type
 }
 
-struct Config {
+struct DeployConfig {
     // ... other config
-    GameConfig[] games;  // Support arbitrary number of game types
+    DisputeGameConfig[] disputeGameConfig;  // Support arbitrary number of game types
+}
+
+struct UpgradeConfig {
+    ISystemConfig systemConfig;
+    DIsputeGameConfig[] disputeGameConfig;
+    ConfigOverrides[] configOverrides; // Sometimes we're required to set a new config variable
+    string[] permittedProxyDeployments; // Sometimes we need to permit new proxies to be deployed
 }
 ```
 
@@ -142,7 +152,9 @@ After assembling the chain world, both functions gather the configuration inputs
 - **Deployments**: All configuration input comes directly from the deploy input parameter
 - **Upgrades**: Only a subset of configuration is provided in the upgrade input; the remaining configuration is gathered automatically from the existing deployed contracts
 
-This asymmetry allows upgrades to specify only what changes, while deployments must provide complete configuration.
+This asymmetry allows upgrades to specify only what changes, while deployments must provide complete configuration. When upgrading, if there is a net new parameter that doesn't already exist on chain, the user will need to provide that parameter as a configuration override.
+
+**NOTE**: Configuration overrides also mean that the `upgrade` function can be used to manage configuration of onchain values.
 
 **Phase 3: Common Transformation**
 
