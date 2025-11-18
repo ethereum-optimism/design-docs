@@ -30,7 +30,7 @@
 
 - **Recovery Path(s)**: Would not require a vote or hardfork, but we’d likely have to coordinate a chain config update that pushed back the date of the upgrade, and allowed node operators to rollback any bad blocks. Estimated sequencer downtime is 30 min in a worst-case scenario where we have to reset the chain back to a block before the activation and disable the hardfork activation. Additional steps would be required from infra providers to get back to the healthy chain. They would need to restart their op-node and op-geth with activation override command line flags/env var.
 
-    - [ ] ACTION ITEM (BLOCKING): We have prepared datadir backups close before the upgrade, so we can use these in an emergency to rollback.
+    - [ ] ACTION ITEM (BLOCKING): We have prepared datadir backups close before the upgrade, so we can use these in an emergency to rollback. Alternatively, a sequencer can be scaled down before the activation time as a kind of "live backup" which can be easily reinstated in the event of a problem. 
 
     - [ ] ACTION ITEM (BLOCKING): We have updated the runbook for recovering from a hardfork activation chain halt (including rolling back contract changes), if necessary. See https://oplabs.notion.site/RB-000-How-To-Rewind-a-Network-c21f628205354dbdbed9c691b2455a7c?pvs=74.
 
