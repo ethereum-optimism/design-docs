@@ -182,7 +182,7 @@ impl ActorXYZClient for QueuedActorXYZClient {
 ```
 
 #### Clarifications:
-**Cancellation** - Each Actor has a cancellation token that it monitors to signal that the process is shutting down and it should stop processing. This _can_ be treated as a an inbound task but probably shouldn't since it is less of an inbound API task and more of a process-level signal. Suggested handling is demonstrated in the pseudocode example above.
+**Cancellation** - Each Actor has a cancellation token that it monitors to signal that the process is shutting down and it should stop processing. This _can_ be treated as an inbound task but probably shouldn't since it is less of an inbound API task and more of a process-level signal. Cancellation is a common concern that all Actors need to handle, so it is a prime candidates for handling at a higher level (i.e. as a default implementation in the `NodeActor` trait). More thought is necessary, but a promising idea that @theochap had is to change the interface such that each Actor implements a function that accomplishes a single iteration of their loop rather than the loop itself. This would allow cancellation to be managed at a higher level, deduplicating that code and removing that concern from each Actor implementation. 
 
 **Sequencing** - `SequencerActor` uses a timer that ticks every `block_time` to trigger it to do some work. This, however, is distinct from inbound messages, as this is SequencerActor's own logic that it runs rather than being triggered by some other party's request. In the case of sequencer actor, its inbound messages (handling admin API requests), do not at all conflict with block building and can likely be handled in parallel.
 
