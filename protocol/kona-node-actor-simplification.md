@@ -68,8 +68,8 @@ This results in a few distinct problems:
 Actors and their logic should be consolidated into a single struct as the default implementation. The structure should be extensible to support more complex implementations, but those should not be necessary.
 
 Other Actors are yet to be updated, but here is `SequencerActor`'s [before](https://github.com/op-rs/kona/blob/1520b6b13a3d8d944c0a0918c380ba10a421f31b/crates/node/service/src/actors/sequencer/actor.rs) and [after](https://github.com/op-rs/kona/blob/01de8f515ce376d978894c51bd20806dacca29a5/crates/node/service/src/actors/sequencer/actor.rs) example. Note:
-* SequencerActorState, SequencerActorBuilder (note: doesn't build SequencerActor), and `SequencerActor` consolidated/removed 
-* SequencerActor is generic over its dependencies
+* `SequencerActorState`, `SequencerActorBuilder` (note: doesn't build `SequencerActor`), and `SequencerActor` consolidated/removed 
+* `SequencerActor` is generic over its dependencies
 * Unit tests are being created that mock dependencies and test `SequencerActor` logic ([example](https://github.com/op-rs/kona/pull/3172))
 * Existing logic is mostly unchanged, just consolidated
 
