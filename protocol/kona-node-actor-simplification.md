@@ -103,8 +103,8 @@ Actor state includes various structs that contain logic, make RPC calls, etc. If
 ### 3. and 4. Define Actor-specific tasks, queues, and facades
 The proposed solution is to have each Actor
 1. define an `enum` of the tasks that it supports processing
-1. queue tasks upon receipt so it has an obvious and measurable work queue
-1. expose a generic clean API-like interface to others to call
+1. expose a single multi-producer, single-consumer channel for inbound tasks, providing an obvious and measurable work queue
+1. expose a generic, clean API-like interface for others to call
 
 Example pseudocode:
 ```
