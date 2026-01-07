@@ -27,6 +27,8 @@ In normal operation, an OP Stack consensus layer (CL) node is responsible for mu
 
 This coupling increases complexity, makes failure isolation harder, and prevents certain deployment and interoperability patterns. In particular, it is difficult to operate a CL node that executes and synchronizes L2 state without also deriving L2 state from L1.
 
+Derivation is an expensive process, both computationally and I/O bound, and today each isolated node typically performs this work independently. As OP Stack deployments move toward interoperability scenarios, this cost becomes more pronounced: verification may require additional sanity checks across multiple L2 chains, increasing resource contention and operational overhead. In such environments, it can be desirable to delegate derivation and cross-chain sanity checking to a specialized node and have execution-focused nodes consume the resulting `{safe, finalized, currentL1}` views, rather than re-deriving them locally.
+
 Light CL follow mode addresses this by explicitly removing derivation responsibilities from the node. Safe, finalized, and currentL1 information is sourced from an external CL that performs derivation, while kona-node focuses on validation, execution, and synchronization.
 
 ## Design Goals
