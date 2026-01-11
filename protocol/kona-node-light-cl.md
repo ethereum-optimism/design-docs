@@ -10,7 +10,7 @@
 
 ## Summary
 
-This document describes the design and implementation of Light CL as implemented in kona-node. In this mode, the node disables local L1->L2 derivation and instead mirrors the safe, finalized, and currentL1 views from an external OP Stack Consensus Layer (CL) node, while continuing to execute the local Execution Layer (EL) and maintain unsafe chain progression.
+This document describes the design and implementation of a Light CL configuration of kona-node. In this mode, L1->L2 derivation is executed by an external OP Stack Consensus Layer (CL) node rather than locally. The Light CL fetches safe, finalized, and currentL1 views via RPC call, while continuing to execute the local Execution Layer (EL) and maintain unsafe chain progression.
 
 Light CL reduces responsibility coupling within the consensus layer by separating derivation from execution and synchronization. Rather than producing safe and finalized blocks locally, kona-node ingests externally derived consensus data, validates it against canonical L1, and injects it into the local engine using well-defined rules that preserve existing OP Stack behavior, including unsafe consolidation and reorganization semantics.
 
@@ -27,9 +27,7 @@ In normal operation, an OP Stack consensus layer (CL) node is responsible for mu
 
 This coupling increases complexity, makes failure isolation harder, and prevents certain deployment and interoperability patterns. In particular, it is difficult to operate a CL node that executes and synchronizes L2 state without also deriving L2 state from L1.
 
-Derivation is an expensive process, both computationally and I/O bound, and today each isolated node typically performs this work independently. As OP Stack deployments move toward interoperability scenarios, this cost becomes more pronounced: verification may require additional sanity checks across multiple L2 chains, increasing resource contention and operational overhead. In such environments, it can be desirable to delegate derivation and cross-chain sanity checking to a specialized node and have execution-focused nodes consume the resulting `{safe, finalized, currentL1}` views, rather than re-deriving them locally.
-
-Light CL addresses this by explicitly removing derivation responsibilities from the node. Safe, finalized, and currentL1 information is sourced from an external CL that performs derivation, while kona-node focuses on validation, execution, and synchronization.
+Derivation is an expensive process, both computationally and I/O bound, and today each isolated node typically performs this work independently. As OP Stack deployments move toward interoperability scenarios, this cost becomes more pronounced: verification may require additional sanity checks across multiple L2 chains, increasing resource contention and operational overhead. In such environments, it can be desirable to delegate derivation and cross-chain sanity checking to a specialized node and have execution-focused nodes consume the resulting [`DerivationState`](#derivationstate-contract) views, rather than re-deriving them locally.
 
 ## Design Goals
 
@@ -46,6 +44,13 @@ Non-goals include re-deriving or re-verifying derivation correctness locally, or
 
 ## Light CL Semantics
 
+### `DerivationState` Contract
+
+At the core of Light CL is the `DerivationState`(`{safeL2, finalizedL2, currentL1}`), a data structure that replaces the output of the local derivation pipeline. It is defined as:
+- [`safeL2`](https://github.com/ethereum-optimism/specs/blob/349724453ffa22dd0a5c624d17a27b84602c8192/specs/glossary.md#safe-l2-head): `L2BlockInfo`
+- [`finalizedL2`](https://github.com/ethereum-optimism/specs/blob/349724453ffa22dd0a5c624d17a27b84602c8192/specs/glossary.md#finalized-l2-head): `L2BlockInfo`
+- [`currentL1`](https://github.com/ethereum-optimism/specs/blob/b2397eb45b77f882ccffe74bc03f87cddd3f4e26/specs/protocol/derivation.md?plain=1#L552): `L1BlockInfo`
+
 ### Responsibilities Dropped
 
 When Light CL is enabled, kona-node does not:
@@ -53,7 +58,6 @@ When Light CL is enabled, kona-node does not:
 - Run any L1->L2 derivation pipeline
 - Emit safe attributes
 - Schedule derivation stages
-- Advance safe or finalized heads based on local derivation
 
 ### Responsibilities Retained
 
@@ -68,20 +72,19 @@ In light CL, kona-node continues to:
 ### Authority and Trust Model
 
 - Canonical L1 is the ultimate source of truth.
-- External CL data (`{safeL2, finalizedL2, currentL1}`) is assumed to be correctly derived, subject to L1 consistency checks.
-- Local unsafe state is authoritative only until overridden by validated external safe data.
+- External CL data ([`DerivationState`]()) is assumed to be correctly derived, subject to L1 consistency checks.
 
 ### Bidirectional Messaging and Unidirectional Authority
 
-In deployments where a Light CL sequencer follows a normal verifier, there is a bidirectional interaction at the network (or RPC) level. The Light CL sequencer gossips unsafe blocks that the verifier may consume as candidates, while the verifier exposes state(`{safeL2, finalizedL2, currentL1}`) that the Light CL sequencer follows.
+In deployments where a Light CL sequencer delegates derivation to a normal verifier, there is a bidirectional interaction at the network (or RPC) level. The Light CL sequencer gossips unsafe blocks that the verifier may consume as candidates, while the verifier exposes [`DerivationState`](#derivationstate-contract) that the Light CL sequencer follows.
 
-Despite this bidirectional messaging, authority remains strictly one-directional. Unsafe blocks are proposal-only and never advance safe state. The verifier safe chain is derived from canonical L1, and the Light CL sequencer safe chain follows the verifier safe chain, not the other way around.
+Despite this bidirectional messaging, authority remains strictly unidirectional. Unsafe blocks are proposal-only and never advance safe state. The verifier safe chain is derived from canonical L1, and the Light CL sequencer safe chain follows the verifier safe chain, not the other way around.
 
 As a result, this interaction does not introduce circular control dependencies or correctness-level race conditions.
 
-### External Source Contract
+### External Source Contract: Derivation Delegation
 
-Light CL requires an external CL endpoint `L2_CL_RPC` exposing the `optimism_syncStatus` RPC API. This API response provides `{safeL2, finalizedL2, currentL1}`. These fields are sufficient to replace local derivation output. No additional APIs are required.
+Light CL requires an external CL endpoint `L2_CL_RPC` exposing the `optimism_syncStatus` RPC API. This API response [`syncStatus`](https://github.com/ethereum-optimism/specs/blob/b2397eb45b77f882ccffe74bc03f87cddd3f4e26/specs/protocol/rollup-node.md#syncstatus) provides [`DerivationState`](#derivationstate-contract). These fields are sufficient to replace local derivation output and **delegating derivation** to an external source. No additional APIs are required.
 
 The external source is trusted to have performed derivation correctly. The light CL does not check derivation correctness; it only validates consistency with canonical L1.
 
@@ -89,7 +92,7 @@ The external source is trusted to have performed derivation correctly. The light
 
 While it is technically possible for a Light CL to follow another Light CL, operators must avoid cycles in the light CL dependency graph.
 
-Circular dependencies in `{safeL2, finalizedL2, currentL1}` authority can lead to undefined behavior and circular trust assumptions.
+Circular dependencies in [`DerivationState`](#derivationstate-contract) authority can lead to undefined behavior and circular trust assumptions.
 
 Operational guidance:
 - The light CL dependency graph must be acyclic
@@ -179,7 +182,7 @@ To cleanly separate the responsibility, the logic for selecting the finalized ta
 In normal mode:
 - Derives `safeL2` as safe attributes through the local L1->L2 derivation pipeline.
 - Determines `finalizedL2` by monitoring the L1 finalized head.
-- Derivation Cursor as `currentL1`.
+- Maintains derivation cursor as `currentL1`
 
 In light CL mode:
 - Uses external CL output (`safeL2` and `finalizedL2` provided as `L2BlockInfo`, `currentL1` as `L1BlockInfo`).
@@ -200,7 +203,7 @@ The EngineActor:
 - Light CL mode: external `L2BlockInfo`.
 
 During `ConsolidateTask`, In light CL mode:
-- Attribute validation is skipped because the input is `L2BlockInfo`.
+- Attribute validity is assumed, rather than checked, for the provided `L2BlockInfo`.
 - If the unsafe chain disagrees with the target, reorg is performed using fork choice.
 
 `FinalizeTask` is reused unchanged.
