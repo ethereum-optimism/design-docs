@@ -4,9 +4,6 @@
 | ------------------ |---------------------------------------|
 | Author             | _@pcw109550_                          |
 | Created at         | _2026-01-06_                          |
-| Initial Reviewers  | _@theochap_                           |
-| Need Approval From |                                       |
-| Status             | _IN_REVIEW_                           |
 
 ## Summary
 
