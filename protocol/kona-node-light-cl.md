@@ -41,13 +41,6 @@ Non-goals include re-deriving or re-verifying derivation correctness locally, or
 
 ## Light CL Semantics
 
-### `DerivationState` Contract
-
-At the core of Light CL is the `DerivationState`(`{safeL2, finalizedL2, currentL1}`), a data structure that replaces the output of the local derivation pipeline. It is defined as:
-- [`safeL2`](https://github.com/ethereum-optimism/specs/blob/349724453ffa22dd0a5c624d17a27b84602c8192/specs/glossary.md#safe-l2-head): `L2BlockInfo`
-- [`finalizedL2`](https://github.com/ethereum-optimism/specs/blob/349724453ffa22dd0a5c624d17a27b84602c8192/specs/glossary.md#finalized-l2-head): `L2BlockInfo`
-- [`currentL1`](https://github.com/ethereum-optimism/specs/blob/b2397eb45b77f882ccffe74bc03f87cddd3f4e26/specs/protocol/derivation.md?plain=1#L552): `L1BlockInfo`
-
 ### Responsibilities Dropped
 
 When Light CL is enabled, kona-node does not:
@@ -66,10 +59,17 @@ In light CL, kona-node continues to:
 - Produce unsafe blocks when operating as a sequencer
 - Track canonical L1
 
+### `DerivationState` Contract
+
+At the core of Light CL is the `DerivationState`(`{safeL2, finalizedL2, currentL1}`), a data structure that replaces the output of the local derivation pipeline. It is defined as:
+- [`safeL2`](https://github.com/ethereum-optimism/specs/blob/349724453ffa22dd0a5c624d17a27b84602c8192/specs/glossary.md#safe-l2-head): `L2BlockInfo`
+- [`finalizedL2`](https://github.com/ethereum-optimism/specs/blob/349724453ffa22dd0a5c624d17a27b84602c8192/specs/glossary.md#finalized-l2-head): `L2BlockInfo`
+- [`currentL1`](https://github.com/ethereum-optimism/specs/blob/b2397eb45b77f882ccffe74bc03f87cddd3f4e26/specs/protocol/derivation.md?plain=1#L552): `L1BlockInfo`
+
 ### Authority and Trust Model
 
 - Canonical L1 is the ultimate source of truth.
-- External CL data ([`DerivationState`]()) is assumed to be correctly derived, subject to L1 consistency checks.
+- External CL data ([`DerivationState`](#derivationstate-contract)) is assumed to be correctly derived, subject to L1 consistency checks.
 
 ### Bidirectional Messaging and Unidirectional Authority
 
