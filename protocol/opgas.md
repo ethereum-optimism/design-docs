@@ -112,3 +112,7 @@ TODO(anteva): TBD
 ### Different client implementations will have different results
 
 Different client implementations may have drastically different results. This is probably preferable! The EVM gas model abstracts over the implementation, which is what we want to avoid with opgas. For UX purposes, it’s probably best to run a single implementation as the sequencer.
+
+## Open questions
+
+1. Should the sequencer be able to charge up to the signed transaction `gas limit`, or should the sequencer be able to charge up to the `EVM gas used`?
