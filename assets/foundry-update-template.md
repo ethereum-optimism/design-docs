@@ -20,8 +20,7 @@ _Italics are used to indicate things that need to be replaced._
 | ------------------- | -------------------------------------------------- |
 | Author              | _Author Name_                                      |
 | Created at          | _YYYY-MM-DD_                                       |
-| Needs Approval From | _Security Reviewer Name_                           |
-| Other Reviewers     | _Reviewer Name 1, Reviewer Name 2_                 |
+| Needs Approval From | _Security Reviewer Name 1, Security Reviewer Name 2_ |
 | Status              | _Draft / In Review / Implementing Actions / Final_ |
 
 ## Upgrade Info
