@@ -28,6 +28,11 @@ _Italics are used to indicate things that need to be replaced._
 - **Current Version:** _[e.g., v1.5.0]_
 - **Proposed Version:** _[e.g., v1.6.0]_
 
+## Changelog Links
+
+_Provide links to the Foundry changelog for each version between the current version used in the
+codebase and the proposed new version._
+
 ## Benefits to the OP Stack
 
 _Explain specific feature(s) in the new version that would benefit the OP Stack codebase, with a
@@ -44,19 +49,6 @@ Foundry or required significant changes to Foundry to be supported._
 _Highlight any potentially notable bug fixes that require special attention during the review
 process. Bug fixes should be considered "notable" if they are classified at or above a "medium" by
 the Foundry team._
-
-## Changelog Links
-
-_Provide links to the Foundry changelog for each version between the current version used in the
-codebase and the proposed new version._
-
-## Action Items
-
-_Highlight what **needs** to be done/reviewed before implementation to reduce the chances of the issues occurring, and to ensure they can be detected and recovered from:_
-
-- [ ] _Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)_
-- [ ] _Action item 2 (Assignee: tag assignee)_
-- [ ] _Action item 3 (Assignee: tag assignee)_
 
 ## Additional Notes
 
