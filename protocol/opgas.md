@@ -26,7 +26,9 @@ As an example, a very large percent of Base chain state has been taken over by a
 
 ## Proposed Solution
 
-The proposed solution is to use **wall-clock execution time** as a real-time oracle for the supply of computation. This proposal does not address *state growth*.
+The proposed solution is to introduce **opgas** notion, alongside **gas used** (EVM gas used) and **gas limit**, at the expense of putting more trust in the sequencer of a given OP Stack chain. **opgas** value is determined by the sequencer and is capped at the **gas limit** (or up to the **gas used**, namely EVM gas used, to be determined later).
+
+We propose for an initial implementation to couple **opgas** with the **wall-clock execution time**, although alternative schemes are also possible. **wall-clock execution time** would act as a real-time oracle for the supply of computation. This proposal does not address *state growth*, although it's possible to amend the **opgas** scheme in the future and account for other resources, and not just CPU-time.
 
 ### Core Mechanism
 
@@ -96,6 +98,10 @@ This design relies on the sequencer to set rebates honestly. Two mitigations are
 
 - **Temporary measure:** If gas schedules eventually become modular or perfectly aligned with performance, fee pricing can move back on-chain.
 - **TEE execution:** Running the sequencer in a trusted execution environment can provide stronger guarantees that rebates are calculated honestly based on actual resource consumption.
+
+## Security Considerations
+
+Considering that the **opgas** unit and functionality is increasing the trust in the OP chain sequencer, theoretically it is possible to encode and program a stop-gap in an event of chain incident, where the L2 chain operator could turn off **opgas** on-demand and revert back to EVM gas used.
 
 ## Alternatives Considered
 
