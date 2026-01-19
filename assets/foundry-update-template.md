@@ -5,11 +5,10 @@
 **Table of Contents**
 
 - [Upgrade Info](#upgrade-info)
+- [Changelog Links](#changelog-links)
 - [Benefits to the OP Stack](#benefits-to-the-op-stack)
 - [Notable Features](#notable-features)
 - [Notable Bug Fixes](#notable-bug-fixes)
-- [Changelog Links](#changelog-links)
-- [Action Items](#action-items)
 - [Additional Notes](#additional-notes)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
