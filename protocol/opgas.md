@@ -13,7 +13,7 @@ Allow the sequencer of OP Stack chains to influence the fee paid on a per-transa
 
 ## Summary
 
-Introduce **opgas** unit of calculation, which allows the sequencer of a given OP Stack chain to influence the fee paid by users on a per-transaction basis. Users sign transactions for the worst-case execution and receive rebates if better-than-worst-case execution is possible. By assuming worst-case performance, the sequencer can not only charge the signed gas limit for adversarial transactions, such as spam, but also a lower fair price is transaction execution was better than worst-case.
+Introduce **opgas** unit of calculation, which allows the sequencer of a given OP Stack chain to influence the fee paid by users on a per-transaction basis. Users sign transactions for the worst-case execution and receive rebates if better-than-worst-case execution is possible. By assuming worst-case performance, the sequencer can not only charge the signed gas limit for adversarial transactions, such as spam, but also a lower fair price if transaction execution was better than worst-case.
 
 ## Problem Statement + Context
 
