@@ -20,7 +20,6 @@
   - [Security-Relevant Fixes](#security-relevant-fixes)
   - [Test Reliability Fixes](#test-reliability-fixes)
 - [Additional Notes](#additional-notes)
-  - [Pre-Upgrade Testing Plan](#pre-upgrade-testing-plan)
   - [Implementation Checklist](#implementation-checklist)
   - [Risk Assessment](#risk-assessment)
   - [Compatibility](#compatibility)
@@ -180,13 +179,6 @@ These improvements directly reduce CI/CD pipeline times for the OP Stack monorep
 - **Fixed backtrace verbosity** (#12211) - Backtraces only shown at `-vvvvv` level, reducing noise
 
 ## Additional Notes
-
-### Pre-Upgrade Testing Plan
-
-1. **Linting Check:** Run `forge lint` on the current codebase to identify potential issues before upgrade
-2. **Full Test Suite:** Execute complete test suite across all OP Stack packages after upgrade
-3. **Coverage Comparison:** Compare coverage reports before and after to ensure no regressions
-4. **Formatting Review:** Run `forge fmt` and review changes in a separate PR
 
 ### Implementation Checklist
 
