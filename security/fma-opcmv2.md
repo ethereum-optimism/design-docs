@@ -179,7 +179,7 @@ High+ severity / Medium likelihood
 
 #### Description
 
-OPCM operations must fit within per-transaction gas limits. The consolidated `deploy()` function deploys multiple contracts atomically; if total gas exceeds limit, deployment fails entirely. Fusaki hardfork gas limits apply. Large dispute game arrays or complex initialization logic could push gas usage over limits. Applies to `upgrade()` too.
+OPCM operations must fit within per-transaction gas limits. The consolidated `deploy()` function deploys multiple contracts atomically; if total gas exceeds limit, deployment fails entirely. Fusaka hardfork gas limits apply. Large dispute game arrays or complex initialization logic could push gas usage over limits. Applies to `upgrade()` too.
 
 #### Risk Assessment
 
