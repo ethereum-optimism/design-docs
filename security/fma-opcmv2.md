@@ -255,6 +255,68 @@ High+ severity / Low likelihood
 
 - If detected and does not immediately cause a critical issue, can recover via upgrade
 
+### FM9: Interop Migration Codepath Not Production Ready
+
+#### Description
+
+OPCMv2 includes a codepath for migrating chains to interop. This migration codepath is not yet intended for production use and has not undergone the same level of review and testing as the core deploy/upgrade functionality. Premature use in production could introduce unknown risks.
+
+#### Risk Assessment
+
+High+ severity / Low likelihood (if properly blocked)
+
+#### Mitigations
+
+- Block the interop migration codepath in production until it has been fully analyzed and tested
+- Require explicit feature flag or separate contract path for interop migrations
+- Document clearly that interop migration is experimental/unsupported
+
+#### Detection
+
+- Code review should flag any attempts to use interop migration in production contexts
+- CI checks to ensure interop migration paths are gated appropriately
+
+#### Recovery Path
+
+- If accidentally triggered: depends on specific failure, likely requires upgrade to fix
+- Since this is a known gap, prevention is the primary strategy
+
+#### Action Items
+
+- [ ] Block interop migration codepath from being used in production
+- [ ] Separate FMA required for interop migration before it can be enabled in production
+
+### FM10: Malicious OPCM Contract
+
+#### Description
+
+The OPCM contracts themselves could be malicious or contain backdoors. Since OPCM is trusted to perform upgrades across the system, a compromised OPCM could introduce arbitrary malicious code during deploy or upgrade operations. The primary defense is the `VerifyOPCM` script which validates that OPCM behavior matches expectations.
+
+#### Risk Assessment
+
+Critical severity / Low likelihood
+
+#### Mitigations
+
+- `VerifyOPCM` must be updated to validate OPCMv2 with the same rigor as v1
+- Changes to `VerifyOPCM` require careful review to ensure all variables, config, and code paths of OPCMv2 are properly validated
+- Audit of the changes to `VerifyOPCM` itself
+
+#### Detection
+
+- `VerifyOPCM` execution during Superchain Ops validation
+- Manual review of OPCM bytecode against expected compiled output
+
+#### Recovery Path
+
+- If malicious OPCM is detected before use: do not execute, investigate source of compromise
+- If malicious OPCM was already executed: critical incident, assess damage and potentially pause affected systems
+
+#### Action Items
+
+- [ ] Review `VerifyOPCM` changes to confirm OPCMv2 validation coverage matches or exceeds v1 coverage
+- [ ] Make sure `VerifyOPCM` is included in audit
+
 ## Audit Requirements
 
 **This component requires audit.**
