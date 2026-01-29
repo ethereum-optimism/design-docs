@@ -121,7 +121,7 @@ These improvements directly reduce CI/CD pipeline times for the OP Stack monorep
 1. **`forge lint` runs by default on `forge build`**
    - **Impact:** May cause builds to fail if linting errors are present
    - **Mitigation:** Can be disabled with `lint_on_build = false` in `foundry.toml`
-   - **Recommendation:** Run `forge lint` on OP Stack codebase before upgrading to identify and address any issues
+   - **Recommendation:** After upgrading, review any linting errors and either fix them or configure lint rules in `foundry.toml` as needed
 
 2. **Coverage-Guided Fuzzing Mode**
    - **Impact:** Changes fuzzing behavior when `corpus_dir` is configured
@@ -145,8 +145,9 @@ These improvements directly reduce CI/CD pipeline times for the OP Stack monorep
    - **Benefit:** Directly supports OP Stack's multi-chain deployment needs (superchain-ops)
 
 3. **Deprecated Etherscan v1 API**
-   - **Impact:** Must use Etherscan v2 API for contract verification
-   - **Consideration:** Verify that verification scripts use v2 API
+   - **Status:** Foundry v1.4.0 deprecated the Etherscan v1 API for contract verification
+   - **Impact:** No migration required - OP Stack's `op-deployer` already uses Etherscan v2 API ([source](https://github.com/ethereum-optimism/optimism/blob/213b3981e7507f4103fa7bc2191f977a16bf75ab/op-deployer/pkg/deployer/verify/etherscan.go#L55))
+   - **Action:** None needed, included for awareness only
 
 ## Notable Bug Fixes
 
@@ -167,7 +168,7 @@ These improvements directly reduce CI/CD pipeline times for the OP Stack monorep
 ### Test Reliability Fixes
 
 **v1.3.0:**
-- **Fixed `expectRevert` with count 0** (#10534) - No longer reverts when event with count 0 is not emitted
+- **Fixed `expectEmit` with count 0** (#10534) - No longer reverts when event with count 0 is not emitted
 - **Fixed `vm.chainId` regression in isolation mode** (#10589)
 - **Fixed persistent storage updates** (#10576)
 
