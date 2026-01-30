@@ -238,3 +238,36 @@ prior to implementation.
 
 [kona-overrides]: https://github.com/op-rs/kona/blob/main/bin/node/src/flags/overrides.rs
 [op-overrides]: https://github.com/ethereum-optimism/optimism/blob/develop/op-service/flags/flags.go#L16-L24
+
+
+# Addendum
+The "minimum base fee" (h.f MinBaseFee) feature was the first feature which we tried to apply the above philosophy to. 
+Some unforeseen issues cropped up which are recorded here to provide extra guidance on how
+to implement decoupled features in future. 
+
+The [specification of the MinBaseFee feature](https://github.com/ethereum-optimism/specs/pull/747) calls for i) some business logic changes and ii) some API and data structure
+changes. It so happens that the business logic changes can be considered mostly independently of any other feature or
+hardfork: Right at the end of the block sealing process, just modify an existing numerical field according to some 
+modified rules. However, the API and data structure changes can _not_ easily be specified (let alone implemented) without
+some dependence on other features. Moreover, without some radical reworking of how we specify the protocol in general, 
+when specifying MinBaseFee we open up the possibility that other features need to either
+ depend on it or be a dependency of it themselves.
+
+Looking at the changes in detail will illuminate the point. MinBaseFee requires a modification to the block extraData field.
+If we can commit to including the feature as the _first feature_ in Jovian, we can specify MinBaseFee by
+extending the Isthmus block schema. This allows us to specify MinBaseFee by introducing an additional byte at offset 9 to
+`block.extraData`. 
+
+So far so good, but this is working entirely under the old paradigm where features are tightly coupled to forks. This runs the
+risk that it would be difficult to reschedule or disable the feature.
+Can a feature toggle help, here? Well, if we lean into that idea then we can't safely specify the feature 
+as we did above. This is because we could imagine another (fictional) feature, call it MaxBaseFee,
+which _also_ seeks to extend the `block.ExtraData` field with a new byte of data. The ordering of the two features implies a different byte offset for each of the minimum and the maximum base fee byte.
+
+Is it possible to specify such features in a _relative_ manner? For example, we could simply state that MinBaseFee adds an extra byte to the end of `block.extraData`, regardless of how many bytes it has. This seems like a very bad idea, since the block schema is part of the public API of the OPStack, and it would make building against that API extremely painful if the semantics of that schema depend on the ordering of this feature compared to other features. Getting from a relative specification of the hardfork to an absolute one (as is necessary for consumers of the API) would then require a much greater mental overhead and would be error prone. 
+
+While features may be toggled entirely independently, but those that modify APIs may not be. In those cases, we are left with having to specify an ordering of certain features, which means optimistically tying them to a specific hard fork. It is inevitable that rescheduling or disabling such features will be painful, and unfortunately feature toggles aren't really helping in that scenario.
+
+
+
+
