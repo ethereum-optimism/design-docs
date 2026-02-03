@@ -32,7 +32,7 @@ We propose for an initial implementation to couple **opgas** with the **wall-clo
 
 ### Core Mechanism
 
-1. **Set the block gas limit to the worst-case EVM gas-per-millisecond throughput $G$:** Calculate the gas per millisecond that the chain can safely handle assuming every transaction is maximally expensive. This becomes the block gas limit.
+1. **Set the block gas limit to the worst-case EVM gas-per-microsecond throughput $G$:** Calculate the gas per microsecond that the chain can safely handle assuming every transaction is maximally expensive. This becomes the block gas limit.
 2. **Execute transactions and measure wall-clock time:** The sequencer runs each transaction and records how long it actually takes to execute. For a transaction that executes with gas used $g$ and time $t$, adjust its gas used proportional to the worst-case throughput $G$, capped at the signed transaction gas limit.
 3. **Rebate proportional to performance:** If a transaction executes faster than the worst-case assumption, the sequencer rebates gas proportionally. A transaction that runs in 10% of the expected time gets 90% of its gas rebated.
 4. **EIP-1559 continues to function:** The rebate mechanism integrates with EIP-1559 price discovery. The base fee adjusts based on actual (post-rebate) gas consumption, maintaining market-based pricing.
@@ -43,15 +43,19 @@ $$
 \text{opgas}=\min\left\{\frac{g}{t\cdot G}, 1\right\}\text{evmgas}
 $$
 
-```python
-# Constant determined by experimentation. Using 100MGas/s as an example.
-WORST_CASE_GAS_PER_SECOND = 100_000_000
+```go
+# Constant determined by experimentation. Using 50MGas/s as an example.
 
-def evmgas_to_opgas(gas_used, seconds_used, tx_gas_limit):
-  worst_case_gas_used = WORST_CASE_GAS_PER_SECOND * seconds_used
-  op_gas_scalar = min(gas_used / worst_case_gas_used, 1)
-	op_gas_used = min(gas_used * op_gas_scalar, tx_gas_limit)
-	return op_gas_used
+const WORST_CASE_GAS_PER_MICROSECOND = uint64(50) // 50M gas per second
+
+func evmgasToOpgas(evm_gas_used, microseconds_used uint64) uint64 {
+	if microseconds_used == 0 {
+		microseconds_used = 1
+	}
+	worst_case_gas_used := WORST_CASE_GAS_PER_MICROSECOND * microseconds_used
+	op_gas_scalar := min(float64(worst_case_gas_used)/float64(evm_gas_used), float64(1))
+	return uint64(float64(evm_gas_used) * op_gas_scalar)
+}
 ```
 
 Given the **core mechanism**, we get the following effects:
@@ -82,7 +86,7 @@ After transaction execution, we need to propagate the calculated `opgas` (based 
 An open design question is where the sequencer communicates the rebate amounts. An option is to Include a mapping of transaction indices to rebate amounts in the block header. This keeps transaction data unchanged, but requires header extensions.
 
 #### Benchmarking: Baseline calibration
-Establish a baseline for "worst-case gas per millisecond" and "best-case gas per millisecond" through benchmarking. All rebates are calculated relative to this baseline. Millisecond-level timing should suffice. Sub-millisecond precision adds complexity without proportional benefit.
+Establish a baseline for "worst-case gas per microsecond" and "best-case gas per microsecond" through benchmarking. All rebates are calculated relative to this baseline.
 
 #### Benchmarking: How effective the PoC is
 
