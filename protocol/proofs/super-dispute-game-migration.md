@@ -67,12 +67,62 @@ See [OPCM v2 Design Doc](../opcm-v2.md) for details.
 High level Overview of Steps:
 1. Deploy SuperDisputeGame implementation (by OPCM)
 2. Upgrade AnchorStateRegistry implementation via proxy
-    - Use `SUPER_CANNON_KONA` for _startingRespectedGameType in the initializer
+    - Use target super-root game type for `_startingRespectedGameType` in the initializer
 3. Upgrade OptimismPortal2 implementation via proxy
 4. Register SDG in DisputeGameFactory with new game type
+5. Disable legacy game types in DisputeGameFactory
 
-Do NOT call `updateRetirementTimestamp()` or update the retirementTimestamp during migration. 
+Do NOT call `updateRetirementTimestamp()` or update the retirementTimestamp during migration.
     - This would retire ALL games created before the call, invalidating in-flight withdrawals.
+
+#### OPCM V2 Migration Mode
+
+Migration support is gated behind a feature flag (`DevFeatures.SUPER_ROOT_GAMES_MIGRATION`) to allow isolated development and testing.
+
+**Feature Flag Behavior**:
+- **Flag OFF**: Existing upgrade behavior unchanged (requires 4 game configs)
+- **Flag ON**: Super-root migration mode active with constraints below
+
+**Mode-Safety Constraints**:
+
+The migration must preserve the chain's permission mode. OPCM reads the original `respectedGameType` directly from AnchorStateRegistry (not from overrides) to determine the chain's current mode:
+
+| Original Chain Mode | Allowed Target | Rejected Target |
+|---------------------|----------------|-----------------|
+| Permissionless (CANNON, CANNON_KONA) | `SUPER_CANNON_KONA` | `SUPER_PERMISSIONED_CANNON` |
+| Permissioned (PERMISSIONED_CANNON) | `SUPER_PERMISSIONED_CANNON` | `SUPER_CANNON_KONA` |
+
+Cross-mode migration (permissionless ↔ permissioned) is explicitly prevented.
+
+**Single Config Requirement (flag ON)**:
+- Exactly one `disputeGameConfig` entry allowed
+- Config must specify the target super-root game type matching the chain's mode
+- Requires `startingRespectedGameType` override matching the target game type
+
+**Legacy Type Cleanup (flag ON)**:
+
+Post-migration, OPCM explicitly disables legacy game types in DisputeGameFactory (sets implementation to zero address, init bond to zero):
+- `CANNON`
+- `PERMISSIONED_CANNON`
+- `CANNON_KONA`
+- `SUPER_CANNON`
+- `SUPER_PERMISSIONED_CANNON`
+
+Only the selected super-root game type remains registered.
+
+**Note on Permissioned Games**:
+
+There is no `SUPER_PERMISSIONED_CANNON_KONA` game type. The `*_CANNON` suffix in permissioned game types is a historical naming convention—permissioned game behavior does not depend on VM/program variant in the same way permissionless games do. The safety property is the permission mode itself.
+
+#### Operator Usage
+
+To execute migration via `OPCM.upgrade()`:
+1. Enable `DevFeatures.SUPER_ROOT_GAMES_MIGRATION` in development environment 
+2. Provide single dispute game config:
+   - `gameType`: `SUPER_CANNON_KONA` (permissionless) or `SUPER_PERMISSIONED_CANNON` (permissioned)
+   - `enabled`: true
+3. Provide `extraInstructions` with `startingRespectedGameType` override matching target
+4. OPCM validates mode-safety automatically
 
 ### Why Withdrawals Stay Safe
 
@@ -125,14 +175,8 @@ Assume all games have `rootClaimByChainId()` and call it unconditionally.
 
 ### Open Questions
 
-- Should we think through a fallback to OPCM v1 ? Are we okay being coupled to OPCM v2
+- Should we think through a fallback to OPCM v1? Are we okay being coupled to OPCM v2?
 
-- Are we allowing upgrading to either the SuperPermissioned/SuperDisputeGame?
+- Are there special edge cases for deploy vs upgrade that we need to consider?
 
-- SUPER_CANNON_KONA is the gameType for this?
-
-- Should we enforce based upgrade logic like if you're upgrading a Permissionless chain that you upgrade to a Permissionless Super game
-
-- Does anything happen with the OptimismPortalInterop?
-
-- Should this doc cover deploy or only the upgrade
+- Details for merging into interop sets and shared games?
