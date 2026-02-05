@@ -103,25 +103,32 @@ The migration must preserve the chain's permission mode. OPCM reads the original
 
 Cross-mode migration (permissionless ↔ permissioned) is explicitly prevented.
 
-**Single Config Requirement (flag ON)**:
-- Exactly one `disputeGameConfig` entry allowed
-- Config must specify the target super-root game type matching the chain's mode
-- Requires `startingRespectedGameType` override matching the target game type
+**Config Requirements (flag ON)**:
+
+| Original Mode | Required Config | Optional Fallback Config |
+|---------------|-----------------|--------------------------|
+| Permissionless | `SUPER_CANNON_KONA` | `SUPER_PERMISSIONED_CANNON` |
+| Permissioned | `SUPER_PERMISSIONED_CANNON` | None |
+
+- `startingRespectedGameType` override must match the required config's game type
+- Permissionless chains MAY register `SUPER_PERMISSIONED_CANNON` as fallback (enables easy switch if needed)
+- Cross-mode respected game type (permissionless ↔ permissioned) still explicitly prevented
 
 **Legacy Type Cleanup (flag ON)**:
 
-Post-migration, OPCM explicitly disables legacy game types in DisputeGameFactory (sets implementation to zero address, init bond to zero):
+Post-migration, OPCM disables legacy game types in DisputeGameFactory (sets implementation to zero address, init bond to zero):
 - `CANNON`
 - `PERMISSIONED_CANNON`
 - `CANNON_KONA`
 - `SUPER_CANNON`
-- `SUPER_PERMISSIONED_CANNON`
+
+Note: `SUPER_PERMISSIONED_CANNON` is NOT disabled if registered as fallback for permissionless chains.
 
 Only the selected super-root game type remains registered.
 
 **Note on Permissioned Games**:
 
-There is no `SUPER_PERMISSIONED_CANNON_KONA` game type. The `*_CANNON` suffix in permissioned game types is a historical naming convention—permissioned game behavior does not depend on VM/program variant in the same way permissionless games do. The safety property is the permission mode itself.
+There is no `SUPER_PERMISSIONED_CANNON_KONA` game type. While permissioned games are technically configured with a specific VM (cannon) and program (op-program), the permission mechanism prevents games from being played out to the point where VM/program differences matter. For super games, `SUPER_PERMISSIONED_CANNON` can use cannon/kona since it hasn't been deployed yet.
 
 #### Operator Usage
 
