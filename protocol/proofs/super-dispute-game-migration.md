@@ -153,7 +153,11 @@ See [FMA: SuperDisputeGame Migration](../../security/fma-super-dispute-game-migr
 
 ## Impact on Developer Experience
 
-**Application developers**: No change. Withdrawal proving/finalizing works the same from user perspective. `OptimismPortal.proveWithdrawalTransaction()` and `finalizeWithdrawalTransaction()` signatures unchanged.
+**Application developers**: Function signatures unchanged, but game selection logic changes:
+- **Before (FaultDisputeGame)**: Find game where `l2BlockNumber` > withdrawal initiation block
+- **After (SuperDisputeGame)**: Find game where `l2SequenceNumber` (timestamp) > withdrawal initiation block timestamp
+
+SDKs and proving services need updates to query by timestamp instead of block number.
 
 ## Alternatives Considered
 
