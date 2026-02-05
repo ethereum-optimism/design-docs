@@ -76,6 +76,7 @@ High level Overview of Steps:
 1. Deploy SuperDisputeGame implementation (by OPCM)
 2. Upgrade AnchorStateRegistry implementation via proxy
     - Use target super-root game type for `_startingRespectedGameType` in the initializer
+    - Set `_startingAnchorRoot` to a valid super root (existing anchor is an output root, not compatible)
 3. Upgrade OptimismPortal2 implementation via proxy
 4. Register SDG in DisputeGameFactory with new game type
 5. Disable legacy game types in DisputeGameFactory (set implementation to `address(0)`)
