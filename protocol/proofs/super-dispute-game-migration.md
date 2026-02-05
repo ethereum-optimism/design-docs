@@ -151,8 +151,6 @@ The `wasRespectedGameTypeWhenCreated` flag protects existing withdrawals:
 ### Assumptions
 
 - OptimismPortal2 (NOT OptimismPortalInterop, which already has `superRootsActive`)
-- All deployed FaultDisputeGame contracts have `wasRespectedGameTypeWhenCreated`. If older games exist, migration must wait for them to finalize first.
-    - Potential issue if teams are upgrading from a version older than when this function was added that their inflight withdrawals would be bricked. I think this assumption would need to be handled via comms that you should keep up with the upgrade process. 
 - **ChainId**: `SystemConfig.l2ChainId()` must be set correctly before migration
 
 ## Failure Mode Analysis
