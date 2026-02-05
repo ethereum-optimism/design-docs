@@ -58,6 +58,14 @@ if (_isSuperGameType(disputeGameProxy.gameType())) {
 
 **Note**: SuperDisputeGame's `rootClaim()` returns the SuperRoot hash (aggregate of all chains), NOT an individual OutputRoot. The `rootClaimByChainId()` method extracts the correct chain-specific OutputRoot from the SuperRoot preimage.
 
+**Alternative Approaches Considered**:
+
+1. **Try/catch fallback**: Call `rootClaimByChainId()` first, fallback to `rootClaim()` on revert. More future-proof (no update needed for new game types), but adds gas overhead and complexity.
+
+2. **Update FaultDisputeGame first**: Ship `rootClaimByChainId()` to old games before OptimismPortal change. Older games prior to upgrade still couldn't prove new withdrawals, but finalization would still work.
+
+**Chosen approach**: Hardcoded `_isSuperGameType()` check for simplicity. Tradeoff is requiring updates when new super game types are added.
+
 ### Change 2: Update OPCM, upgrade existing contracts, and update game type (via OPCM)
 
 OPContractsManager v2 orchestrates the migration via `OPCM.upgrade()`. The upgrade executes atomically in a single transaction via `DELEGATECALL` from the Upgrade Controller Safe—if any step fails, all revert.
@@ -70,7 +78,7 @@ High level Overview of Steps:
     - Use target super-root game type for `_startingRespectedGameType` in the initializer
 3. Upgrade OptimismPortal2 implementation via proxy
 4. Register SDG in DisputeGameFactory with new game type
-5. Disable legacy game types in DisputeGameFactory
+5. Disable legacy game types in DisputeGameFactory (set implementation to `address(0)`)
 
 Do NOT call `updateRetirementTimestamp()` or update the retirementTimestamp during migration.
     - This would retire ALL games created before the call, invalidating in-flight withdrawals.
