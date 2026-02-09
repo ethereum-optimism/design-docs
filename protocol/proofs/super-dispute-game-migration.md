@@ -135,12 +135,52 @@ There is no `SUPER_PERMISSIONED_CANNON_KONA` game type. While permissioned games
 #### Operator Usage
 
 To execute migration via `OPCM.upgrade()`:
-1. Enable `DevFeatures.SUPER_ROOT_GAMES_MIGRATION` in development environment 
-2. Provide single dispute game config:
+1. Generate and verify the starting super root (see [Starting Super Root & Governance Verification](#starting-super-root--governance-verification))
+2. Enable `DevFeatures.SUPER_ROOT_GAMES_MIGRATION` in development environment
+3. Provide single dispute game config:
    - `gameType`: `SUPER_CANNON_KONA` (permissionless) or `SUPER_PERMISSIONED_CANNON` (permissioned)
    - `enabled`: true
-3. Provide `extraInstructions` with `startingRespectedGameType` override matching target
-4. OPCM validates mode-safety automatically
+4. Provide `extraInstructions` with:
+   - `startingRespectedGameType` override matching target
+   - `startingAnchorRoot` set to the generated super root
+5. OPCM validates mode-safety automatically
+
+#### Starting Super Root & Governance Verification
+
+The starting super root is passed as an `OutputRoot` to the ASR reinitializer, where:
+
+- `OutputRoot.root` = `keccak256(encode(SuperRootProof))`
+- `OutputRoot.l2SequenceNumber` = `SuperRootProof.timestamp`
+
+For a single-chain migration, the super root wraps exactly one output root:
+
+```
+SuperRootProof {
+    version:     0x01
+    timestamp:   <L2 timestamp of the anchor state>
+    outputRoots: [{
+        chainId: <SystemConfig.l2ChainId()>
+        root:    <current anchor output root>
+    }]
+}
+```
+
+**What governance must verify**:
+
+1. **Decode and verify `version`** — Decode the `OutputRoot.root` preimage (provided alongside the upgrade transaction) via `Encoding.decodeSuperRootProof()`. Verify `version == 0x01`.
+2. **Verify `chainId`** — The decoded `outputRoots[0].chainId` must match `SystemConfig.l2ChainId()` for the chain being migrated. Cross-reference against the superchain registry.
+3. **Verify `outputRoot`** — The decoded `outputRoots[0].root` should be a known-valid output root for that chain. Governance can verify by:
+   - Checking it matches the current `AnchorStateRegistry.getAnchorRoot()` value, OR
+   - Checking it against a recently resolved dispute game's `rootClaim()`
+   - Running an independent L2 node and confirming the output root at that timestamp
+4. **Verify the hash** — Recompute `keccak256(encodeSuperRootProof(decoded))` and confirm it matches `OutputRoot.root`.
+5. **Verify `l2SequenceNumber`** — Must equal `SuperRootProof.timestamp`.
+6. **Verify only one chain** — `outputRoots.length == 1` for single-chain migration.
+
+**Tooling required** (does not exist yet):
+
+- A script that reads `AnchorStateRegistry.getAnchorRoot()` + `SystemConfig.l2ChainId()`, wraps into a `SuperRootProof`, and outputs the `OutputRoot`
+- A verification script that takes an `OutputRoot` + preimage, decodes, and validates all fields against on-chain state
 
 ### Why Withdrawals Stay Safe
 
