@@ -231,7 +231,7 @@ Assume all games have `rootClaimByChainId()` and call it unconditionally.
 
 **Risk**: If `SystemConfig.l2ChainId()` is incorrect, `rootClaimByChainId()` returns wrong data or reverts.
 
-**Mitigation**: Add precondition check before migration. Verify chainId is set correctly in SystemConfig.
+**Mitigation**: OPCM should add a precondition check that `SystemConfig.l2ChainId()` matches the chain's expected chain ID from the superchain registry.
 
 ### Open Questions
 
