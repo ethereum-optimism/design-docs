@@ -157,7 +157,7 @@ For a single-chain migration, the super root wraps exactly one output root:
 ```
 SuperRootProof {
     version:     0x01
-    timestamp:   <L2 timestamp of the anchor state>
+    timestamp:   <L2 timestamp of the output root>
     outputRoots: [{
         chainId: <SystemConfig.l2ChainId()>
         root:    <current anchor output root>
