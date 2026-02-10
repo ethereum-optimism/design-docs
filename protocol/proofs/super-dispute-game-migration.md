@@ -107,13 +107,15 @@ Cross-mode migration (permissionless ↔ permissioned) is explicitly prevented.
 
 **Config Requirements (flag ON)**:
 
-| Original Mode | Required Config | Optional Fallback Config |
-|---------------|-----------------|--------------------------|
-| Permissionless | `SUPER_CANNON_KONA` | `SUPER_PERMISSIONED_CANNON` |
-| Permissioned | `SUPER_PERMISSIONED_CANNON` | None |
+| Original Mode | Required Configs |
+|---------------|-----------------|
+| Permissionless | `SUPER_CANNON_KONA` + `SUPER_PERMISSIONED_CANNON` |
+| Permissioned | `SUPER_PERMISSIONED_CANNON` |
 
-- `startingRespectedGameType` override must match the required config's game type
-- Permissionless chains MAY register `SUPER_PERMISSIONED_CANNON` as fallback (enables easy switch if needed)
+- `SUPER_PERMISSIONED_CANNON` config is always required regardless of mode
+- `SUPER_CANNON_KONA` config is required for permissionless chains, ignored/rejected for permissioned chains
+- `startingRespectedGameType` override must match `SUPER_CANNON_KONA` (permissionless) or `SUPER_PERMISSIONED_CANNON` (permissioned)
+- For permissionless chains, `SUPER_PERMISSIONED_CANNON` is registered but NOT set as the respected game type (enables fallback switch if needed)
 - Cross-mode respected game type (permissionless ↔ permissioned) still explicitly prevented
 
 **Legacy Type Cleanup (flag ON)**:
@@ -124,9 +126,9 @@ Post-migration, OPCM disables legacy game types in DisputeGameFactory (sets impl
 - `CANNON_KONA`
 - `SUPER_CANNON`
 
-Note: `SUPER_PERMISSIONED_CANNON` is NOT disabled if registered as fallback for permissionless chains.
+Note: `SUPER_PERMISSIONED_CANNON` is NOT disabled — it is always registered.
 
-Only the selected super-root game type remains registered.
+Only `SUPER_PERMISSIONED_CANNON` and (for permissionless chains) `SUPER_CANNON_KONA` remain registered.
 
 **Note on Permissioned Games**:
 
@@ -137,9 +139,9 @@ There is no `SUPER_PERMISSIONED_CANNON_KONA` game type. While permissioned games
 To execute migration via `OPCM.upgrade()`:
 1. Generate and verify the starting super root (see [Starting Super Root & Governance Verification](#starting-super-root--governance-verification))
 2. Enable `DevFeatures.SUPER_ROOT_GAMES_MIGRATION` in development environment
-3. Provide single dispute game config:
-   - `gameType`: `SUPER_CANNON_KONA` (permissionless) or `SUPER_PERMISSIONED_CANNON` (permissioned)
-   - `enabled`: true
+3. Provide dispute game config(s):
+   - Permissionless: configs for both `SUPER_CANNON_KONA` and `SUPER_PERMISSIONED_CANNON`
+   - Permissioned: config for `SUPER_PERMISSIONED_CANNON`
 4. Provide `extraInstructions` with:
    - `startingRespectedGameType` override matching target
    - `startingAnchorRoot` set to the generated super root
