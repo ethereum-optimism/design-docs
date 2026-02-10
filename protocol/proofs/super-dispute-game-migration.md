@@ -171,18 +171,9 @@ SuperRootProof {
 
 1. **Decode and verify `version`** — Decode the `OutputRoot.root` preimage (provided alongside the upgrade transaction) via `Encoding.decodeSuperRootProof()`. Verify `version == 0x01`.
 2. **Verify `chainId`** — The decoded `outputRoots[0].chainId` must match `SystemConfig.l2ChainId()` for the chain being migrated. Cross-reference against the superchain registry.
-3. **Verify `outputRoot`** — The decoded `outputRoots[0].root` should be a known-valid output root for that chain. Governance can verify by:
-   - Checking it matches the current `AnchorStateRegistry.getAnchorRoot()` value, OR
-   - Checking it against a recently resolved dispute game's `rootClaim()`
-   - Running an independent L2 node and confirming the output root at that timestamp
-4. **Verify the hash** — Recompute `keccak256(encodeSuperRootProof(decoded))` and confirm it matches `OutputRoot.root`.
-5. **Verify `l2SequenceNumber`** — Must equal `SuperRootProof.timestamp`.
-6. **Verify only one chain** — `outputRoots.length == 1` for single-chain migration.
-
-**Tooling required** (does not exist yet):
-
-- A script that reads `AnchorStateRegistry.getAnchorRoot()` + `SystemConfig.l2ChainId()`, wraps into a `SuperRootProof`, and outputs the `OutputRoot`
-- A verification script that takes an `OutputRoot` + preimage, decodes, and validates all fields against on-chain state
+3. **Verify the super root** — Use the [`check-super-root`](https://github.com/ethereum-optimism/optimism/tree/develop/op-chain-ops/cmd/check-super-root) script to verify the super root can be recomputed and is correct.
+4. **Verify `l2SequenceNumber`** — Must equal `SuperRootProof.timestamp`.
+5. **Verify only one chain** — `outputRoots.length == 1` for single-chain migration.
 
 ### Why Withdrawals Stay Safe
 
