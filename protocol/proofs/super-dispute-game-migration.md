@@ -167,7 +167,7 @@ SuperRootProof {
 }
 ```
 
-**What governance must verify**:
+**What governance must verify (pre-upgrade, from the upgrade calldata)**:
 
 1. **Decode and verify `version`** — Decode the `OutputRoot.root` preimage (provided alongside the upgrade transaction) via `Encoding.decodeSuperRootProof()`. Verify `version == 0x01`.
 2. **Verify `chainId`** — The decoded `outputRoots[0].chainId` must match `SystemConfig.l2ChainId()` for the chain being migrated. Cross-reference against the superchain registry.
