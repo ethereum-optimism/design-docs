@@ -100,8 +100,8 @@ The migration must preserve the chain's permission mode. OPCM reads the original
 
 | Original Chain Mode | Allowed Target | Rejected Target |
 |---------------------|----------------|-----------------|
-| Permissionless (CANNON, CANNON_KONA) | `SUPER_CANNON_KONA` | `SUPER_PERMISSIONED_CANNON` |
-| Permissioned (PERMISSIONED_CANNON) | `SUPER_PERMISSIONED_CANNON` | `SUPER_CANNON_KONA` |
+| Permissionless (CANNON, CANNON_KONA) | `SUPER_CANNON_KONA` | `SUPER_PERMISSIONED_CANNON`, `SUPER_CANNON` |
+| Permissioned (PERMISSIONED_CANNON) | `SUPER_PERMISSIONED_CANNON` | `SUPER_CANNON_KONA`, `SUPER_CANNON` |
 
 Cross-mode migration (permissionless ↔ permissioned) is explicitly prevented.
 
