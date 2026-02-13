@@ -187,11 +187,6 @@ The `wasRespectedGameTypeWhenCreated` flag protects existing withdrawals:
 
 - OptimismPortal2 (NOT OptimismPortalInterop, which already has `superRootsActive`)
 - **ChainId**: `SystemConfig.l2ChainId()` must be set correctly before migration
-
-## Failure Mode Analysis
-
-See [FMA: SuperDisputeGame Migration](../../security/fma-super-dispute-game-migration.md).
-
 ## Impact on Developer Experience
 
 **Application developers**: Function signatures unchanged, but game selection logic changes:
