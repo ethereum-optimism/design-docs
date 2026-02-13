@@ -223,8 +223,6 @@ Assume all games have `rootClaimByChainId()` and call it unconditionally.
 
 ### Open Questions
 
-- Should we think through a fallback to OPCM v1? Are we okay being coupled to OPCM v2?
-
 - Are there special edge cases for deploy vs upgrade that we need to consider?
 
 - Details for merging into interop sets and shared games?
