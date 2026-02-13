@@ -78,7 +78,7 @@ High level Overview of Steps:
     - Use target super-root game type for `_startingRespectedGameType` in the initializer
     - Set `_startingAnchorRoot` to a valid super root (existing anchor is an output root, not compatible)
     - Clear `anchorGame` to `address(0)` in the reinitializer — on live chains `anchorGame` is already set, and `getAnchorRoot()` checks it first. Without clearing, the new `startingAnchorRoot` is ignored entirely.
-    - **Implementation note**: The reinitializer must be modified to add `anchorGame = IFaultDisputeGame(address(0))`. No existing function can clear this storage slot.
+    - **Implementation note**: The reinitializer must accept a flag to opt into clearing `anchorGame`. This clearing must only happen during the initial super game migration — subsequent upgrades must NOT clear `anchorGame`, as it would reset the anchor to the original starting root.
 3. Upgrade OptimismPortal2 implementation via proxy
 4. Register SDG in DisputeGameFactory with new game type
 5. Disable legacy game types in DisputeGameFactory (set implementation to `address(0)`)
