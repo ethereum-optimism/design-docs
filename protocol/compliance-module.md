@@ -63,16 +63,21 @@ flowchart TB
         Compliance1[Compliance]
         Owner1[Owner]
 
-        User1 -->|"depositTransaction{value: msg.value}(to, value, gasLimit, isCreation, data)"| Portal
-        Portal -->|"if compliance != address(0)<br/>call check()"| Compliance1
+        User1 -->|"depositTransaction{value}(to, value, gasLimit, isCreation, data)"| Portal
+        Portal -->|"check{value: msg.value}()"| Compliance1
 
-        Compliance1 -->|If not flagged| Allowed1{Deposit Allowed}
-        Allowed1 --> Emit1[emit TransactionDeposited]
+        Compliance1 -->|"All rules approve"| Donate1["donateETH{value}() → OptimismPortal2"]
+        Donate1 --> Emit1[emit TransactionDeposited]
 
-        Owner1 -->|"approve()"| Flagged1
-        Compliance1 -->|If flagged| Flagged1{Deposit Flagged}
-        Flagged1 -->|"Chain operator allows<br/>portal.approved()"| Emit2[emit TransactionDeposited]
-        Flagged1 -->|"User calls settle()"| Refund[ETH returned from Compliance]
+        Compliance1 -->|"Any rule flags or rejects"| Held1{Deposit Held in Compliance}
+
+        Owner1 -->|"approve(id)"| Held1
+        Owner1 -->|"reject(id)"| Held1
+
+        Held1 -->|"Anyone calls settle(preimage)<br/>Status: Approved"| SettleApproved1["portal.approved{value: mint}()"]
+        SettleApproved1 --> Emit2[emit TransactionDeposited]
+
+        Held1 -->|"Anyone calls settle(preimage)<br/>Status: Rejected"| Refund1[ETH refunded to sender]
     end
 
     subgraph L2["L2 (OP Chain)"]
@@ -94,23 +99,30 @@ flowchart TB
         Compliance2[Compliance]
         Owner2[Owner]
 
-        User2 -->|"initiateWithdrawal{value: msg.value}(target, gasLimit, data)"| MessagePasser
-        MessagePasser -->|"if compliance != address(0)<br/>call check()"| Compliance2
+        User2 -->|"initiateWithdrawal{value}(target, gasLimit, data)"| MessagePasser
+        MessagePasser -->|"Reserve nonce"| NonceReserved[Nonce Reserved]
+        NonceReserved -->|"check{value: msg.value}()"| Compliance2
 
-        Compliance2 -->|"If not flagged"| Allowed2{Deposit Not Flagged}
-        Allowed2 --> Process1["Process withdrawal"]
+        Compliance2 -->|"All rules approve"| Donate2["donateETH{value}() → L2ToL1MessagePasser"]
+        Donate2 --> Emit3[emit MessagePassed]
 
-        Owner2 -->|"approve(id)"| ApprovedPath
-        Compliance2 -->|If flagged| ApprovedPath{Deposit Flagged}
-        ApprovedPath -->|"Chain operator allows"| Process1
-        ApprovedPath -->|"User calls settle()"| Refund[ETH returned from Compliance]
+        Compliance2 -->|"Any rule flags or rejects"| Held2{Withdrawal Held in Compliance}
+
+        Owner2 -->|"approve(id)"| Held2
+        Owner2 -->|"reject(id)"| Held2
+
+        Held2 -->|"Anyone calls settle(preimage)<br/>Status: Approved"| SettleApproved2["messagePasser.approved(..., nonce)"]
+        SettleApproved2 --> Emit4[emit MessagePassed]
+
+        Held2 -->|"Anyone calls settle(preimage)<br/>Status: Rejected"| Refund2[ETH refunded to sender]
     end
 
     subgraph L1["L1 (Ethereum)"]
         Finalize[User proves and finalizes withdrawal via OptimismPortal2]
     end
 
-    Process1 --> Finalize
+    Emit3 --> Finalize
+    Emit4 --> Finalize
 
 ```
 
