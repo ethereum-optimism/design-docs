@@ -461,8 +461,7 @@ The `ZKDisputeGame` can accept any verifier that complies with the `ZKVerifie
 
 | Dimension | Groth16 | PLONK | Impact on the ZK Game |
 | --- | --- | --- | --- |
-| **Proof size** | 260 bytes | 868 bytes | Higher calldata cost for PLONK (~600 bytes × 16 gas/byte = ~9,600 extra gas). 
-Marginal in the context of total tx cost. |
+| **Proof size** | 260 bytes | 868 bytes | Higher calldata cost for PLONK (~600 bytes × 16 gas/byte = ~9,600 extra gas). Marginal in the context of total tx cost. |
 | **Verification gas** | ~270,000 gas | ~300,000 gas | Negligible per game. |
 | **SNARK wrapping time** | Baseline | ~90 seconds over baseline | Fixed additive cost. For a proof window measured in hours, this overhead is negligible. It does not affect the STARK proving stage, which dominates total time. |
 | **Trusted setup** | Aztec Ignition ceremony +  contributions from Succinct team members. If the circuit changes (SP1 upgrade), a new ceremony is required. | Universal since it reuses the Aztec Ignition ceremony directly. Circuit changes do not require a new ceremony. | PLONK’s universal setup removes the ceremony overhead for SP1 upgrades. Groth16 requires Succinct to coordinate a new setup per version. |
