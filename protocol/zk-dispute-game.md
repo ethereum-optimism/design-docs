@@ -367,18 +367,6 @@ Additionally, the following parent validation decisions were made:
 - Unified Program Dependency: The agnostic contract design depends on a unified ZK program. There are operational tooling concerns on how chains generate and manage their `absolutePrestate` value at scale.
 - Interop: It will require a `SuperZKDisputeGame` variant that proves cross-chain consistent state via super roots.
 
-# Open Questions & Thoughts
-
-- On FDG, `claimCredit` has two very different branches:
-    1.  `claimCredit()` is called for starting the `DelayedWETH` unlock and
-    2.  `claimCredit()` is called for withdrawing eth after the delay period has passed
-    
-    Should we consider splitting the function, given the separation of concerns?
-    
-- Should we reconsider the scenarios where the funds are burned (see Appendix F)?
-    - Under the current design, the challenger must challenge every individual proposal if the challenger desires to earn all the bonds
-    - Alternatively, if we allow the challenger to challenge only the root parent game in a chain of games, a more complex bond distribution mechanism to propagate funds across dependent games would be needed.
-
 # Appendix
 
 ## Appendix A: Implementation Changes
