@@ -31,7 +31,7 @@ Nevertheless, it is not OP Stack compliant in several critical ways:
 
 - No verifier agnosticism: The contract is tightly coupled to SP1’s verification interface and specific parameters (`AGGREGATION_VKEY`, `RANGE_VKEY_COMMITMENT`).
 - `AccessManager` dependency: An external dedicated `AccessManager` contract gates who can propose and challenge, instead of being strictly permissionless.
-- No `DelayedWETH`: Bonds are held a raw ETH, without the guardrails that allow the Guardian to freeze funds if a bug is discovered post-resolution.
+- No `DelayedWETH`: Bonds are held as raw ETH, without the guardrails that allow the Guardian to freeze funds if a bug is discovered post-resolution.
 - Missing safety checks: No pause check in `closeGame`, which must be present to comply with the current security mode as in Fault Proofs.
 - No OPCM integration: The ZK game type is not recognized by it.
 - No MCP compatibility: All configurations live in the constructor immutables, preventing OPCM from deploying per-chain instances from a shared implementation.
