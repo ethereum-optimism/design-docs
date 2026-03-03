@@ -176,7 +176,8 @@ That means the parent-chaining model introduces checks not present in FDG (which
 - Parent must not have resolved as `CHALLENGER_WINS`
 - Parent’s `l2SequenceNumber` must be at or above the anchor state
 - `isGameRespected` check on the parent is removed (which only gates withdrawals, not chaining)
-- Blacklisting cascades at resolution: if a parent is blacklisted or retired when the `resolve` function is called, the child inherits `CHALLENGER_WINS`.
+
+If a parent is blacklisted or retired after child games have already been created, the Guardian must individually blacklist or retire those child games, which places them into REFUND mode.
 
 ### 8. OPCM Integration
 
@@ -283,7 +284,7 @@ Proving is fully permissionless. Anyone can submit a valid proof by calling the 
 Resolution is permissionless. Anyone can call the `resolve` function once the game is over.
 
 - Parent dependency: The parent game must be resolved before the child.
-- Parent invalidity propagation: If the parent is resolved as `CHALLENGER_WINS`, or is blacklisted or is retired, the child automatically inherits the `CHALLENGER_WINS` result. If the child was never challenged, the proposer bond is effectively burned.
+- Parent invalidity propagation: If the parent is resolved as `CHALLENGER_WINS`, the child automatically inherits the `CHALLENGER_WINS` result. If the child was never challenged, the proposer bond is effectively burned.
 - Outcome determination: when the parent is `DEFENDER_WINS`, it means that the game can resolve under the following cases:
     
     
@@ -351,7 +352,7 @@ Additionally, the following parent validation decisions were made:
 
 - `isGameRespected` check on the parent is removed.
 - Parent must be the same game type as the child.
-- Blacklisting cascades at resolution, and not just during creation.
+- Blacklisting  and retirement are checked only at creation, not at resolution. The Guardian handles chains of games from an invalidadred parent by individually blacklisting them (REFUND mode) or by updating the retirement timestamp.
 
 # Risk & Uncertainities
 
@@ -502,10 +503,6 @@ The following table exhausts all possible bond distribution outcomes.
 | Challenged, proof provided, prover != proposer (NORMAL) | `DEFENDER_WINS` | `initBond` | Nothing | `challengerBond` |
 | Parent is `CHALLENGER_WINS`, child was challenged (NORMAL) | `CHALLENGER_WINS` | Nothing | `initBond` + `challengerBond` | - |
 | Parent is `CHALLENGER_WINS`, child was NOT challenged (NORMAL) | `CHALLENGER_WINS` | Nothing (burned) | - | - |
-| Parent is blacklisted, child was challenged (NORMAL) | `CHALLENGER_WINS` | Nothing | `initBond` + `challengerBond` | - |
-| Parent is blacklisted, child was NOT challenged (NORMAL) | `CHALLENGER_WINS` | Nothing (burned) | - | - |
-| Parent is retired, child was challenged (NORMAL) | `CHALLENGER_WINS` | Nothing | `initBond` + `challengerBond` | - |
-| Parent is retired, child was NOT challenged (NORMAL) | `CHALLENGER_WINS` | Nothing (burned) | - | - |
 | Game was blacklisted (REFUND) | - | `initBond` | `challengerBond` | - |
 | Game was retired (REFUND) | - | `initBond` | `challengerBond` | - |
 | Game type changed mid-play (REFUND) | - | `initBond` | `challengerBond` | - |
