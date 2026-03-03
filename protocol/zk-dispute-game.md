@@ -180,7 +180,7 @@ That means the parent-chaining model introduces checks not present in FDG (which
 
 ### 8. OPCM Integration
 
-The `ZKDisputeGame` integrates into OPCM v2 through the existing `DisputeGameConfig`flow - the same as Cannon and Permissionless Cannon. No new OPCM primitives are needed - the integration reuses the existing pattern with three additions specific to the ZK game type.
+The `ZKDisputeGame` (as game type = 10) integrates into OPCM v2 through the existing `DisputeGameConfig`flow - the same as Cannon and Permissionless Cannon. No new OPCM primitives are needed - the integration reuses the existing pattern with three additions specific to the ZK game type.
 
 OPCM needs three things to support a new game type:
 
@@ -368,7 +368,6 @@ Additionally, the following parent validation decisions were made:
 
 # Open Questions & Thoughts
 
-- In `dispute/lib/Types.sol` there are two game types IDs: `OP_SUCCINCT = 6` and `OPTIMISTIC_ZK_GAME_TYPE = 10`, the design works over the existing `OPTIMISTIC_ZK_GAME_TYPE` number, is this desired long term?
 - On FDG, `claimCredit` has two very different branches:
     1.  `claimCredit()` is called for starting the `DelayedWETH` unlock and
     2.  `claimCredit()` is called for withdrawing eth after the delay period has passed
