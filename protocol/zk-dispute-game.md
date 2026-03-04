@@ -181,7 +181,7 @@ If a parent is blacklisted or retired after child games have already been create
 
 ### 8. OPCM Integration
 
-The `ZKDisputeGame` (as game type = 10) integrates into OPCM v2 through the existing `DisputeGameConfig`flow - the same as Cannon and Permissionless Cannon. No new OPCM primitives are needed - the integration reuses the existing pattern with three additions specific to the ZK game type.
+The `ZKDisputeGame` (as game type = 10) integrates into OPCM v2 through the existing `DisputeGameConfig` flow - the same as Cannon and Permissionless Cannon. No new OPCM primitives are needed - the integration reuses the existing pattern with three additions specific to the ZK game type.
 
 OPCM needs three things to support a new game type:
 
