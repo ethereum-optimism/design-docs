@@ -275,7 +275,7 @@ Challenging is fully permissionless. Anyone can challenge an unchallenged propos
 Proving is fully permissionless. Anyone can submit a valid proof by calling the `prove` function, regardless of whether the game was challenged.
 
 - Timing: Must be called before the current deadline. If the game is unchallenged, the deadline is the challenge deadline. If challenged, it is the prover’s deadline.
-- Verification: The proof is verified according the verifier contract chosen (e.g., SP1 verifier). Reverts when the proof is invalid.
+- Verification: The proof is verified according to the verifier contract chosen (e.g., SP1 verifier). Reverts when the proof is invalid.
 - Immediate game over: A valid proof makes `gameOver()` return `true` immediately, regardless of the deadline. The game can be resolved as soon as the parent is also resolved.
 - Prover incentive: If challenged and a valid proof is submitted, then the prover receives the challenger bond. If unchallenged, the prover receives no reward.
 
