@@ -185,7 +185,7 @@ The `ZKDisputeGame` (as game type = 10) integrates into OPCM v2 through the exis
 
 OPCM needs three things to support a new game type:
 
-1. An implementation address: The `ZKDisputeGame` is deployed once (with `DeployImplementations` script) and is tracked in `OPContractsManagerContainer.Implementations`alongside the existing fault game implementations.
+1. An implementation address: The `ZKDisputeGame` is deployed once (with `DeployImplementations` script) and is tracked in `OPContractsManagerContainer.Implementations` alongside the existing fault game implementations.
 2. Config struct for per-chain parameters: A new `ZKDisputeGameConfig` struct carries the fields that vary per deployment (`absolutePrestate`, `verifier`, `maxChallengeDuration`, `maxProveDuration` and `challengerBond`. This struct is ABI-encoded by the caller (op-deployer or upgrade scripts) and passed as the `gameArgs` bytes in `DisputeGameConfig`.
 OPCM’s `_makeGameArgs()` decodes it, injects the chain specific values it already knows (`anchorStateRegistry`, `delayedWETH`, `l2ChainId`) and packs the final CWIA bytes for the factory. 
     
