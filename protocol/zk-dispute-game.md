@@ -373,6 +373,19 @@ After resolution, bonds are distributed through a two-phase process, aligned wit
     2. Calls `unlock` to prepare the funds.
     3. After the delay, the `withdraw` can be called to transfer the ETH. This delay allows for pausing and freezing funds if a critical issue is discovered post-resolution.
 
+## ZK Program Implications
+
+This design assumes a single `bytes32` `absolutePrestate` uniquely identifies the ZK program. This has implications for the existing SP1 program architecture used by `OPSuccinctFaultDisputeGame`, which currently:
+
+- Uses a two-program model: a range program (`RANGE_VKEY`) that proves individual block ranges and an aggregation program (`AGGREGATION_VKEY`) that recursively verifies multiple range proofs into a single on-chain proof.
+- Requires `ROLLUP_CONFIG_HASH` as an on-chain public value to bind proofs to a specific chain's configuration.
+
+To satisfy the single-prestate model, the `RANGE_VKEY` and the chain's `RollupConfig` are embedded directly into the aggregation program's source code. Since the aggregation program now hardcodes which range program it verifies and which chain configuration it uses, its resulting `AGGREGATION_VKEY` becomes a unique fingerprint of the entire proving pipeline. Any change to the range program, the rollup configuration, or the aggregation logic itself produces a different verification key, and therefore a different `absolutePrestate`.
+
+Following the pattern used by fault proofs (op-program and kona), the ZK program can leverage the `superchain-registry` to load chain configurations by `l2ChainId`, allowing a single program binary to serve all chains in the registry.
+
+If any verifier-specific processing of the `absolutePrestate` is required beyond what the game contract provides, it should be handled within the `IZKVerifier` adapter.
+
 # Impact on Developer Experience
 
 - For Chain Operators: Needs to be familiar with the zkVM employed. The monitoring work it is more time sensitive as each game are naturally resolved faster than games in Fault Proofs.
@@ -388,11 +401,16 @@ The premise of the project has been making proposals permissionless by default. 
 
 However, full permissionless mode is chosen for simplicity, and given the experience provided by Fault Proofs, whose system already operates in full permissionless mode.
 
-## SP1-Specific Game Contract Instead of Verifier-Agnostic
+## **Arbitrary-Length Prestate Without Program Changes**
 
-Instead of using a generic `IZKVerifier` with a single `absolutePrestate`, the contract could call `ISP1Verifier` directly and store the `aggregationVkey` + `rangeVkeyCommitment` as separate fields in `gameArgs`. This would work with the existing two-program SP1 architecture.
+Instead of requiring a unified program, the **`absolutePrestate`** could be defined as variable length **`bytes`** carrying whatever values the verifier needs (`abi.encode(field1, field2, field3, ...)` ). Such a field could sit at the end of the **`gameArgs`** CWIA layout, with its length derived from the remaining bytes.
 
-This is currently considered a fallback if the unified program is not ready in time, meaning that the contract implementation would be tailored to the SP1 program with a future migration path in mind. 
+This removes the dependency on requiring SP1 program changes but shifts the complexity to the contracts:
+
+- The `IZKVerifier` must accept `bytes calldata` instead of `bytes32`
+- CWIA offsets require dynamic length calculation, and each adapter becomes responsible for decoding and validating its own prestate format.
+
+The unified program approach was preferred for its simpler contract surface and direct compatibility with `ISP1Verifier.verifyProof(bytes32 programVKey, ...)`.
 
 ## Keeping with `RollupConfigHash`
 
