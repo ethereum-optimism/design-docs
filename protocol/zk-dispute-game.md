@@ -53,8 +53,68 @@ The `ZKDisputeGame` (as a renaming of the current `OptimisticZkGame`/`OPSuccinct
 
 The following chart provides an insight of how the general architecture of the design would look like:
 
-<img width="743" height="860" alt="image" src="https://github.com/user-attachments/assets/a5d12640-7717-449f-a460-70b16771a941" />
+```mermaid
+graph TB
+    subgraph Deployment
+        OPCM[OPCM]
+        ZKImpl[ZKDisputeGame<br/>Implementation]
+        DGF[DisputeGameFactory]
+        Verifier[IZKVerifier Adapter<br/>Initial: SP1VerifierPlonk]
+        
+        OPCM -->|adopt| ZKImpl
+        OPCM -->|"addGameType +<br/>makeGameArgs"| DGF
+        OPCM -->|adopt| Verifier
+    end
+    
+    subgraph Game Creation
+        ZKClone["ZKDisputeGame<br/> (MCP clone)<br/><br/>gameArgs:<br/>- absolutePrestate<br/>- verifier<br/>- maxChallengeDuration<br/>- maxProveDuration<br/>- challengerBond<br/>- anchorStateRegistry<br/>- weth<br/>- l2ChainId"]
+        
+        ZKImpl -.->|implementation of| ZKClone
+        DGF -->|clone with gameArgs| ZKClone
+    end
+    
+    Proposer([Proposer])
+    Proposer -->|"extraData {value: initBond}<br/>create(gameType, rootClaim)"| DGF
+```
+```mermaid
+graph TB
+    subgraph Interactions
+        Proposer([Proposer])
+        Challenger([Challenger])
+        Prover([Prover])
+        Anyone([Anyone])
+        
+        DGF[DisputeGameFactory]
+        ZKGame["ZKDisputeGame<br/>(MCP clone)"]
+        IZKVerifier[IZKVerifier]
+        DWETH[DelayedWETH]
+        ASR[AnchorStateRegistry]
+        Portal[OptimismPortal]
 
+        Proposer -->|"extraData {value: initBond}<br/>create(gameType, rootClaim)"| DGF
+        DGF -->|clone with gameArgs| ZKGame
+        Challenger -->|"challenge()<br/>{value: challengerBond}"| ZKGame
+        Prover -->|"prove()"| ZKGame
+        Anyone -->|"resolve(), closeGame(),<br/>claimCredit()"| ZKGame
+        
+        ZKGame -->|verify| IZKVerifier
+        ZKGame -->|"deposit / unlock /<br/>withdraw bonds"| DWETH
+        ZKGame -->|"anchor state • finalization<br/>pause checks • blacklist"| ASR
+        
+        Portal -->|"proveWithdrawal<br/>finalizeWithdrawal"| ASR
+    end
+    
+    subgraph Safety
+        Guardian([Guardian])
+        SC[SuperchainConfig]
+        
+        Guardian -->|"blacklistDisputeGame()<br/>setRespectedGameType()<br/>updateRetirementTimestamp()"| ASR
+        Guardian -->|pause| SC
+        
+        SC -.->|"paused()<br/>via SystemConfig"| ASR
+        SC -.->|"paused()<br/>via SystemConfig"| DWETH
+    end
+```
 ### Contracts Involved
 
 | Contract | What it does | Key interactions |
