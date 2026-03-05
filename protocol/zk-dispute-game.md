@@ -62,7 +62,7 @@ graph TB
         Verifier[IZKVerifier Adapter<br/>Initial: SP1VerifierPlonk]
         
         OPCM -->|adopt| ZKImpl
-        OPCM -->|"addGameType +<br/>makeGameArgs"| DGF
+        OPCM -->|"configure game types"| DGF
         OPCM -->|adopt| Verifier
     end
     
