@@ -424,7 +424,7 @@ Additionally, the following parent validation decisions were made:
     
     It is recommended to benchmark proving costs and document recommended values or standard chains, similar to how fault proof bonds are standardized today.
     
-- Unified Program Dependency: The agnostic contract design depends on a unified ZK program. There are operational tooling concerns on how chains generate and manage their `absolutePrestate` value at scale.
+- Unified Program Dependency: The single `bytes32` prestate representation assumes that the ZK program identity can be captured in one value (e.g., via embedding the range vkey and rollup config in the aggregation program). If the program remains split, the prestate encoding would need to carry multiple values, handled by the verifier adapter. There are also operational tooling concerns on how chains generate and manage their `absolutePrestate` value at scale.
 - Interop: It will require a `SuperZKDisputeGame` variant that proves cross-chain consistent state via super roots.
 
 # Appendix
