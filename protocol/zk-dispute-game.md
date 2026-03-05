@@ -17,17 +17,15 @@ The goal is to integrate a ZK-based dispute game into the OP Stack as a first-cl
 
 # Summary
 
-The proposed `ZKDisputeGame` is a new dispute game type that resolves disputes in a single round: a proposer posts an output root with a bond, anyone can challenge it by depositing a challenger bond, and a prover submits a ZK proof to defend the claim or lets the proving window expire. The contract is fully permissionless (proposing, challenging, and proving), integrates with `DelayedWETH` for bond safety, uses the MCP clone pattern for per-chain deployment via OPCM, and calls the ZK verifier through a generic `IZKVerifier` interface. The first supported backend is SP1 (PLONK) by Succinct.
+The proposed `ZKDisputeGame` is a new dispute game type that resolves disputes in a single round: a proposer posts an output root with a bond, anyone can challenge it by depositing a challenger bond, and a prover submits a ZK proof to defend the claim or lets the proving window expire. The contract is fully permissionless (proposing, challenging, and proving), integrates with `DelayedWETH` for bond safety, uses the MCP clone pattern for per-chain deployment via OPCM, and calls a chosen ZK verifier through a generic `IZKVerifier` interface. In this first iteration, the work includes support for SP1 (PLONK) by Succinct while enabling future zkVM integrations.
 
 # Problem Statement + Context
 
 The OP Stack currently relies on fault proofs, which require seven days in total by default to finalize withdrawals. The fault proof system uses an interactive bisection protocol where disputes are resolved through multiple rounds of on-chain interaction. This multi-round process is complex and may further delay even more the withdrawal finality.
 
-ZK proofs offer an alternative: instead of interactively bisecting to find the disputed instruction, a prover generates a single cryptographic proof that the entire state transition is correct. This eliminates the need for multiple rounds of interaction and the associated time window.
+ZK proofs offer an alternative: instead of interactively bisecting to find the disputed instruction, a prover generates a single cryptographic proof that the entire state transition is correct. This eliminates the need for multiple rounds of interaction and the associated time window. Multiple zkVM implementations (SP1, RISC Zero, Jolt, Zisk, among others) are capable of generating such proofs, making a verifier-agnostic design both feasible and desirable.
 
-The current OP Succinct Lite implementation (ZK-Fault Proof mode) was created as a separate project, and it has demonstrated feasibility in production-grade level. 
-
-Nevertheless, it is not OP Stack compliant in several critical ways:
+The current OP Succinct Lite implementation (ZK-Fault Proof mode) has demonstrated the feasibility of resolving a dispute game with a single ZK proof at production-grade level. Its contracts serve as the starting point for this design, but several changes are needed to make it OP Stack compliant:
 
 - No verifier agnosticism: The contract is tightly coupled to SP1’s verification interface and specific parameters (`AGGREGATION_VKEY`, `RANGE_VKEY_COMMITMENT`).
 - `AccessManager` dependency: An external dedicated `AccessManager` contract gates who can propose and challenge, instead of being strictly permissionless.
@@ -45,7 +43,7 @@ Nevertheless, it is not OP Stack compliant in several critical ways:
 
 - Align with the current OP Stack security model for proofs.
 - Maintain the Stage 1 reachable by default.
-- Establish the ground for zkVM agnosticism.
+- Enable zkVM agnosticism.
 
 ## General Architecture
 
@@ -124,7 +122,7 @@ graph TB
 | **DisputeGameFactory** | Factory that creates MCP clones of `ZKDisputeGame`. | `create(...)` instantiates a new game. Appends per-chain `gameArgs` (CWIA) |
 | **AnchorStateRegistry** | Source of truth for game **finalization**, **anchor state**, **respected game type**, and **blacklisting**. | Enforces pause/blacklist checks. Governs which games can finalize withdrawals (via `isGameClaimValid` or equivalent) |
 | **DelayedWETH** | Bond custody with a time “airgap” lifecycle (deposit → unlock → withdraw). | Holds bond deposits. Adds delay before withdrawal so the system can pause/freeze funds if needed |
-| **IZKVerifier** | Generic verifier interface. A concrete deployment verifies a specific SP1 proof version. OPCM manages verifier versions. | `verify(absolutePrestate, publicValues, proofBytes)`. Versioning/upgrades coordinated by OPCM |
+| **IZKVerifier** | Generic verifier interface. A concrete deployment wraps a specific zkVM verifier (e.g., SP1 PLONK, RISC Zero). OPCM manages verifier versions. | `verify(absolutePrestate, publicValues, proofBytes)`. Versioning/upgrades coordinated by OPCM |
 | **Other related contracts (unchanged)** | `SuperchainConfig`, `OptimismPortal`, `SystemConfig` remain as in the known OP Stack flow. | Portal consumes game status/root claim for withdrawals. `SuperchainConfig` provides `paused()` (read by ASR through `SystemConfig`) |
 
 ### Actors
@@ -152,7 +150,7 @@ The following fields are included in `gameArgs`:
 - `weth` (per-chain `DelayedWETH`)
 - `l2ChainId`
 
-The `absolutePrestate` represents the zkVM-specific program identity values. For example, for the SP1 program, the `absolutePrestate` corresponds to the program’s verification key in the OP Succinct implementation.
+The `absolutePrestate` represents the zkVM-specific program identity values. For example, in the SP1 backend, the `absolutePrestate` corresponds to the program's verification key.
 
 The `anchorStateRegistry`, `weth`, and `l2ChainId` are already known by OPCM from the chain's deployment, and are injected by `makeGameArgs()` directly. 
 
@@ -192,6 +190,8 @@ Existing verifiers can be integrated by wrapping them in an `IZKVerifier`compati
 **Verifier Added**
 
 The `ZKDisputeGame` can accept any verifier that complies with `ZKVerifier` interface. The first verifier to be integrated in this phase will be the `PLONKVerifier` of Succinct, deployed behind an adapter implementing the `IZKVerifier`. PLONK is chosen over other offered like Groth16 because it has a better trust model and a simpler upgrade path. The performance tradeoff (~3-4x slower proving, ~30K more gas) is negligible in a dispute context where proofs are rare and time windows span hours.
+
+Future iterations can integrate additional zkVM backends such as RISC Zero, Jolt, or others through the same `IZKVerifier` adapter pattern.
 
 **Verifier Upgrade Path**
 
@@ -375,7 +375,7 @@ After resolution, bonds are distributed through a two-phase process, aligned wit
 
 ## ZK Program Implications
 
-This design assumes a single `bytes32` `absolutePrestate` uniquely identifies the ZK program. This has implications for the existing SP1 program architecture used by `OPSuccinctFaultDisputeGame`, which currently:
+This design assumes a single `bytes32` `absolutePrestate` uniquely identifies the ZK program. In the case of Succinct, this has implications for the existing SP1 program architecture used by `OPSuccinctFaultDisputeGame`, which currently:
 
 - Uses a two-program model: a range program (`RANGE_VKEY`) that proves individual block ranges and an aggregation program (`AGGREGATION_VKEY`) that recursively verifies multiple range proofs into a single on-chain proof.
 - Requires `ROLLUP_CONFIG_HASH` as an on-chain public value to bind proofs to a specific chain's configuration.
@@ -430,7 +430,7 @@ Additionally, the following parent validation decisions were made:
 
 - `isGameRespected` check on the parent is removed.
 - Parent must be the same game type as the child.
-- Blacklisting  and retirement are checked only at creation, not at resolution. The Guardian handles chains of games from an invalidaded parent by individually blacklisting them (REFUND mode) or by updating the retirement timestamp.
+- Blacklisting  and retirement are checked only at creation, not at resolution. The Guardian handles chains of games from an invalidated parent by individually blacklisting them (REFUND mode) or by updating the retirement timestamp.
 
 # Risk & Uncertainties
 
@@ -465,7 +465,7 @@ The following table summarizes the differences between the previous approach (`O
 | **Permissioning model** | `AccessManager`siloed. Both `initialize()` and `challenge()` call `isAllowedProposer()` / `isAllowedChallenger()`. Includes a `FALLBACK_TIMEOUT` for permissionless fallback. | Fully permissionless. |
 | **Bond management** | Raw bonds in ETH + the contract receives `msg.value` through `initialize()` and `challenge()` | Integration with `DelayedWETH`. Bonds follow the deposit → unlock → withdraw lifecycle as in FDG. It has a delay window as a security measure |
 | **Proof verification** | Calls `ISP1Verifier` directly with `AGGREGATION_VKEY` and `RANGE_VKEY_COMMITMENT` as separate immutable | **Verifier agnostic**. Calls `IZKVerifier.verify(absolutePrestate, publicValues, proofBytes)` Verifier address and absolute prestate comes from `gameArgs`. |
-| **Verifier trust model** | Groth16 (implicit default from Succinct). | PLONK (explicit addition). Better fit for Stage 2 goals. |
+| **Verifier trust model** | Groth16 (implicit default from Succinct). | Any verifier, with SP1 PLONK as the first addition. |
 | **Resolution model** | Immediate resolution when proof is provided and parent is resolved. No clock expiration needed. | Immediate resolution when proof provided + additional safety via `DelayedWETH` delay and `AnchorStateRegistry` finality delay. |
 | **Chain identification** | `ROLLUP_CONFIG_HASH`: SHA-256 of JSON-serialized `RollupConfig` with a plethora of parameters. | `l2ChainId`: single integer from `SystemConfig`, injected via `gameArgs`. Config changes are absorbed into the program update (new `absolutePrestate`). |
 | **OPCM integration** | None | Full integration. `ZK_DISPUTE_GAME` added to `validGameTypes`, `zkDisputeGameImpl` tracked in `Implementations`, `_makeGameArgs` encodes all `gameArgs` fields, upgrade path via `UpgradeInput`. |
