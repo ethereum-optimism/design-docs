@@ -21,7 +21,7 @@ The proposed `ZKDisputeGame` is a new dispute game type that resolves disputes i
 
 # Problem Statement + Context
 
-The OP Stack currently relies on fault proofs, which require seven days in total by default to finalize withdrawals. The fault proof system uses an interactive bisection protocol where dispute are resolved through multiple rounds of on-chain interaction. This multi-round process is complex and may further delay even more the withdrawal finality.
+The OP Stack currently relies on fault proofs, which require seven days in total by default to finalize withdrawals. The fault proof system uses an interactive bisection protocol where disputes are resolved through multiple rounds of on-chain interaction. This multi-round process is complex and may further delay even more the withdrawal finality.
 
 ZK proofs offer an alternative: instead of interactively bisecting to find the disputed instruction, a prover generates a single cryptographic proof that the entire state transition is correct. This eliminates the need for multiple rounds of interaction and the associated time window.
 
@@ -139,7 +139,7 @@ graph TB
 
 ### 1. MCP Pattern Migration
 
-All the per-chain configurations moves out of constructor immutables and into the `gameArgs` appended by `DisputeGameFactory` at clone time CWIA (clones-with-immutable-args), following the same pattern as in FDG. That means the `ZKDisputeGame` implementation contract has no constructor immutables related to the chain or program identity. This MCP pattern is what allows a single implementation contract to serve every chain, where each game instance is a lightweight clone that shares the implementation’s bytecode but carries its own per-chain configuration. 
+All the per-chain configurations move out of constructor immutables and into the `gameArgs` appended by `DisputeGameFactory` at clone time CWIA (clones-with-immutable-args), following the same pattern as in FDG. That means the `ZKDisputeGame` implementation contract has no constructor immutables related to the chain or program identity. This MCP pattern is what allows a single implementation contract to serve every chain, where each game instance is a lightweight clone that shares the implementation’s bytecode but carries its own per-chain configuration. 
 
 The following fields are included in `gameArgs`:
 
@@ -200,7 +200,7 @@ Verifier upgrades follow the same pattern as MIPS VM upgrades in FDG. The `verif
 1. Deploy a new verifier. This might include updating the new program as well if changed.
 2. If the program changed, compute a new `absolutePrestate`.
 3. OPCM update `gameArgs` with new `verifier` and/or new `absolutePrestate`.
-4. In-progress games play out under the old rules. The guardian may retire old games via `updateRetirementTimestamp()` if needed..
+4. In-progress games play out under the old rules. The guardian may retire old games via `updateRetirementTimestamp()` if needed.
 5. New games use updated configuration.
 
 ### 3. `DelayedWETH` Integration
@@ -430,9 +430,9 @@ Additionally, the following parent validation decisions were made:
 
 - `isGameRespected` check on the parent is removed.
 - Parent must be the same game type as the child.
-- Blacklisting  and retirement are checked only at creation, not at resolution. The Guardian handles chains of games from an invalidadred parent by individually blacklisting them (REFUND mode) or by updating the retirement timestamp.
+- Blacklisting  and retirement are checked only at creation, not at resolution. The Guardian handles chains of games from an invalidaded parent by individually blacklisting them (REFUND mode) or by updating the retirement timestamp.
 
-# Risk & Uncertainities
+# Risk & Uncertainties
 
 - Economic Analysis in Bonds and Durations: The contract is configurable (`initBond`, `challengerBond`, `maxChallengeDuration` and `maxProveDuration`) are all in `gameArgs` and can be set per chain. However, there are no established default values yet. Setting these incorrectly has direct consequences:
     - Bonds too low invite to spam and griefing
@@ -521,7 +521,7 @@ sequenceDiagram
 
 ## Appendix D: SP1 Verifier Selection
 
-In this iteration, the `ZKDisputeGame` offers the SP1+PLONK proof scheme verifier instead of Groth16, perhaps being the recommended by Succinct. There are various reasons for doing this:
+In this iteration, the `ZKDisputeGame` offers the SP1+PLONK proof scheme verifier instead of Groth16, perhaps being the one recommended by Succinct. There are various reasons for doing this:
 
 The `ZKDisputeGame` can accept any verifier that complies with the `ZKVerifier` interface, and the first verifier integrated in this phase will be Succinct's `PLONKVerifier`. PLONK is chosen over Groth16 primarily for its stronger trust model and simpler upgrade path, with negligible performance tradeoffs in a dispute context. The table below compares both schemes across the dimensions that informed this decision.
 
@@ -533,7 +533,7 @@ The `ZKDisputeGame` can accept any verifier that complies with the `ZKVerifie
 | **Trusted setup** | Aztec Ignition ceremony +  contributions from Succinct team members. If the circuit changes (SP1 upgrade), a new ceremony is required. | Universal since it reuses the Aztec Ignition ceremony directly. Circuit changes do not require a new ceremony. | PLONK’s universal setup removes the ceremony overhead for SP1 upgrades. Groth16 requires Succinct to coordinate a new setup per version. |
 | **Trust assumption** | Requires at least 1 honest participant in the circuit-specific ceremony. | Requires at least 1 honest participant in Aztec Ignition (176 participants, broad community). | PLONK’s trust model is strictly better: it depends on a larger, more established ceremony. This is already reflected in the [L2Beat assessment](https://l2beat.com/zk-catalog/sp1#trusted-setups). |
 | **Battle-testing** | Widely deployed: Zcash, Tornado Cash, zkSync Era, Polygon zkEVM. De facto standard for on-chain verification since 2016. | Growing adoption: Aztec, Scroll, several SP1 deployments. Less history than Groth16, but SP1 supports it officially. | Groth16 has a longer track record. Both are audited in the SP1 context. |
-| **SP1 version upgrades** | Each SP1 version ships a new Groth16 verifier contract (new circuit keys). A new trusted-setup ceremony is required per version. | Each SP1 version ships a new PLONK verifier contract. Circuit description changes doesn’t require a new ceremony. | PLONK reduces operational friction: upgrades do not depend on coordinating trusted-setup ceremonies. |
+| **SP1 version upgrades** | Each SP1 version ships a new Groth16 verifier contract (new circuit keys). A new trusted-setup ceremony is required per version. | Each SP1 version ships a new PLONK verifier contract. Circuit description changes don’t require a new ceremony. | PLONK reduces operational friction: upgrades do not depend on coordinating trusted-setup ceremonies. |
 
 > 📝
 > Succinct’s [documentation](https://docs.succinct.xyz/docs/sp1/generating-proofs/proof-types#groth16-recommended) marks Groth16 as “recommended” for general use perhaps.
@@ -563,7 +563,7 @@ The following table exhausts all possible bond distribution outcomes.
 | Scenario (Mode) | Game status | Proposer gets | Challenger gets | Prover gets |
 | --- | --- | --- | --- | --- |
 | Unchallenged, deadline expires (NORMAL) | `DEFENDER_WINS` | `initBond` | - | - |
-| Unchallenged, proof provided (NORMAL) | `DEFENDER_WINS` | `initBond` | Nothing | - |
+| Unchallenged, proof provided (NORMAL) | `DEFENDER_WINS` | `initBond` | - | - |
 | Challenged, no proof by deadline (NORMAL) | `CHALLENGER_WINS` | Nothing | `initBond` + `challengerBond` | - |
 | Challenged, proof provided, prover == proposer (NORMAL) | `DEFENDER_WINS` | `initBond` + `challengerBond` | Nothing | *Same as proposer* |
 | Challenged, proof provided, prover != proposer (NORMAL) | `DEFENDER_WINS` | `initBond` | Nothing | `challengerBond` |
