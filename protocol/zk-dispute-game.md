@@ -189,7 +189,7 @@ Existing verifiers can be integrated by wrapping them in an `IZKVerifier`compati
 
 **Verifier Added**
 
-The `ZKDisputeGame` can accept any verifier that complies with `ZKVerifier` interface. The first verifier to be integrated in this phase will be the `PLONKVerifier` of Succinct, deployed behind an adapter implementing the `IZKVerifier`. PLONK is chosen over other offered like Groth16 because it has a better trust model and a simpler upgrade path. The performance tradeoff (~3-4x slower proving, ~30K more gas) is negligible in a dispute context where proofs are rare and time windows span hours.
+The `ZKDisputeGame` can accept any verifier that complies with `ZKVerifier` interface. The first verifier to be integrated in this phase will be the `PLONKVerifier` of Succinct, deployed behind an adapter implementing the `IZKVerifier`. PLONK is chosen over others like Groth16 because it has a better trust model and a simpler upgrade path. The performance tradeoff (~3-4x slower proving, ~30K more gas) is negligible in a dispute context where proofs are rare and time windows span hours.
 
 Future iterations can integrate additional zkVM backends such as RISC Zero, Jolt, or others through the same `IZKVerifier` adapter pattern.
 
@@ -367,7 +367,7 @@ After resolution, bonds are distributed through a two-phase process, aligned wit
     - Resolved check: it reverts with `GameNotResolved`.
     - Finalization: The airgap period of the `AnchorStateRegistry` has passed since resolution (e.g., `block.timestamp - resolvedAt > DISPUTE_GAME_FINALITY_DELAY_SECONDS`).
     - Anchor update: Register the game as the new anchor if the game passed correctly (through `isGameClaimValid`).
-    - Bonds: the `isGameProper` determines the distribution through `NORMAL` (bonds go to winners) or `REFUND` (bonds return to original depositors, see _Appendix F: Bond Distribution Scenarios_) modes.
+    - Bonds: the `isGameProper` check determines the distribution through `NORMAL` (bonds go to winners) or `REFUND` (bonds return to original depositors, see _Appendix F: Bond Distribution Scenarios_) modes.
 2. `claimCredit` via `DelayedWETH` which:
     1. Triggers `closeGame` if needed.
     2. Calls `unlock` to prepare the funds.
@@ -462,7 +462,7 @@ The following table summarizes the differences between the previous approach (`O
 | **Game Type ID** | 10 and 6 respectively (but Succinct allocated 42 in its repo) | Take 10 |
 | **Architecture pattern** | Constructor immutables. All config (`SP1_VERIFIER`, `ROLLUP_CONFIG_HASH`, `AGGREGATION_VKEY`, `RANGE_VKEY_COMMITMENT`, `CHALLENGER_BOND`, `ANCHOR_STATE_REGISTRY`, `ACCESS_MANAGER`, durations) hardcoded at deploy time. | MCP clones. A single shared implementation is cloned per proposal. All per-chain config is injected via `gameArgs` appended by `DisputeGameFactory`. |
 | **Prestate representation** | Two separate fields: `AGGREGATION_VKEY` + `RANGE_VKEY_COMMITMENT`, stored as constructor immutables. | Unified `absolutePrestate` in `gameArgs`. This is a single representation for verifier-agnostic program identification.  |
-| **Permissioning model** | `AccessManager`siloed. Both `initialize()` and `challenge()` call `isAllowedProposer()` / `isAllowedChallenger()`. Includes a `FALLBACK_TIMEOUT` for permissionless fallback. | Fully permissionless. |
+| **Permissioning model** | `AccessManager` siloed. Both `initialize()` and `challenge()` call `isAllowedProposer()` / `isAllowedChallenger()`. Includes a `FALLBACK_TIMEOUT` for permissionless fallback. | Fully permissionless. |
 | **Bond management** | Raw bonds in ETH + the contract receives `msg.value` through `initialize()` and `challenge()` | Integration with `DelayedWETH`. Bonds follow the deposit → unlock → withdraw lifecycle as in FDG. It has a delay window as a security measure |
 | **Proof verification** | Calls `ISP1Verifier` directly with `AGGREGATION_VKEY` and `RANGE_VKEY_COMMITMENT` as separate immutable | **Verifier agnostic**. Calls `IZKVerifier.verify(absolutePrestate, publicValues, proofBytes)` Verifier address and absolute prestate comes from `gameArgs`. |
 | **Verifier trust model** | Groth16 (implicit default from Succinct). | Any verifier, with SP1 PLONK as the first addition. |
@@ -563,7 +563,7 @@ The following table exhausts all possible bond distribution outcomes.
 | Scenario (Mode) | Game status | Proposer gets | Challenger gets | Prover gets |
 | --- | --- | --- | --- | --- |
 | Unchallenged, deadline expires (NORMAL) | `DEFENDER_WINS` | `initBond` | - | - |
-| Unchallenged, proof provided (NORMAL) | `DEFENDER_WINS` | `initBond` | - | - |
+| Unchallenged, proof provided (NORMAL) | `DEFENDER_WINS` | `initBond` | - | Nothing |
 | Challenged, no proof by deadline (NORMAL) | `CHALLENGER_WINS` | Nothing | `initBond` + `challengerBond` | - |
 | Challenged, proof provided, prover == proposer (NORMAL) | `DEFENDER_WINS` | `initBond` + `challengerBond` | Nothing | *Same as proposer* |
 | Challenged, proof provided, prover != proposer (NORMAL) | `DEFENDER_WINS` | `initBond` | Nothing | `challengerBond` |
