@@ -176,8 +176,10 @@ function prove(bytes calldata _proofBytes) external {
 The prove function constructs the public values from the game’s on-chain state (`l1Head`, `startingOutputRoot`, `rootClaim`, `L2SequenceNumber`, and `l2ChainId`), then calls the `IZKVerifier` with `verify`. Such an interface will be:
 
 ```solidity
-interface IZKVerifier {
-    function verify(
+interface IZKVerifier is ISemver {
+	function verifierType() external pure returns (string memory);
+
+	function verify(
         bytes32 programId, // equivalent to absolutePrestate() in the dispute game context
         bytes calldata publicValues,
         bytes calldata proof
@@ -185,7 +187,7 @@ interface IZKVerifier {
 }
 ```
 
-Existing verifiers can be integrated by wrapping them in an `IZKVerifier`compatible adapter.
+Existing verifiers can be integrated by wrapping them in an `IZKVerifier`compatible adapter. In future versions, the interface alongside the `ZKDisputeGame` could enable a multi-proving model to work with different zkVMs at the same time.
 
 **Verifier Added**
 
