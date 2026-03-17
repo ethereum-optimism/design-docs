@@ -55,7 +55,7 @@ Below are references for this project:
     - Fuzz testing verifier with edge-case inputs (empty bytes, zero values, gas-limited calls).
     - Monitoring for challenged games that never receive a valid proof (sub-case B indicator).
 - **Recovery Path(s):**
-    1. Guardian pauses system, blacklists affected games, retires game type if systemic.
+    1. Guardian pauses system, blacklists affected games, retires game type updating the retirement timestamp if systemic.
     2. OPCM deploys patched verifier and updates `gameArgs`.
     3. For sub-case B: Guardian blacklists affected games (REFUND mode) while corrected verifier is deployed.
 - **Action Item(s):**
@@ -122,7 +122,6 @@ Below are references for this project:
     5. If deadlock griefing is systematic, OPCM can increase `challengerBond` to raise the cost.
 - **Action Item(s):**
     - [ ]  FM3: Build tooling that, given a blacklisted game, automatically enumerates all descendant games by querying `DisputeGameFactory` for all `ZKDisputeGame` instances and filtering by `parentIndex`, including cross-prestate ancestry.
-    - [ ]  FM3: Consider adding an on-chain mechanism that automatically propagates blacklist status to descendants, or that checks ancestor blacklist status in `closeGame()`.
     - [ ]  FM3: Document the Guardian runbook for cascading blacklists, including cross-prestate tracing, tooling, and verification steps.
     - [ ]  FM3: Add monitoring that alerts when any game with a blacklisted ancestor approaches the finality delay window.
     - [ ]  FM3: Analyze the expected chain depth under normal operation and the maximum delay an attacker can impose per `challengerBond` spent via resolution ordering deadlock.
@@ -301,10 +300,9 @@ Below is a consolidated list of all action items from the failure modes above.
 | FM2-2 | Ensure `maxChallengeDuration` accounts for L1 congestion/censorship and bond economics incentivize challengers. | [FM2](#fm2-unchallenged-fraudulent-proposal) |
 | FM2-3 | Document the Guardian fallback procedure for games that were not challenged in time. | [FM2](#fm2-unchallenged-fraudulent-proposal) |
 | FM3-1 | Build tooling that, given a blacklisted game, automatically enumerates all descendant games by querying `DisputeGameFactory` for all `ZKDisputeGame` instances and filtering by `parentIndex`, including cross-prestate ancestry. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
-| FM3-2 | Consider adding an on-chain mechanism that automatically propagates blacklist status to descendants, or that checks ancestor blacklist status in `closeGame()`. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
-| FM3-3 | Document the Guardian runbook for cascading blacklists, including cross-prestate tracing, tooling, and verification steps. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
-| FM3-4 | Add monitoring that alerts when any game with a blacklisted ancestor approaches the finality delay window. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
-| FM3-5 | Analyze the expected chain depth under normal operation and the maximum delay an attacker can impose per `challengerBond` spent via resolution ordering deadlock. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
+| FM3-2 | Document the Guardian runbook for cascading blacklists, including cross-prestate tracing, tooling, and verification steps. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
+| FM3-3 | Add monitoring that alerts when any game with a blacklisted ancestor approaches the finality delay window. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
+| FM3-4 | Analyze the expected chain depth under normal operation and the maximum delay an attacker can impose per `challengerBond` spent via resolution ordering deadlock. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
 | FM4-1 | Implement iZKG-011 conservation invariant tests across all bond distribution scenarios. | [FM4](#fm4-bond-accounting-failure-and-delayedweth-insolvency) |
 | FM4-2 | Fuzz test bond accounting across randomized game lifecycles, including the burn path. | [FM4](#fm4-bond-accounting-failure-and-delayedweth-insolvency) |
 | FM4-3 | Add `DelayedWETH` balance monitoring alert. | [FM4](#fm4-bond-accounting-failure-and-delayedweth-insolvency) |
