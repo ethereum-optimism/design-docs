@@ -51,23 +51,20 @@ Below are references for this project:
     3. Verifier contract will be audited before mainnet deployment.
     4. `DISPUTE_GAME_FINALITY_DELAY_SECONDS` airgap + `DelayedWETH` delay give the Guardian two windows to intervene.
 - **Detection:**
-    - Off-chain monitoring that re-executes L2 state transitions and alerts on `DEFENDER_WINS` for incorrect claims.
+    - `op-dispute-mon` already detects games that are forecast to or do resolve incorrectly, covering both sub-cases: an invalid claim that gets proven or goes unchallenged (A), and a valid claim whose proof is never submitted (B).
     - Fuzz testing verifier with edge-case inputs (empty bytes, zero values, gas-limited calls).
-    - Monitoring for challenged games that never receive a valid proof (sub-case B indicator).
 - **Recovery Path(s):**
     1. Guardian pauses system, blacklists affected games, retires game type updating the retirement timestamp if systemic.
     2. OPCM deploys patched verifier and updates `gameArgs`.
     3. For sub-case B: Guardian blacklists affected games (REFUND mode) while corrected verifier is deployed.
 - **Action Item(s):**
-    - [ ]  FM1: Off-chain monitoring that verifies every game's `rootClaim` against trusted L2 node.
-    - [ ]  FM1: Guardian runbook for verifier compromise (pause/blacklist/retire sequence).
     - [ ]  FM1: Fuzz test `IZKVerifier.verify()` with malformed inputs to confirm it always reverts.
 
 ---
 
 ### FM2: Unchallenged Fraudulent Proposal
 
-- **Description:** If nobody challenges a fraudulent output root within `maxChallengeDuration`, the game resolves as `DEFENDER_WINS` by default. The fraudulent root becomes a Valid Claim eligible to finalize withdrawals. The system's safety depends on at least one honest, well-funded, always-online challenger. The ZK game requires only a single `challenge()` call (simpler than multi-round bisection), but every proposal must still be independently re-executed to verify its `rootClaim`.
+- **Description:** If nobody challenges a fraudulent output root within `maxChallengeDuration`, the game resolves as `DEFENDER_WINS` by default. The fraudulent root becomes a Valid Claim eligible to finalize withdrawals. The system's safety depends on at least one honest, well-funded, always-online challenger. The ZK game requires only a single `challenge()` call (simpler than multi-round bisection), but every proposal's `rootClaim` must still be compared against the canonical output root from a trusted node.
 - **Risk Assessment:** Critical severity / Low likelihood
 - **Mitigations:**
     1. Bond economics incentivizes challengers, a successful challenge can earn `initBond + challengerBond`, so `initBond` must be high enough to justify the cost of running a challenger infrastructure. At the same time, `challengerBond` must remain above proving cost but low enough to not discourage participation.
@@ -76,17 +73,13 @@ Below are references for this project:
     4. `DelayedWETH` provides an additional freeze window after `closeGame()`.
     5. Multiple independent challengers can run concurrently for redundancy (though only one challenge per game is accepted).
 - **Detection:**
-    - Off-chain challenger software (`op-challenger` or equivalent) that monitors all new games, re-derives the correct output root, and challenges any incorrect claims.
-    - Independent monitoring that alerts when a game's `rootClaim` does not match the correct output root and no challenge has been submitted.
-    - Alerts when `maxChallengeDuration` is approaching for an unchallenged game with an incorrect claim.
+    - `op-dispute-mon` already detects games that are forecast to or do resolve incorrectly.
 - **Recovery Path(s):**
     1. If the challenge window is missed, the Guardian blacklists the game before `closeGame()`.
     2. If `closeGame()` was already called, the Guardian pauses the system to prevent withdrawal finalization.
     3. As a last resort, governance can upgrade contracts to recover.
 - **Action Item(s):**
-    - [ ]  FM2: Implement monitoring that alerts when an unchallenged game has an incorrect `rootClaim` with time remaining in the challenge window.
     - [ ]  FM2: Ensure `maxChallengeDuration` accounts for L1 congestion/censorship and bond economics incentivize challengers.
-    - [ ]  FM2: Document the Guardian fallback procedure for games that were not challenged in time.
 
 ---
 
@@ -281,6 +274,7 @@ The following contracts require an audit before production deployment:
 | --- | --- |
 | `ZKDisputeGame.sol` (implementation) | Core game logic: state machine, bond accounting, parent validation, proof verification call. |
 | `IZKVerifier` adapter | Wraps the proving system verifier. A bug here is equivalent to a verifier soundness break (FM1). |
+| ZK program | Defines the constrained state transition proven inside the zkVM. A bug in constraint logic could allow valid proofs for invalid state transitions (FM1). |
 | `OPContractsManager` (ZK-related changes) | `_makeGameArgs()` encoding for the ZK dispute game. Packing errors would cause FM6. |
 | `DisputeGameFactory` (if modified) | Clone deployment and CWIA injection. Changes to support the ZK dispute game must be reviewed. |
 | `AnchorStateRegistry` (if modified) | Changes to support `ZKDisputeGame` lifecycle (e.g., `isGameClaimValid`, `isFinalized()` for the new game type). Correctness of `isFinalized()` is covered in Generic Failure Modes (External Contract Dependencies). |
@@ -291,12 +285,8 @@ Below is a consolidated list of all action items from the failure modes above.
 
 | Action Item | Description | Source |
 | --- | --- | --- |
-| FM1-1 | Off-chain monitoring that verifies every game's `rootClaim` against trusted L2 node. | [FM1](#fm1-zk-verifier-soundness-or-completeness-break) |
-| FM1-2 | Guardian runbook for verifier compromise (pause/blacklist/retire sequence). | [FM1](#fm1-zk-verifier-soundness-or-completeness-break) |
-| FM1-3 | Fuzz test `IZKVerifier.verify()` with malformed inputs to confirm it always reverts. | [FM1](#fm1-zk-verifier-soundness-or-completeness-break) |
-| FM2-1 | Implement monitoring that alerts when an unchallenged game has an incorrect `rootClaim` with time remaining in the challenge window. | [FM2](#fm2-unchallenged-fraudulent-proposal) |
-| FM2-2 | Ensure `maxChallengeDuration` accounts for L1 congestion/censorship and bond economics incentivize challengers. | [FM2](#fm2-unchallenged-fraudulent-proposal) |
-| FM2-3 | Document the Guardian fallback procedure for games that were not challenged in time. | [FM2](#fm2-unchallenged-fraudulent-proposal) |
+| FM1-1 | Fuzz test `IZKVerifier.verify()` with malformed inputs to confirm it always reverts. | [FM1](#fm1-zk-verifier-soundness-or-completeness-break) |
+| FM2-1 | Ensure `maxChallengeDuration` accounts for L1 congestion/censorship and bond economics incentivize challengers. | [FM2](#fm2-unchallenged-fraudulent-proposal) |
 | FM3-1 | Build tooling that, given a blacklisted game, automatically enumerates all descendant games by querying `DisputeGameFactory` for all `ZKDisputeGame` instances and filtering by `parentIndex`, including cross-prestate ancestry. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
 | FM3-2 | Document the Guardian runbook for cascading blacklists, including cross-prestate tracing, tooling, and verification steps. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
 | FM3-3 | Add monitoring that alerts when any game with a blacklisted ancestor approaches the finality delay window. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
