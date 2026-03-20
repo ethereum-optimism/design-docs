@@ -39,23 +39,26 @@ Below are references for this project:
 
 ### FM1: ZK Verifier Soundness or Completeness Break
 
-- **Description:** Two sub-cases of `IZKVerifier` malfunction (aZKG-001):
-    
-    **A -- Soundness break:** A bug in the verifier or the `IZKVerifier` adapter causes `verify()` to return without reverting for an incorrect state transition. Since `prove()` treats any non-reverting return as proof acceptance, the game transitions to `DEFENDER_WINS` with a fraudulent `rootClaim`, enabling withdrawal of funds that don't exist on L2. This covers both cryptographic flaws (e.g., broken field arithmetic, pairing checks) and input validation gaps (e.g., `verify()` silently returns on empty proof bytes, zero `programId`, or gas-limited subcalls instead of reverting).
-    
+- **Description:** Three sub-cases of ZK proving system malfunction (aZKG-001):
+
+    **A -- Verifier soundness break:** A bug in the verifier or the `IZKVerifier` adapter causes `verify()` to return without reverting for an incorrect state transition. Since `prove()` treats any non-reverting return as proof acceptance, the game transitions to `DEFENDER_WINS` with a fraudulent `rootClaim`, enabling withdrawal of funds that don't exist on L2. This covers both cryptographic flaws (e.g., broken field arithmetic, pairing checks) and input validation gaps (e.g., `verify()` silently returns on empty proof bytes, zero `programId`, or gas-limited subcalls instead of reverting).
+
     **B -- Completeness break:** The verifier rejects valid proofs. All challenged games resolve as `CHALLENGER_WINS`, proposers lose bonds, and withdrawals stall.
+
+    **C -- ZK program soundness break:** A bug in the ZK program allows a prover to generate a cryptographically valid proof for an invalid state transition by manipulating private witness values. Unlike sub-case A, the verifier and adapter work correctly — the proof is genuinely valid — but the program's constraint logic fails to properly constrain the relationship between public inputs and private witnesses. The impact is identical to sub-case A: `DEFENDER_WINS` with a fraudulent `rootClaim`.
     
 - **Risk Assessment:** Critical severity / Low likelihood
 - **Mitigations:**
     1. `IZKVerifier` interface enables verifier swap without redeploying the game.
     2. `prove()` constructs `publicValues` from immutable on-chain state — only `_proofBytes` is caller-supplied.
     3. Verifier contract will be audited before mainnet deployment.
-    4. `DISPUTE_GAME_FINALITY_DELAY_SECONDS` airgap + `DelayedWETH` delay give the Guardian two windows to intervene.
+    4. The ZK program validates that private prover inputs are derived directly from or cryptographically linked to the public inputs.
+    5. `DISPUTE_GAME_FINALITY_DELAY_SECONDS` airgap + `DelayedWETH` delay give the Guardian two windows to intervene.
 - **Detection:**
-    - `op-dispute-mon` already detects games that are forecast to or do resolve incorrectly, covering both sub-cases: an invalid claim that gets proven or goes unchallenged (A), and a valid claim whose proof is never submitted (B).
+    - `op-dispute-mon` already detects games that are forecast to or do resolve incorrectly, covering all three sub-cases: an invalid claim that gets proven or goes unchallenged (A, C), and a valid claim whose proof is never submitted (B).
     - Fuzz testing verifier with edge-case inputs (empty bytes, zero values, gas-limited calls).
 - **Recovery Path(s):**
-    1. Guardian pauses system, blacklists affected games, retires game type updating the retirement timestamp if systemic.
+    1. Guardian pauses system and blacklists affected games. If the issue is systemic, the Guardian updates the retirement timestamp to invalidate all in-flight games.
     2. OPCM deploys patched verifier and updates `gameArgs`.
     3. For sub-case B: Guardian blacklists affected games (REFUND mode) while corrected verifier is deployed.
 - **Action Item(s):**
@@ -65,19 +68,19 @@ Below are references for this project:
 
 ### FM2: Unchallenged Fraudulent Proposal
 
-- **Description:** If nobody challenges a fraudulent output root within `maxChallengeDuration`, the game resolves as `DEFENDER_WINS` by default. The fraudulent root becomes a Valid Claim eligible to finalize withdrawals. The system's safety depends on at least one honest, well-funded, always-online challenger. The ZK game requires only a single `challenge()` call (simpler than multi-round bisection), but every proposal's `rootClaim` must still be compared against the canonical output root from a trusted node.
+- **Description:** If nobody challenges a fraudulent output root within the challenge window, the game resolves as `DEFENDER_WINS` by default. The fraudulent root becomes eligible to finalize withdrawals after the finality delay and the `DelayedWETH` delay elapse. The system's safety depends on at least one honest, always-online challenger. The ZK game requires only a single `challenge()` call (simpler than multi-round bisection), but every proposal's `rootClaim` must still be compared against the canonical output root from a trusted node.
 - **Risk Assessment:** Critical severity / Low likelihood
 - **Mitigations:**
-    1. Bond economics incentivizes challengers, a successful challenge can earn `initBond + challengerBond`, so `initBond` must be high enough to justify the cost of running a challenger infrastructure. At the same time, `challengerBond` must remain above proving cost but low enough to not discourage participation.
+    1. Bond economics incentivize challengers: a successful challenge nets the challenger the proposer's `initBond` as profit, so `initBond` must be high enough to justify running challenger infrastructure.
     2. `maxChallengeDuration` provides a configurable time window. It should be long enough to account for L1 congestion and censorship scenarios.
     3. The Guardian can blacklist fraudulent games during the `DISPUTE_GAME_FINALITY_DELAY_SECONDS` airgap, even if the challenge window was missed.
     4. `DelayedWETH` provides an additional freeze window after `closeGame()`.
-    5. Multiple independent challengers can run concurrently for redundancy (though only one challenge per game is accepted).
+    5. Multiple independent challengers can run concurrently for redundancy (though only one challenge per game is accepted — see FM8).
 - **Detection:**
     - `op-dispute-mon` already detects games that are forecast to or do resolve incorrectly.
 - **Recovery Path(s):**
-    1. If the challenge window is missed, the Guardian blacklists the game before `closeGame()`.
-    2. If `closeGame()` was already called, the Guardian pauses the system to prevent withdrawal finalization.
+    1. If the challenge window is missed, the Guardian blacklists the game before the finality delay expires.
+    2. If the finality delay has also passed, the Guardian pauses the system to prevent withdrawal finalization.
     3. As a last resort, governance can upgrade contracts to recover.
 - **Action Item(s):**
     - [ ]  FM2: Ensure `maxChallengeDuration` accounts for L1 congestion/censorship and bond economics incentivize challengers.
@@ -100,6 +103,7 @@ Below are references for this project:
     - `op-dispute-mon` already detects games that are forecast to or do resolve incorrectly. A child with an invalid claim that the Guardian missed will be flagged regardless of its parent's blacklist status.
 - **Recovery Path(s):**
     1. Guardian calls `updateRetirementTimestamp()` to retire all games. This sets the retirement timestamp to the current block, invalidating all in-flight games.
+
 ---
 
 ### FM4: Bond Accounting Failure and DelayedWETH Insolvency
@@ -254,7 +258,7 @@ The spec requires (iZKG-011) that for every game: `sum(distributions) + sum(burn
 - **Risk Assessment:** Low severity / Medium likelihood
 - **Mitigations:**
     1. The attacker forfeits `challengerBond` for every challenge, making sustained griefing expensive.
-    2. The proposer profits from each griefing challenge, covering proving costs and then some (assuming `challengerBond > proving cost`, per FM7).
+    2. The proposer profits from each griefing challenge, covering proving costs and then some (assuming `challengerBond > proving cost`).
     3. Challenged games resolve faster since the proposer can prove immediately rather than waiting for the challenge window.
 - **Detection:**
     - No specific detection required. Games resolve correctly; the proposer simply proves and collects bonds.
