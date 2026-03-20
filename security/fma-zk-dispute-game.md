@@ -108,8 +108,7 @@ Below are references for this project:
 
 ### FM4: Bond Accounting Failure and DelayedWETH Insolvency
 
-- **Description:** Multiple `ZKDisputeGame` instances share the same per-chain `DelayedWETH`.
-The spec requires (iZKG-011) that for every game: `sum(distributions) + sum(burns) == initBond + challengerBond`. An accounting bug in `closeGame()` that violates this invariant — distributing more than deposited, double-crediting, or mishandling the burn path — could drain `DelayedWETH` or permanently lock funds.
+- **Description:** Multiple `ZKDisputeGame` instances share the same per-chain `DelayedWETH`. The spec requires (iZKG-011) that for every game: `sum(distributions) + sum(burns) == initBond + challengerBond`. An accounting bug in `closeGame()` that violates this invariant — distributing more than deposited, double-crediting, or mishandling the burn path — could drain `DelayedWETH` or permanently lock funds.
     
     The burn path deserves attention: when a parent resolves as `CHALLENGER_WINS` and the child was unchallenged, the child's `initBond` is sent to `address(0)`. A bug here could create unbacked withdrawals or lock residual funds. The bond distribution table has 10 NORMAL + 3 REFUND scenarios, each with distinct logic paths.
     
@@ -117,8 +116,7 @@ The spec requires (iZKG-011) that for every game: `sum(distributions) + sum(burn
 - **Mitigations:**
     1. Bond distribution is fully specified in the [game mechanics](https://github.com/defi-wonderland/specs/blob/feat/op-zk-proofs/specs/fault-proof/stage-one/zk/game-mechanics.md#bond-distribution) with a clear table of every scenario.
     2. The `DelayedWETH` pattern is shared with `FaultDisputeGame` and has been audited in that context.
-    3. REFUND mode returns each bond to its original depositor, which is always balanced by
-    definition.
+    3. REFUND mode returns each bond to its original depositor, which is always balanced by definition.
     4. Bond distribution is deterministic — no external inputs or oracle dependencies.
 - **Detection:**
     - Invariant tests asserting `sum(distributions) + sum(burns) == initBond + challengerBond` across all scenarios.
@@ -126,13 +124,10 @@ The spec requires (iZKG-011) that for every game: `sum(distributions) + sum(burn
     - Monitoring `DelayedWETH` balance against total outstanding credits.
 - **Recovery Path(s):**
     1. Guardian pauses the system and blacklists affected games (REFUND mode).
-    2. If `DelayedWETH` is insolvent, governance must deploy a replacement — the contract is
-    immutable.
+    2. If `DelayedWETH` is insolvent, governance must deploy a replacement — the contract is immutable.
 - **Action Item(s):**
-    - [ ]  FM4: Implement iZKG-011 conservation invariant tests across all bond distribution
-    scenarios.
-    - [ ]  FM4: Fuzz test bond accounting across randomized game lifecycles, including the burn
-    path.
+    - [ ]  FM4: Implement iZKG-011 conservation invariant tests across all bond distribution scenarios.
+    - [ ]  FM4: Fuzz test bond accounting across randomized game lifecycles, including the burn path.
 
 ---
 
@@ -223,6 +218,7 @@ The spec requires (iZKG-011) that for every game: `sum(distributions) + sum(burn
     - Monitoring for repeated fraudulent proposals from the same proposer that are always self-challenged.
 - **Recovery Path(s):**
     1. If systematic self-challenge front-running is detected, increase `initBond` to raise the capital cost of the attack.
+
 ---
 
 ### FM9: Challenge Griefing
