@@ -48,7 +48,7 @@ Below are references for this project:
 - **Mitigations:**
     1. `IZKVerifier` interface enables verifier swap without redeploying the game.
     2. `prove()` constructs `publicValues` from immutable on-chain state — only `_proofBytes` is caller-supplied.
-    3. Verifier contract should be independently audited by multiple firms.
+    3. Verifier contract will be audited before mainnet deployment.
     4. `DISPUTE_GAME_FINALITY_DELAY_SECONDS` airgap + `DelayedWETH` delay give the Guardian two windows to intervene.
 - **Detection:**
     - Off-chain monitoring that re-executes L2 state transitions and alerts on `DEFENDER_WINS` for incorrect claims.
@@ -59,7 +59,6 @@ Below are references for this project:
     2. OPCM deploys patched verifier and updates `gameArgs`.
     3. For sub-case B: Guardian blacklists affected games (REFUND mode) while corrected verifier is deployed.
 - **Action Item(s):**
-    - [ ]  FM1: Verifier audited by at least two independent firms before mainnet.
     - [ ]  FM1: Off-chain monitoring that verifies every game's `rootClaim` against trusted L2 node.
     - [ ]  FM1: Guardian runbook for verifier compromise (pause/blacklist/retire sequence).
     - [ ]  FM1: Fuzz test `IZKVerifier.verify()` with malformed inputs to confirm it always reverts.
@@ -292,10 +291,9 @@ Below is a consolidated list of all action items from the failure modes above.
 
 | Action Item | Description | Source |
 | --- | --- | --- |
-| FM1-1 | Verifier audited by at least two independent firms before mainnet. | [FM1](#fm1-zk-verifier-soundness-or-completeness-break) |
-| FM1-2 | Off-chain monitoring that verifies every game's `rootClaim` against trusted L2 node. | [FM1](#fm1-zk-verifier-soundness-or-completeness-break) |
-| FM1-3 | Guardian runbook for verifier compromise (pause/blacklist/retire sequence). | [FM1](#fm1-zk-verifier-soundness-or-completeness-break) |
-| FM1-4 | Fuzz test `IZKVerifier.verify()` with malformed inputs to confirm it always reverts. | [FM1](#fm1-zk-verifier-soundness-or-completeness-break) |
+| FM1-1 | Off-chain monitoring that verifies every game's `rootClaim` against trusted L2 node. | [FM1](#fm1-zk-verifier-soundness-or-completeness-break) |
+| FM1-2 | Guardian runbook for verifier compromise (pause/blacklist/retire sequence). | [FM1](#fm1-zk-verifier-soundness-or-completeness-break) |
+| FM1-3 | Fuzz test `IZKVerifier.verify()` with malformed inputs to confirm it always reverts. | [FM1](#fm1-zk-verifier-soundness-or-completeness-break) |
 | FM2-1 | Implement monitoring that alerts when an unchallenged game has an incorrect `rootClaim` with time remaining in the challenge window. | [FM2](#fm2-unchallenged-fraudulent-proposal) |
 | FM2-2 | Ensure `maxChallengeDuration` accounts for L1 congestion/censorship and bond economics incentivize challengers. | [FM2](#fm2-unchallenged-fraudulent-proposal) |
 | FM2-3 | Document the Guardian fallback procedure for games that were not challenged in time. | [FM2](#fm2-unchallenged-fraudulent-proposal) |
