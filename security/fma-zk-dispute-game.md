@@ -6,12 +6,13 @@
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
     - [FM1: ZK Verifier Soundness or Completeness Break](#fm1-zk-verifier-soundness-or-completeness-break)
     - [FM2: Unchallenged Fraudulent Proposal](#fm2-unchallenged-fraudulent-proposal)
-    - [FM3: Parent Chain Invalidation and Propagation Failure](#fm3-parent-chain-invalidation-and-propagation-failure)
+    - [FM3: Missed Child Blacklist After Parent Invalidation](#fm3-missed-child-blacklist-after-parent-invalidation)
     - [FM4: Bond Accounting Failure and DelayedWETH Insolvency](#fm4-bond-accounting-failure-and-delayedweth-insolvency)
     - [FM5: Upgrade Lifecycle Mismatch](#fm5-upgrade-lifecycle-mismatch)
     - [FM6: CWIA Game Args Encoding Mismatch](#fm6-cwia-game-args-encoding-mismatch)
     - [FM7: Bond and Duration Misconfiguration](#fm7-bond-and-duration-misconfiguration)
     - [FM8: Self-Challenge Front-Running to Recover Bonds](#fm8-self-challenge-front-running-to-recover-bonds)
+    - [FM9: Challenge Griefing](#fm9-challenge-griefing)
 - [Audit Requirements](#audit-requirements)
 - [Action Items](#action-items)
 
@@ -83,41 +84,22 @@ Below are references for this project:
 
 ---
 
-### FM3: Parent Chain Invalidation and Propagation Failure
+### FM3: Missed Child Blacklist After Parent Invalidation
 
-- **Description:** When a parent game is blacklisted or retired after children exist, the Guardian MUST individually blacklist each descendant (aZKG-003). Blacklisting does not change a parent's resolution status — a blacklisted parent that already resolved as `DEFENDER_WINS` does not propagate invalidity to children via `resolve()`. Chain depth is unbounded.
-    
+- **Description:** Blacklisting a game does not automatically propagate to its children. When a parent game is blacklisted, the Guardian should also blacklist any descendants with invalid claims (aZKG-003). If the Guardian misses a child with an invalid claim, that child could resolve as `DEFENDER_WINS` and finalize fraudulent withdrawals.
+
     **Safeguards:** iZKG-005 propagates `CHALLENGER_WINS` automatically. iZKG-009 prevents children from resolving before parents. `isGameRespected`/`wasRespectedGameTypeWhenCreated` prevents retired game types from finalizing withdrawals. But none of these help when a parent is individually blacklisted after resolving as `DEFENDER_WINS`.
-    
-    **Cross-prestate amplification:** Parents don't need the same `absolutePrestate` as children (intentional — avoids 7-day re-proofs). This means retirement of old-prestate games doesn't cover children with different prestates.
-    
-    **Resolution ordering deadlock:** iZKG-009 requires the parent to be resolved before any child can resolve. Challenging a root game blocks all descendants until the root's proof is submitted or `maxProveDuration` expires. In practice the delay equals the proof generation time (the prover can submit immediately after challenge), not the full `maxProveDuration` — the worst case only applies if proving infrastructure is unavailable. Cost to the attacker is `challengerBond` per challenge (forfeited to the prover). Proposers mitigate by maintaining parallel chains from the anchor state.
-    
-- **Risk Assessment:** High severity / Medium likelihood
+
+- **Risk Assessment:** High severity / Low likelihood
 - **Mitigations:**
     1. `resolve()` propagates `CHALLENGER_WINS` from parent to child (iZKG-005) — automatic for resolution-based invalidity.
     2. iZKG-009 enforces child-waits-for-parent ordering, giving the Guardian time to act on parents first.
     3. `isGameClaimValid()` checks blacklist/retirement status before allowing withdrawal finalization.
     4. `DISPUTE_GAME_FINALITY_DELAY_SECONDS` + `DelayedWETH` delay provide Guardian intervention windows.
-    5. Proposers can maintain parallel chains to mitigate resolution ordering deadlocks.
 - **Detection:**
-    - Off-chain tooling that monitors blacklist events and automatically enumerates all descendant games of a blacklisted game by traversing `parentIndex` references, including across prestate boundaries.
-    - Alerts when a game whose ancestor is blacklisted reaches a state where `closeGame()` could be called.
-    - Monitoring for games that are challenged but remain unresolved close to `maxProveDuration`.
-    - Alerts when descendant games are blocked on parent resolution for extended periods.
-    - Tracking the depth and structure of game chains.
+    - `op-dispute-mon` already detects games that are forecast to or do resolve incorrectly. A child with an invalid claim that the Guardian missed will be flagged regardless of its parent's blacklist status.
 - **Recovery Path(s):**
-    1. Guardian blacklists all identified descendant games individually, tracing across prestate boundaries.
-    2. If some descendants were missed and `closeGame()` was called, Guardian pauses the system to prevent further damage.
-    3. Guardian retires the entire game type as a last resort to put all games into REFUND mode.
-    4. For resolution ordering deadlocks: provers submit proofs for challenged games to unblock the chain. Proposers create new parallel chains from the anchor state to bypass blocked chains.
-    5. If deadlock griefing is systematic, OPCM can increase `challengerBond` to raise the cost.
-- **Action Item(s):**
-    - [ ]  FM3: Build tooling that, given a blacklisted game, automatically enumerates all descendant games by querying `DisputeGameFactory` for all `ZKDisputeGame` instances and filtering by `parentIndex`, including cross-prestate ancestry.
-    - [ ]  FM3: Document the Guardian runbook for cascading blacklists, including cross-prestate tracing, tooling, and verification steps.
-    - [ ]  FM3: Add monitoring that alerts when any game with a blacklisted ancestor approaches the finality delay window.
-    - [ ]  FM3: Analyze the expected chain depth under normal operation and the maximum delay an attacker can impose per `challengerBond` spent via resolution ordering deadlock.
-
+    1. Guardian calls `updateRetirementTimestamp()` to retire all games. This sets the retirement timestamp to the current block, invalidating all in-flight games.
 ---
 
 ### FM4: Bond Accounting Failure and DelayedWETH Insolvency
@@ -266,6 +248,22 @@ The spec requires (iZKG-011) that for every game: `sum(distributions) + sum(burn
 
 ---
 
+### FM9: Challenge Griefing
+
+- **Description:** A malicious actor challenges every proposal, forcing the proposer to generate and submit ZK proofs for the entire chain. The cost to the attacker is `challengerBond` per challenge (forfeited to the proposer on successful proof). In practice this likely speeds up withdrawal finality rather than delaying it, since the proposer proves the game immediately instead of waiting for `maxChallengeDuration` to elapse unchallenged. In the worst case, the attacker challenges right before `maxChallengeDuration` expires, adding one proof generation time of delay.
+- **Risk Assessment:** Low severity / Medium likelihood
+- **Mitigations:**
+    1. The attacker forfeits `challengerBond` for every challenge, making sustained griefing expensive.
+    2. The proposer profits from each griefing challenge, covering proving costs and then some (assuming `challengerBond > proving cost`, per FM7).
+    3. Challenged games resolve faster since the proposer can prove immediately rather than waiting for the challenge window.
+- **Detection:**
+    - No specific detection required. Games resolve correctly; the proposer simply proves and collects bonds.
+- **Recovery Path(s):**
+    1. No action required if `challengerBond` covers proving costs — the proposer profits from the griefing.
+    2. If `challengerBond` does not cover proving costs, OPCM increases `challengerBond` to restore profitability.
+
+---
+
 ## Audit Requirements
 
 The following contracts require an audit before production deployment:
@@ -287,10 +285,6 @@ Below is a consolidated list of all action items from the failure modes above.
 | --- | --- | --- |
 | FM1-1 | Fuzz test `IZKVerifier.verify()` with malformed inputs to confirm it always reverts. | [FM1](#fm1-zk-verifier-soundness-or-completeness-break) |
 | FM2-1 | Ensure `maxChallengeDuration` accounts for L1 congestion/censorship and bond economics incentivize challengers. | [FM2](#fm2-unchallenged-fraudulent-proposal) |
-| FM3-1 | Build tooling that, given a blacklisted game, automatically enumerates all descendant games by querying `DisputeGameFactory` for all `ZKDisputeGame` instances and filtering by `parentIndex`, including cross-prestate ancestry. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
-| FM3-2 | Document the Guardian runbook for cascading blacklists, including cross-prestate tracing, tooling, and verification steps. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
-| FM3-3 | Add monitoring that alerts when any game with a blacklisted ancestor approaches the finality delay window. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
-| FM3-4 | Analyze the expected chain depth under normal operation and the maximum delay an attacker can impose per `challengerBond` spent via resolution ordering deadlock. | [FM3](#fm3-parent-chain-invalidation-and-propagation-failure) |
 | FM4-1 | Implement iZKG-011 conservation invariant tests across all bond distribution scenarios. | [FM4](#fm4-bond-accounting-failure-and-delayedweth-insolvency) |
 | FM4-2 | Fuzz test bond accounting across randomized game lifecycles, including the burn path. | [FM4](#fm4-bond-accounting-failure-and-delayedweth-insolvency) |
 | FM4-3 | Add `DelayedWETH` balance monitoring alert. | [FM4](#fm4-bond-accounting-failure-and-delayedweth-insolvency) |
