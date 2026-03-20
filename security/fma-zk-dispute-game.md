@@ -8,7 +8,7 @@
     - [FM2: Unchallenged Fraudulent Proposal](#fm2-unchallenged-fraudulent-proposal)
     - [FM3: Missed Child Blacklist After Parent Invalidation](#fm3-missed-child-blacklist-after-parent-invalidation)
     - [FM4: Bond Accounting Failure and DelayedWETH Insolvency](#fm4-bond-accounting-failure-and-delayedweth-insolvency)
-    - [FM5: Upgrade Lifecycle Mismatch](#fm5-upgrade-lifecycle-mismatch)
+    - [FM5: Prestate Mismatch](#fm5-prestate-mismatch)
     - [FM6: CWIA Game Args Encoding Mismatch](#fm6-cwia-game-args-encoding-mismatch)
     - [FM7: Bond and Duration Misconfiguration](#fm7-bond-and-duration-misconfiguration)
     - [FM8: Self-Challenge Front-Running to Recover Bonds](#fm8-self-challenge-front-running-to-recover-bonds)
@@ -133,46 +133,23 @@ The spec requires (iZKG-011) that for every game: `sum(distributions) + sum(burn
     scenarios.
     - [ ]  FM4: Fuzz test bond accounting across randomized game lifecycles, including the burn
     path.
-    - [ ]  FM4: Add `DelayedWETH` balance monitoring alert.
 
 ---
 
-### FM5: Upgrade Lifecycle Mismatch
+### FM5: Prestate Mismatch
 
-- **Description:** Covers the full upgrade lifecycle (aZKG-002, [IZKVerifier upgrade path](https://github.com/defi-wonderland/specs/blob/feat/op-zk-proofs/specs/fault-proof/stage-one/zk/zk-interface.md#verifier-upgrade-path)):
-    
-    **A -- absolutePrestate mismatch:** The `absolutePrestate` is updated but provers still run the old binary (or vice versa). Proofs fail verification; challenged games time out as `CHALLENGER_WINS` and proposers lose bonds. Also applies when governance delays mean the prestate isn't updated before a hard fork activates on L2.
-    
-    **B -- Verifier upgrade race:** The old verifier is deprecated while in-flight games still reference it via immutable CWIA args. Those games become unprovable.
-    
-    **C -- Aggressive retirement timestamp:** `updateRetirementTimestamp()` set too close to present forces in-flight games into REFUND mode unnecessarily.
-    
-    **D -- Cross-prestate parent chaining:** Parent games intentionally don't need the same `absolutePrestate` as children (avoids 7-day re-proofs on every update). But retiring old-prestate games doesn't cover children that chained off them with a different prestate — the Guardian must trace across prestate boundaries.
-    
-- **Risk Assessment:** High severity / Low-to-medium likelihood
+- **Description:** The `absolutePrestate` is updated on-chain but provers still run the old binary (or vice versa) (aZKG-002). Proofs fail verification; challenged games time out as `CHALLENGER_WINS` and proposers lose bonds.
+- **Risk Assessment:** Medium severity / Low likelihood
 - **Mitigations:**
-    1. In-progress games use old configuration immutably (CWIA args fixed at clone creation).
-    2. Upgrade sequencing: update `absolutePrestate` on-chain first, then distribute new binary to provers, then resume proposing. For hard forks, prestate update MUST precede activation.
-    3. Old verifier contracts MUST remain functional until all in-flight games resolve or are blacklisted.
-    4. Retirement timestamps should allow at least `maxChallengeDuration + maxProveDuration + DISPUTE_GAME_FINALITY_DELAY_SECONDS` lead time.
+    1. In-progress games use old configuration immutably (CWIA args fixed at clone creation). Off-chain software automatically selects the correct prestate based on the absolute prestate hash, supporting multiple prestates concurrently.
+    2. Verifier contracts are immutable — old verifiers remain functional indefinitely and cannot be deprecated.
 - **Detection:**
-    - Monitoring for `gameArgs` changes in the `DisputeGameFactory`.
     - Alerts when a challenged game fails to receive a proof within a reasonable time (indicating prover/prestate mismatch).
-    - Pre-deployment verification that the `absolutePrestate` matches the program binary hash.
-    - Monitoring for games referencing verifier addresses that are no longer functional.
-    - Alerts when retirement timestamp is set within the in-flight game window.
+    - Alerts when a `prove()` transaction for a valid state root reverts.
+    - `op-dispute-mon` already detects games that are forecast to or do resolve incorrectly.
 - **Recovery Path(s):**
-    1. If games were created with a mismatched `absolutePrestate`, they cannot be proven. If challenged, the proposer loses `initBond`. Guardian can blacklist these games to trigger REFUND mode instead.
-    2. Correct the `absolutePrestate` via OPCM and resume normal operation.
-    3. If a hard fork activated before the prestate update, Guardian retires the old game type and OPCM deploys with the correct prestate.
-    4. If the old verifier was made non-functional prematurely, Guardian blacklists affected games to trigger REFUND mode, then OPCM re-deploys the old verifier or migrates to a new one.
-- **Action Item(s):**
-    - [ ]  FM5: Document a program upgrade runbook that specifies the exact sequencing of `absolutePrestate` update, prover binary distribution, and proposer resumption.
-    - [ ]  FM5: For hard fork upgrades, the `absolutePrestate` update MUST be included in the governance proposal alongside the L2 activation timestamp, with the on-chain update applied before activation.
-    - [ ]  FM5: Add automated verification in the deployment pipeline that the `absolutePrestate` in `gameArgs` matches the hash of the deployed program binary.
-    - [ ]  FM5: Document the requirement that old verifier contracts must remain functional until all in-flight games resolve, and add monitoring for verifier liveness.
-    - [ ]  FM5: Establish a minimum retirement timestamp lead time policy and enforce it in Guardian tooling.
-    - [ ]  FM5: Document the cross-prestate parent chaining implications for retirement cascades in the Guardian runbook.
+    1. Fix the off-chain software configuration. Proposers lose `initBond` on any challenged games that couldn't be proven, but the system is otherwise unaffected.
+    2. Guardian can blacklist affected games to trigger REFUND mode if needed.
 
 ---
 
@@ -291,13 +268,6 @@ Below is a consolidated list of all action items from the failure modes above.
 | FM2-1 | Ensure `maxChallengeDuration` accounts for L1 congestion/censorship and bond economics incentivize challengers. | [FM2](#fm2-unchallenged-fraudulent-proposal) |
 | FM4-1 | Implement iZKG-011 conservation invariant tests across all bond distribution scenarios. | [FM4](#fm4-bond-accounting-failure-and-delayedweth-insolvency) |
 | FM4-2 | Fuzz test bond accounting across randomized game lifecycles, including the burn path. | [FM4](#fm4-bond-accounting-failure-and-delayedweth-insolvency) |
-| FM4-3 | Add `DelayedWETH` balance monitoring alert. | [FM4](#fm4-bond-accounting-failure-and-delayedweth-insolvency) |
-| FM5-1 | Document a program upgrade runbook that specifies the exact sequencing of `absolutePrestate` update, prover binary distribution, and proposer resumption. | [FM5](#fm5-upgrade-lifecycle-mismatch) |
-| FM5-2 | For hard fork upgrades, the `absolutePrestate` update MUST be included in the governance proposal alongside the L2 activation timestamp, with the on-chain update applied before activation. | [FM5](#fm5-upgrade-lifecycle-mismatch) |
-| FM5-3 | Add automated verification in the deployment pipeline that the `absolutePrestate` in `gameArgs` matches the hash of the deployed program binary. | [FM5](#fm5-upgrade-lifecycle-mismatch) |
-| FM5-4 | Document the requirement that old verifier contracts must remain functional until all in-flight games resolve, and add monitoring for verifier liveness. | [FM5](#fm5-upgrade-lifecycle-mismatch) |
-| FM5-5 | Establish a minimum retirement timestamp lead time policy and enforce it in Guardian tooling. | [FM5](#fm5-upgrade-lifecycle-mismatch) |
-| FM5-6 | Document the cross-prestate parent chaining implications for retirement cascades in the Guardian runbook. | [FM5](#fm5-upgrade-lifecycle-mismatch) |
 | FM6-1 | Implement comprehensive round-trip encoding/decoding tests for all 8 `gameArgs` fields, including edge-case values (zero, max, addresses with leading zeros). | [FM6](#fm6-cwia-game-args-encoding-mismatch) |
 | FM6-2 | Add fuzz tests that verify `_makeGameArgs()` output is correctly decoded by the game's accessor functions. | [FM6](#fm6-cwia-game-args-encoding-mismatch) |
 | FM6-3 | Review the `Duration` type's packed size and ensure it matches the offset calculations in the CWIA decoding logic. | [FM6](#fm6-cwia-game-args-encoding-mismatch) |
