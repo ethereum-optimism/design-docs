@@ -183,13 +183,13 @@ The spec requires (iZKG-011) that for every game: `sum(distributions) + sum(burn
     - **Bonds too low:** Spam proposals and frivolous challenges are cheap. Challenging costs only `challengerBond`; defending requires expensive ZK proof generation. If proving cost > `challengerBond`, defending is economically irrational.
     - **Bonds too high:** Honest proposers and challengers priced out, undermining permissionless participation.
     - **Durations too short:** Provers may not generate the proof in time. L1 censorship of `prove()` also becomes feasible (cost proportional to `maxProveDuration`). Short `maxChallengeDuration` compounds FM2 risk.
-    - **Durations too long:** Withdrawal finality delayed, eliminating the latency benefit of ZK proofs.
+    - **Durations too long:** Withdrawal finality delayed on the unchallenged path. The latency benefit of ZK proofs is only realized if someone eagerly proves, which has its own cost.
     - **Block range selection:** The proposer is responsible for creating games with block ranges they can prove within `maxProveDuration`. Proving larger ranges in a single proof is generally cheaper per-block in zkVMs however a proposer who creates an unprovable range loses their own `initBond`.
     - **L1 gas pressure:** ZK proof verification can cost several hundred thousand gas units depending on the backend. During extreme gas spikes, `prove()` inclusion becomes expensive, not technically unfeasible though given the margin against the block gas limit.
 - **Risk Assessment:** Medium severity / Medium likelihood
 - **Mitigations:**
     1. All parameters are in `gameArgs` and tunable per chain by OPCM without redeploying.
-    2. `challengerBond` should exceed 2x expected proving cost so defending is always profitable.
+    2. `challengerBond` should exceed expected proving cost so defending is always profitable.
     3. Third-party provers can earn `challengerBond`, creating a market incentive for proving services.
     4. `maxProveDuration` must be long enough that L1 censorship of `prove()` is economically infeasible (aZKG-007).
     5. Rational proposers won't create unnecessarily large block ranges (aZKG-006).
@@ -197,10 +197,10 @@ The spec requires (iZKG-011) that for every game: `sum(distributions) + sum(burn
     - Monitoring challenge rates, proving costs vs `challengerBond`, and `prove()` inclusion failures.
     - Alerts when challenged games approach `maxProveDuration` without proof submission.
 - **Recovery Path(s):**
-    1. OPCM adjusts `challengerBond` and/or `maxProveDuration`. "Game type changed mid-play" ensures in-flight games get REFUND treatment.
-    2. Guardian can blacklist exploitative games or retire the game type.
+    1. OPCM adjusts `challengerBond` and/or `maxProveDuration` for new games. Existing in-flight games continue to play out with their existing rules.
+    2. Guardian can blacklist exploitative games, update the retirement timestamp to invalidate all in-flight games, or change the respected game type.
 - **Action Item(s):**
-    - [ ]  FM7: Establish a minimum `challengerBond` policy such that `challengerBond > 2x expected proving cost` to ensure defending is always profitable.
+    - [ ]  FM7: Establish a minimum `challengerBond` policy such that `challengerBond > expected proving cost` to ensure defending is always profitable.
     - [ ]  FM7: Calibrate `maxProveDuration` per aZKG-007 with analysis of L1 censorship costs and proof generation time on reference hardware.
     - [ ]  FM7: Monitor challenge rates in production and have a runbook for adjusting bond and duration parameters if griefing is detected.
     - [ ]  FM7: Add gas consumption regression tests for the verifier.
@@ -223,10 +223,6 @@ The spec requires (iZKG-011) that for every game: `sum(distributions) + sum(burn
     - Monitoring for repeated fraudulent proposals from the same proposer that are always self-challenged.
 - **Recovery Path(s):**
     1. If systematic self-challenge front-running is detected, increase `initBond` to raise the capital cost of the attack.
-- **Action Item(s):**
-    - [ ]  FM8: Analyze the economic viability of self-challenge front-running given gas costs and capital lockup.
-    - [ ]  FM8: Evaluate protocol mitigations: multiple challenges or challenger priority mechanisms.
-
 ---
 
 ### FM9: Challenge Griefing
@@ -272,9 +268,7 @@ Below is a consolidated list of all action items from the failure modes above.
 | FM6-2 | Add fuzz tests that verify `_makeGameArgs()` output is correctly decoded by the game's accessor functions. | [FM6](#fm6-cwia-game-args-encoding-mismatch) |
 | FM6-3 | Review the `Duration` type's packed size and ensure it matches the offset calculations in the CWIA decoding logic. | [FM6](#fm6-cwia-game-args-encoding-mismatch) |
 | FM6-4 | Add specific tests for `l2SequenceNumber` `uint64` encoding in `_extraData` to verify correct packing and offset alignment. | [FM6](#fm6-cwia-game-args-encoding-mismatch) |
-| FM7-1 | Establish a minimum `challengerBond` policy such that `challengerBond > 2x expected proving cost` to ensure defending is always profitable. | [FM7](#fm7-bond-and-duration-misconfiguration) |
+| FM7-1 | Establish a minimum `challengerBond` policy such that `challengerBond > expected proving cost` to ensure defending is always profitable. | [FM7](#fm7-bond-and-duration-misconfiguration) |
 | FM7-2 | Calibrate `maxProveDuration` per aZKG-007 with analysis of L1 censorship costs and proof generation time on reference hardware. | [FM7](#fm7-bond-and-duration-misconfiguration) |
 | FM7-3 | Monitor challenge rates in production and have a runbook for adjusting bond and duration parameters if griefing is detected. | [FM7](#fm7-bond-and-duration-misconfiguration) |
 | FM7-4 | Add gas consumption regression tests for the verifier. | [FM7](#fm7-bond-and-duration-misconfiguration) |
-| FM8-1 | Analyze the economic viability of self-challenge front-running given gas costs and capital lockup. | [FM8](#fm8-self-challenge-front-running-to-recover-bonds) |
-| FM8-2 | Evaluate protocol mitigations: multiple challenges or challenger priority mechanisms. | [FM8](#fm8-self-challenge-front-running-to-recover-bonds) |
