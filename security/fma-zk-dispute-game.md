@@ -93,7 +93,7 @@ Below are references for this project:
 
     **Safeguards:** iZKG-005 propagates `CHALLENGER_WINS` automatically. iZKG-009 prevents children from resolving before parents. `isGameRespected`/`wasRespectedGameTypeWhenCreated` prevents retired game types from finalizing withdrawals. But none of these help when a parent is individually blacklisted after resolving as `DEFENDER_WINS`.
 
-- **Risk Assessment:** High severity / Low likelihood
+- **Risk Assessment:** Medium severity / Low likelihood
 - **Mitigations:**
     1. `resolve()` propagates `CHALLENGER_WINS` from parent to child (iZKG-005) — automatic for resolution-based invalidity.
     2. iZKG-009 enforces child-waits-for-parent ordering, giving the Guardian time to act on parents first.
@@ -208,7 +208,7 @@ Below are references for this project:
     
     This neutralizes the `initBond` penalty for fraud attempts. The proposer can spam fraudulent proposals hoping one goes unchallenged (compounding FM2), and front-run any challenge that comes in to recover their bond. The fraud itself doesn't succeed (the claim is rejected), but the economic deterrent is eliminated.
     
-- **Risk Assessment:** Medium severity / Medium likelihood
+- **Risk Assessment:** Low severity / Low likelihood
 - **Mitigations:**
     1. Challengers can use private mempools (e.g., Flashbots Protect) to submit challenges without exposing them, preventing the proposer from front-running.
     2. The fraud still doesn't succeed — the claim resolves as `CHALLENGER_WINS` and cannot finalize withdrawals.
