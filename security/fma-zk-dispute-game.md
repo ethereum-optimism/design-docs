@@ -140,7 +140,7 @@ Below are references for this project:
     2. Verifier contracts are immutable — old verifiers remain functional indefinitely and cannot be deprecated.
 - **Detection:**
     - Alerts when a challenged game fails to receive a proof within a reasonable time (indicating prover/prestate mismatch).
-    - Alerts when a `prove()` transaction for a valid state root reverts.
+    - Alerts when the proposer generates a proof that is found to be invalid on-chain.
     - `op-dispute-mon` already detects games that are forecast to or do resolve incorrectly.
 - **Recovery Path(s):**
     1. Fix the off-chain software configuration. Proposers lose `initBond` on any challenged games that couldn't be proven, but the system is otherwise unaffected.
