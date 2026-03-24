@@ -30,10 +30,10 @@ This document covers the `ZKDisputeGame`, a single-round ZK-proof-based dispute 
 Below are references for this project:
 
 - [Design Doc](https://github.com/ethereum-optimism/design-docs/blob/main/protocol/zk-dispute-game.md)
-- [ZK Dispute Game Spec](https://github.com/defi-wonderland/specs/blob/feat/op-zk-proofs/specs/fault-proof/stage-one/zk/zk-dispute-game.md)
-- [Game Mechanics Spec](https://github.com/defi-wonderland/specs/blob/feat/op-zk-proofs/specs/fault-proof/stage-one/zk/game-mechanics.md)
-- [IZKVerifier Interface Spec](https://github.com/defi-wonderland/specs/blob/feat/op-zk-proofs/specs/fault-proof/stage-one/zk/zk-interface.md)
-- [ZK Fault Proof VM Spec](https://github.com/defi-wonderland/specs/blob/feat/op-zk-proofs/specs/fault-proof/zk-fault-proof-vm.md)
+- [ZK Dispute Game Spec](https://github.com/ethereum-optimism/specs/blob/main/specs/fault-proof/stage-one/zk/zk-dispute-game.md)
+- [Game Mechanics Spec](https://github.com/ethereum-optimism/specs/blob/main/specs/fault-proof/stage-one/zk/game-mechanics.md)
+- [IZKVerifier Interface Spec](https://github.com/ethereum-optimism/specs/blob/main/specs/fault-proof/stage-one/zk/zk-interface.md)
+- [ZK Fault Proof VM Spec](https://github.com/ethereum-optimism/specs/blob/main/specs/fault-proof/zk-fault-proof-vm.md)
 
 ## Failure Modes and Recovery Paths
 
