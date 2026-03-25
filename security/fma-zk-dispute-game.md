@@ -114,7 +114,7 @@ Below are references for this project:
     
 - **Risk Assessment:** Critical severity / Low likelihood
 - **Mitigations:**
-    1. Bond distribution is fully specified in the [game mechanics](https://github.com/defi-wonderland/specs/blob/feat/op-zk-proofs/specs/fault-proof/stage-one/zk/game-mechanics.md#bond-distribution) with a clear table of every scenario.
+    1. Bond distribution is fully specified in the [game mechanics](https://github.com/ethereum-optimism/specs/blob/main/specs/fault-proof/stage-one/zk/game-mechanics.md#bond-distribution) with a clear table of every scenario.
     2. The `DelayedWETH` pattern is shared with `FaultDisputeGame` and has been audited in that context.
     3. REFUND mode returns each bond to its original depositor, which is always balanced by definition.
     4. Bond distribution is deterministic — no external inputs or oracle dependencies.
@@ -153,7 +153,7 @@ Below are references for this project:
 - **Description:** The MCP clone pattern packs 8 fields into `gameArgs` via `abi.encodePacked`. A mismatch between `OPContractsManager._makeGameArgs()` encoding and `ZKDisputeGame` CWIA offset decoding causes the game to read wrong values — wrong `verifier` address, wrong `challengerBond`, wrong durations, etc. Note: `l2SequenceNumber` type changed from `uint256` to `uint64` in `_extraData`, relevant to packing correctness.
 - **Risk Assessment:** Medium severity / Low likelihood
 - **Mitigations:**
-    1. The encoding is defined in the spec ([Game Args Layout](https://github.com/defi-wonderland/specs/blob/feat/op-zk-proofs/specs/fault-proof/stage-one/zk/zk-dispute-game.md#game-args-layout)) and implemented in `OPContractsManager._makeGameArgs()`.
+    1. The encoding is defined in the spec ([Game Args Layout](https://github.com/ethereum-optimism/specs/blob/main/specs/fault-proof/stage-one/zk/zk-dispute-game.md#game-args-layout)) and implemented in `OPContractsManager._makeGameArgs()`.
     2. Round-trip tests that encode via `_makeGameArgs()` and decode via the game's accessor functions verify consistency.
     3. The CWIA pattern is used extensively in the existing OP Stack (e.g., `FaultDisputeGame`), so there is prior art and tooling for validating it.
 - **Detection:**
