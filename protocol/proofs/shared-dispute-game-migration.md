@@ -21,7 +21,7 @@ Key outcomes:
 - **Shared infrastructure**: All migrated chains share one `DisputeGameFactory`, one `AnchorStateRegistry`, and one `ETHLockbox`.
 - **Two-phase execution**: (1) per-chain OPCM upgrade prepares each chain, then (2) an atomic multi-chain `migrate()` call deploys shared infra and wires everything together.
 - **Proof routing via game type**: `_isSuperGameType()` in OP2 (`OptimismPortal2.sol:642-646`) determines whether to use `rootClaimByChainId()` or `rootClaim()` based on the game type enum. No `superRootsActive` storage flag needed.
-- **CGT chain compatibility**: Custom Gas Token chains are fully supported through the existing `Features` library in OP2 for single chain interop sets.
+- **CGT chain compatibility**: Not in v1 scope. `OptimismPortal2` retains CGT support via the `Features` library so CGT chains can be added in a future iteration.
 
 ## Problem Statement + Context
 
@@ -187,11 +187,13 @@ Rejected. Creates a permanent fork where CGT chains can never participate in int
 
 ## Risks & Uncertainties
 
+### Resolved
+
+- **CGT chains and interop**: CGT is not required for the first release — no CGT chains are immediately lined up for interop. Future CGT support requires splitting lockbox migration from the shared dispute game migration so CGT chains can join without ETH pooling (they must not deploy ETH bridging contracts like `SuperchainETHBridge`/`ETHLiquidity`).
+
 ### Open questions
 
-- Can CGT chains participate in shared dispute games without pooling ETH, or must all chains share the same native asset, with CGT chains explicitly blocked from joining?
-
-- Is explicit blocking of CGT chains from joining non-CGT interop sets necessary?
+- **Withdrawal proof invalidation**: All prior withdrawal proofs are invalidated during migration. Is this accepted for v1, or do we need to design a way to preserve in-flight proofs? May have a different answer for initial release vs future chain additions.
 
 ### Trust assumptions
 
