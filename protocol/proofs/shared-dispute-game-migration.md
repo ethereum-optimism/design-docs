@@ -187,9 +187,6 @@ Rejected. Creates a permanent fork where CGT chains can never participate in int
 
 - Is explicit blocking of CGT chains from joining non-CGT interop sets necessary?
 
-- The migrate function does not upgrade each chain's portal. This should either happen within `migrate()` itself or in a prior upgrade step.
-  - `migrate()` assumes the portal already has `migrateToSuperRoots()` — casts to `IOptimismPortalInterop` and calls it directly (`OPContractsManagerMigrator.sol:244,280`). The current design relies on a prior `OPContractsManagerV2.upgrade()` call to swap the portal impl (`OPContractsManagerV2.sol:744-752`). If the portal hasn't been upgraded, the call reverts.
-
 ### Trust assumptions
 
 - **ProxyAdmin owner coordination**: All chains must trust the same ProxyAdmin owner to execute the migration correctly. A malicious or compromised owner can corrupt all chains simultaneously.
