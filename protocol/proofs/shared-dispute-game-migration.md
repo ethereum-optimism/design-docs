@@ -42,7 +42,7 @@ Finally, the current codebase has two portal contracts: `OptimismPortal2` (live,
 **What changes in `OptimismPortal2`:**
 
 Add from `OptimismPortalInterop`:
-- `migrateToSharedDisputeGame(IETHLockbox _newLockbox, IAnchorStateRegistry _newAnchorStateRegistry)` — swaps lockbox and ASR references, emits `PortalMigrated` event (from `OptimismPortalInterop.sol:381-414`)
+- `migrateToSharedDisputeGame(IETHLockbox _newLockbox, IAnchorStateRegistry _newAnchorStateRegistry)` (currently `migrateToSuperRoots` in code, proposed rename) — swaps lockbox and ASR references, emits `PortalMigrated` event (from `OptimismPortalInterop.sol:381-414`)
 - `migrateLiquidity()` — transfers portal's ETH balance to its lockbox (from `OptimismPortalInterop.sol:359-367`)
 - `upgrade(IAnchorStateRegistry, IETHLockbox)` — reinitializer for upgrading portal references (from `OptimismPortalInterop.sol:263-276`)
 - `ETHMigrated` and `PortalMigrated` events
@@ -102,15 +102,21 @@ This step runs ONCE, atomically, for ALL chains in the migration set.
 
 2. **Initialize shared contracts** (`OPContractsManagerMigrator.sol:166-205`): ETHLockbox with first chain's SystemConfig, DGF with ProxyAdmin owner, ASR with starting anchor root and respected game type.
 
-3. **Per-portal migration** (`_migratePortal` at `OPContractsManagerMigrator.sol:236-281`): For each chain — authorize portal on new lockbox, migrate liquidity from old lockbox, clear old DGF implementations, call `migrateToSharedDisputeGame()`.
+3. **Per-portal migration** (`_migratePortal` at `OPContractsManagerMigrator.sol:236-281`): For each chain:
+   - Authorize portal on new lockbox (`OPContractsManagerMigrator.sol:248`)
+   - Authorize old lockbox on new lockbox for liquidity transfer (`OPContractsManagerMigrator.sol:251`)
+   - Migrate liquidity from old lockbox to new lockbox (`OPContractsManagerMigrator.sol:254`)
+   - Clear all game type implementations on old DGF — sets all 6 types (CANNON, SUPER_CANNON, PERMISSIONED_CANNON, SUPER_PERMISSIONED_CANNON, CANNON_KONA, SUPER_CANNON_KONA) to `address(0)` (`OPContractsManagerMigrator.sol:261-266`)
+   - Enable `ETH_LOCKBOX` feature on SystemConfig if not already enabled (`OPContractsManagerMigrator.sol:270-272`)
+   - Call `migrateToSharedDisputeGame()` to swap portal's lockbox and ASR references (`OPContractsManagerMigrator.sol:279`)
 
-4. **Register game types** on new shared DGF (`OPContractsManagerMigrator.sol:222-229`).
+4. **Register game types** on new shared DGF from caller-supplied `DisputeGameConfig[]` input (`OPContractsManagerMigrator.sol:221-228`).
 
 **Constraints:**
 - **Atomicity required.** Liquidity migration and portal migration must happen in the same tx (`ETHLockbox.sol:198-200`). If the portal points to a new lockbox but liquidity hasn't transferred, withdrawals revert.
 - **System must NOT be paused.** `migrateToSharedDisputeGame()` calls `_assertNotPaused()` (`OptimismPortalInterop.sol:384`).
 - **N independent pre-interop chains only.** Does not support partial migration, re-migration, or adding chains later. Re-calling on already-migrated portals corrupts the shared DGF (`OPContractsManagerMigrator.sol:69-73`).
-- **Old DGF implementations cleared.** Set to `address(0)` (`OPContractsManagerMigrator.sol:262-267`). In-progress games on old DGFs are orphaned.
+- **Old DGF implementations cleared.** All 6 game types (CANNON, SUPER_CANNON, PERMISSIONED_CANNON, SUPER_PERMISSIONED_CANNON, CANNON_KONA, SUPER_CANNON_KONA) set to `address(0)` (`OPContractsManagerMigrator.sol:261-266`). In-progress games on old DGFs are orphaned.
 - **One-way operation.** Requires a contract upgrade to revert (not controlled by the chain operator).
 
 ### 5. Post-Migration State
