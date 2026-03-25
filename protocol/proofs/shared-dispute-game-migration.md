@@ -195,7 +195,7 @@ Rejected. Creates a permanent fork where CGT chains can never participate in int
 
 - **No rollback mechanism**: If the migration succeeds but a bug is discovered in the shared infrastructure, there is no `undo()`. Fixing requires deploying new shared contracts and migrating again (which the current migrator does not support — see re-migration constraint).
 - **Orphaned in-progress games**: Games created on old per-chain DGFs before migration can still resolve, but their results are not tracked by the new shared ASR. Users who proved withdrawals against these games must re-prove against the new DGF.
-- **No partial migration support**: There is no way to migrate N-1 chains and add the Nth later.
+- **No partial migration support (v1 constraint)**: There is no way to migrate N-1 chains and add the Nth later. Incremental chain addition is planned for a future iteration.
 
 ## Key Reference Files
 
