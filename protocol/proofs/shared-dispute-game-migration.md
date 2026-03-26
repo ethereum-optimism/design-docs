@@ -90,8 +90,6 @@ This step runs once per chain BEFORE the atomic migration. It runs for **every**
 - **Legacy game types disabled.** Prevents split-brain where both legacy and super games exist on the same DGF.
 - **OPCM version sequence.** Cannot skip versions.
 
-**Transitional state:** After this step, chains function independently with super game types on their per-chain DGF. This is functional but NOT the target state — shared infrastructure comes in Step 2.
-
 ### 4. Step 2: Atomic Multi-Chain Migrate (`OPContractsManagerMigrator.migrate()`)
 
 This step runs ONCE, atomically, for ALL chains in the migration set.
