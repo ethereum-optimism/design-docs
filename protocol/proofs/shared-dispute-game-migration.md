@@ -159,7 +159,7 @@ See the existing FMA document for comprehensive failure mode analysis.
 
 **Users must re-prove withdrawals.** SDKs and bridge UIs need to detect invalidated proofs and guide users through re-proving.
 
-**New game types in tooling.** Off-chain tools must recognize `SUPER_CANNON_KONA` and `SUPER_PERMISSIONED_CANNON`. The `rootClaim` format changes to `SuperRootProof`.
+**New game types in tooling.** Off-chain tools must recognize `SUPER_CANNON_KONA` and `SUPER_PERMISSIONED_CANNON`. The `rootClaim` format changes to `SuperRootProof`. Critically, tools must call `rootClaimByChainId(chainId)` instead of `rootClaim()` when validating output roots or constructing withdrawal proofs — `rootClaim()` returns the full super root, not the per-chain output root.
 
 **Consolidated monitoring.** Operators monitor one DGF instead of N. Simpler alerting, higher stakes per alert.
 
