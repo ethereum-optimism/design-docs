@@ -42,7 +42,7 @@ Finally, the current codebase has two portal contracts: `OptimismPortal2` (live,
 **What changes in `OptimismPortal2`:**
 
 Add from `OptimismPortalInterop`:
-- `migrateToSharedDisputeGame(IETHLockbox _newLockbox, IAnchorStateRegistry _newAnchorStateRegistry)` (currently `migrateToSuperRoots` in code, proposed rename) — swaps lockbox and ASR references, emits `PortalMigrated` event (from `OptimismPortalInterop.sol:381-414`)
+- `migrateToSharedDisputeGame(IETHLockbox _newLockbox, IAnchorStateRegistry _newAnchorStateRegistry)` — swaps lockbox and ASR references, emits `PortalMigrated` event (from `OptimismPortalInterop.sol:381-414`)
 - `migrateLiquidity()` — transfers portal's ETH balance to its lockbox (from `OptimismPortalInterop.sol:359-367`)
 - `upgrade(IAnchorStateRegistry, IETHLockbox)` — reinitializer for upgrading portal references (from `OptimismPortalInterop.sol:263-276`)
 - `ETHMigrated` and `PortalMigrated` events
