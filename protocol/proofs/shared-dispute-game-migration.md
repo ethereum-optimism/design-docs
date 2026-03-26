@@ -151,7 +151,7 @@ This step runs ONCE, atomically, for ALL chains in the migration set.
 
 ## Failure Mode Analysis
 
-See the existing FMA document for comprehensive failure mode analysis.
+See [FMA: Interop Support in OptimismPortal](../../security/fma-interop-portal.md) for comprehensive failure mode analysis.
 
 **Two-step failure gap:** Between Step 1 and Step 2, chains run super game types against per-chain infrastructure. If Step 2 is delayed, chains are stuck in a transitional state with no rollback function.
 
