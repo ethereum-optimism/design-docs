@@ -68,7 +68,7 @@ The migrator currently casts portals to `IOptimismPortalInterop` (`OPContractsMa
 
 Before any migration step, several invariants must hold.
 
-**Governance alignment.** All chains must share the same ProxyAdmin owner (`OPContractsManagerMigrator.sol:96`) and reference the exact same SuperchainConfig address (`OPContractsManagerMigrator.sol:102`). Shared infrastructure is initialized with a single ProxyAdmin and SuperchainConfig — the ETHLockbox enforces this at authorization time (`ETHLockbox.sol:220-224`).
+**Governance alignment.** All chains must share the same ProxyAdmin owner (`OPContractsManagerMigrator.sol:96`) and reference the exact same SuperchainConfig address (`OPContractsManagerMigrator.sol:102`). This is enforced at Step 2 (`migrate()`), not Step 1 (`upgrade()`), so ProxyAdmin owner consolidation can happen after per-chain upgrades but must be complete before migration. Shared infrastructure is initialized with a single ProxyAdmin and SuperchainConfig — the ETHLockbox enforces this at authorization time (`ETHLockbox.sol:220-224`).
 
 **Portal version.** The portal MUST already be upgraded to the version with migration functions. If not, `migrateToSharedDisputeGame()` reverts (`OPContractsManagerMigrator.sol:277-279`).
 
@@ -98,7 +98,7 @@ This step runs ONCE, atomically, for ALL chains in the migration set.
 
 1. **Deploy shared infrastructure** (`OPContractsManagerMigrator.sol:125-156`): new ETHLockbox, DisputeGameFactory, and AnchorStateRegistry proxies. Reuses existing DelayedWETH.
 
-2. **Initialize shared contracts** (`OPContractsManagerMigrator.sol:166-205`): ETHLockbox with first chain's SystemConfig, DGF with ProxyAdmin owner, ASR with starting anchor root and respected game type.
+2. **Initialize shared contracts** (`OPContractsManagerMigrator.sol:166-205`): ETHLockbox with first chain's SystemConfig, DGF with ProxyAdmin owner, ASR with starting anchor root and respected game type. The first chain's SystemConfig is used as the canonical governance reference because all chains are validated to share the same ProxyAdmin owner and SuperchainConfig (`OPContractsManagerMigrator.sol:171-174`).
 
 3. **Per-portal migration** (`_migratePortal` at `OPContractsManagerMigrator.sol:236-281`): For each chain:
    - Authorize portal on new lockbox (`OPContractsManagerMigrator.sol:248`)
@@ -150,8 +150,6 @@ This step runs ONCE, atomically, for ALL chains in the migration set.
 ## Failure Mode Analysis
 
 See [FMA: Interop Support in OptimismPortal](../../security/fma-interop-portal.md) for comprehensive failure mode analysis.
-
-**Two-step failure gap:** Between Step 1 and Step 2, chains run super game types against per-chain infrastructure. If Step 2 is delayed, chains are stuck in a transitional state with no rollback function.
 
 ## Impact on Developer Experience
 
