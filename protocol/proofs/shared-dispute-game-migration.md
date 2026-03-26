@@ -76,7 +76,7 @@ Before any migration step, several invariants must hold.
 
 ### 3. Step 1: Per-Chain OPCM Upgrade (`OPContractsManagerV2.upgrade()`)
 
-This step runs once per chain BEFORE the atomic migration.
+This step runs once per chain BEFORE the atomic migration. It runs for **every** chain in the release, not only those joining the shared dispute game — this avoids maintaining multiple portal implementations across chains with different feature sets.
 
 **What happens:**
 - Portal upgraded to the version with migration functions (`OPContractsManagerV2.sol:744-752`)
