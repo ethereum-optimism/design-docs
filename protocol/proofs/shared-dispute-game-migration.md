@@ -18,7 +18,7 @@ The migration consolidates N independent chains into a shared set of these contr
 
 Key outcomes:
 - **Portal unification**: `OptimismPortalInterop` features are merged into `OptimismPortal2`, making OP2 the single portal contract. OPInterop is deleted.
-- **Shared infrastructure**: All migrated chains share one `DisputeGameFactory`, one `AnchorStateRegistry`, one `ETHLockbox`, and one `DelayedWETH`.
+- **Shared infrastructure**: All migrated chains share one `DisputeGameFactory`, one `AnchorStateRegistry`, and one `ETHLockbox`. Reuses existing DelayedWETH (`OPContractsManagerMigrator.sol:158-163`).
 - **Two-phase execution**: (1) per-chain OPCM upgrade prepares each chain, then (2) an atomic multi-chain `migrate()` call deploys shared infra and wires everything together.
 - **Proof routing via game type**: `_isSuperGameType()` in OP2 (`OptimismPortal2.sol:642-646`) determines whether to use `rootClaimByChainId()` or `rootClaim()` based on the game type enum. No `superRootsActive` storage flag needed.
 - **CGT chain compatibility**: Not in v1 scope. Attempting to migrate a CGT chain will revert — this prevents CGT chains from being incorrectly pooled into the shared ETHLockbox. `OptimismPortal2` retains CGT support via the `Features` library so CGT chains can be added in a future iteration.
@@ -96,7 +96,7 @@ This step runs ONCE, atomically, for ALL chains in the migration set.
 
 **What happens:**
 
-1. **Deploy shared infrastructure** (`OPContractsManagerMigrator.sol:125-156`): new ETHLockbox, DisputeGameFactory, and AnchorStateRegistry proxies. Reuses existing DelayedWETH.
+1. **Deploy shared infrastructure** (`OPContractsManagerMigrator.sol:125-156`): new ETHLockbox, DisputeGameFactory, and AnchorStateRegistry proxies. Reuses existing DelayedWETH (`OPContractsManagerMigrator.sol:158-163`).
 
 2. **Initialize shared contracts** (`OPContractsManagerMigrator.sol:166-205`): ETHLockbox with first chain's SystemConfig, DGF with ProxyAdmin owner, ASR with starting anchor root and respected game type. The first chain's SystemConfig is used as the canonical governance reference because all chains are validated to share the same ProxyAdmin owner and SuperchainConfig (`OPContractsManagerMigrator.sol:171-174`).
 
