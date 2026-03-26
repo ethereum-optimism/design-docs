@@ -130,7 +130,7 @@ This step runs ONCE, atomically, for ALL chains in the migration set.
 | Game types | CANNON, PERMISSIONED_CANNON, CANNON_KONA | SUPER_CANNON_KONA, SUPER_PERMISSIONED_CANNON |
 | Proof method | `rootClaim()` (single chain) | `rootClaimByChainId(chainId)` (per-chain from super root) |
 
-**All prior withdrawal proofs are invalidated.** The ASR reference changes — old proofs reference games from the old DGF, which the new ASR does not track. Users must re-prove (`OPContractsManagerMigrator.sol:62-64`).
+**All prior withdrawal proofs are invalidated.** The ASR reference changes — old proofs reference games from the old DGF, which the new ASR does not track. Users must re-prove (`OPContractsManagerMigrator.sol:62-64`). Additionally, the new ASR sets `retirementTimestamp = block.timestamp` on initialization, which retires all games created before or at that block as an extra safety measure (`AnchorStateRegistry.sol:106-113`).
 
 **Irreversible without full contract upgrade.** No `migrateBack()` exists.
 
