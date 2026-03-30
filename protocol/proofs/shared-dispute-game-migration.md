@@ -76,7 +76,11 @@ Before any migration step, several invariants must hold.
 
 ### 3. Step 1: Per-Chain OPCM Upgrade (`OPContractsManagerV2.upgrade()`)
 
-This step runs once per chain BEFORE the atomic migration. It runs for **every** chain in the release, not only those joining the shared dispute game — this avoids maintaining multiple portal implementations across chains with different feature sets.
+This step runs once per chain BEFORE the atomic migration. It runs for **every** chain, not only those joining the shared dispute game.
+
+**Why every chain gets the upgrade:** Maintaining different portal implementations across chains — some with migration functions, some without — makes every future contract release harder. Each upgrade must account for multiple portal versions, and the divergence compounds over time. A single portal implementation eliminates this. The migration functions (`migrateToSharedDisputeGame()`, `migrateLiquidity()`) are present on all chains but only called on chains that actually migrate. Unused functions on non-migrating chains are inert — they require authorized callers and specific preconditions that won't be met.
+
+**Two valid end states exist after this step:** Most chains end up running a non-shared `SuperDisputeGame` on their per-chain DGF — this is a permanent, supported state, not a transitional one. Only chains that proceed to Step 2 (`migrate()`) move to the shared dispute game. Both are legitimate final configurations.
 
 **What happens:**
 - Portal upgraded to the version with migration functions (`OPContractsManagerV2.sol:744-752`)
