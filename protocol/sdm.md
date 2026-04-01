@@ -37,6 +37,7 @@ Under this policy:
 - users continue to sign standard transactions with a normal gas limit;
 - the sequencer computes a per-transaction rebate when a transaction benefits from accounts or storage slots already warmed earlier in the block;
 - the sequencer includes a new system post-execution transaction, with type `0x7D`, into each block. This transaction contains all rebates for all transactions in the block;
+- the rebate is applied during the state transition, and the user is refunded that rebate by having the `gas used` of their transaction reduced by the sequencer;
 - the rebate is exposed as metadata and projected onto receipts for each transaction.
 
 ### Core Mechanism
