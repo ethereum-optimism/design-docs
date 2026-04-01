@@ -42,10 +42,15 @@ Under this policy:
 
 ### Core Mechanism
 
-1. **Track warming across the block:** During block execution, the sequencer tracks which accounts and storage slots have already been warmed by earlier transactions.
-2. **Compute per-transaction rebate:** For each later non-deposit transaction, if an accessed account or storage slot was already warmed earlier in the block, the sequencer accumulates a rebate.
-3. **Serialize the rebate data in-block:** At the end of block building, the sequencer emits a system post-execution transaction, with type `0x7D`, containing the refund entries.
-4. **Project rebates onto receipts:** Nodes decode the post-execution transaction and expose the corresponding per-transaction rebate in RPC receipts.
+SDM is the **general mechanism** by which the sequencer can attach a subjective, per-transaction refund to normal transaction execution. It should be thought of as a framework for sequencer-defined refunds, not as a synonym for any one refund policy.
+
+At a high level, SDM works as follows:
+
+1. **Execute transactions normally:** User and deposit transactions execute under the standard EVM gas schedule.
+2. **Compute policy-defined refunds off-chain:** The sequencer applies one or more SDM policies to determine whether any transaction should receive a subjective refund, and in what amount.
+3. **Serialize refund metadata in-block:** At the end of block building, the sequencer emits a system post-execution transaction, with type `0x7D`, containing the refund entries.
+4. **Apply refunds as SDM accounting:** The refund is applied during the state transition, reducing the effective gas charged to the user relative to canonical EVM gas used.
+5. **Project refunds onto receipts:** Nodes decode the post-execution transaction and expose the corresponding per-transaction refund in RPC receipts.
 
 This gas model uses an additional refund mechanism alongside the canonical EVM gas used, where the sequencer can account for execution-local effects that the static gas schedule does not express. In the current PoC, this is realized as a refund-only model:
 
@@ -55,7 +60,7 @@ $$
 
 There is also a block-level cap on the **total permissible gas used before rebates**. This is the hard limit on the sum of the raw `gas used` values of transactions that the sequencer is allowed to include in a block, before subtracting any SDM rebates. In production, this limit will be set to `MAX_GAS_LIMIT` from `L1.SystemConfig`.
 
-Given the **core mechanism**, we get the following effects:
+Given the **SDM mechanism**, we get the following effects:
 
 1. **Existing UX preserved:** Users still sign standard transactions specifying the maximum they are willing to pay.
 2. **Minimal execution changes:** The EVM gas schedule remains unchanged; SDM is carried as additional sequencer-produced accounting.
@@ -72,15 +77,15 @@ The presented design has been thought out based on the following principles:
 
 ### Architecture and PoC
 
-The current PoC implements SDM as **block-level warming** in `op-reth`. The PoC is implemented in branch `nonsense/opgas-reth-poc2-tracer`, and you can find an overview document specifically for it at: [SDM PoC 2 Review document](https://www.notion.so/oplabs/SDM-PoC-2-Review-330f153ee162801e8fc8e5e79c010e40)
+The current PoC implements **one SDM policy**: **block-level warming** in `op-reth`. The PoC is implemented in branch `nonsense/opgas-reth-poc2-tracer`, and you can find an overview document specifically for it at: [SDM PoC 2 Review document](https://www.notion.so/oplabs/SDM-PoC-2-Review-330f153ee162801e8fc8e5e79c010e40)
 
 Within the current PoC the refunds are not applied to `gas used`, so that blocks are replayable and don't modify consensus fields, such as the `state root` during benchmarking with real-world chain data.
 
 In the production implementation of SDM `gas used` will include the refund and will not be equal to the canonical EVM gas used.
 
-#### Refund accumulation
+#### Refund accumulation for the block-level warming policy
 
-During block execution, the executor maintains persistent warming state across transactions in the block. When a later user transaction accesses state that was already warmed earlier in the block, a rebate is accumulated.
+For the current PoC policy, during block execution the executor maintains persistent warming state across transactions in the block. When a later user transaction accesses state that was already warmed earlier in the block, a rebate is accumulated.
 
 The current PoC uses rebate values that come directly from [EIP-2929](https://eips.ethereum.org/EIPS/eip-2929):
 
