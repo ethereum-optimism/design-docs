@@ -6,47 +6,45 @@
 | Created at         | 2026-03-18                                         |
 | Initial Reviewers  | @ajsutton, @theochap, @inphi                       |
 | Need Approval From | @ajsutton                                          |
-| Status             | Draft                                              |
+| Status             | Final (not implementing)                           |
 
 ## Purpose
 
-This design doc proposes dropping overlapping span batches at the Karst hardfork and explores how to
-maintain fault proof soundness under this new rule.
+This design doc explores dropping overlapping span batches as a derivation rule change and concludes
+that **the change is not feasible** due to unresolvable implications for fault proofs, node restarts,
+and interop. Overlap checks will instead be retained and implemented in any non-IO derivation
+pipeline refactor.
 
-The motivations are:
+The original motivation was:
 
 1. **Simplify the derivation pipeline.** The current span batch overlap verification requires the
    `SafeBlockFetcher` interface to look up historical L2 blocks during batch validation. This
    complicates building a pure derivation pipeline where all L1 inputs are fetched in advance and IO
-   is moved outside the pipeline. Removing the overlap check simplifies the derivation pipeline
+   is moved outside the pipeline. Removing the overlap check would simplify the derivation pipeline
    refactor drafted in [PR #19303](https://github.com/ethereum-optimism/optimism/pull/19303).
-   Alternatively, the overlap check could be retained with a two-pass approach where the pipeline
-   returns the required L2 blocks and the caller provides them (see approach 3 below), but this
-   carries the overlap checking complexity into the new implementation.
 
 2. **Improve fault proof performance.** The current overlap verification in fault proofs requires
    K+1 preimage oracle reads (one parent block reference plus K full block payloads) and O(K×T)
    byte-by-byte transaction comparison, where K is the number of overlapping blocks and T is the
-   average number of transactions per block. Any solution that eliminates the overlap check also
-   eliminates this cost, reducing on-chain dispute cost, off-chain FP VM execution, and ZK proving
-   costs.
+   average number of transactions per block. Eliminating the overlap check would also eliminate this
+   cost, reducing on-chain dispute cost, off-chain FP VM execution, and ZK proving costs.
 
 ## Summary
 
-**The derivation rule change is straightforward:** overlapping span batches are dropped (`BatchDrop`)
-instead of verified-and-accepted post-Karst. The `SafeBlockFetcher` interface is removed from batch
-checking entirely.
+Dropping overlapping span batches would simplify the derivation pipeline by removing the
+`SafeBlockFetcher` dependency from batch validation. However, this introduces an implicit requirement
+that **the safe head must always be at a span batch boundary** for derivation to work correctly. This
+requirement cannot be guaranteed in practice — it is violated by fault proofs, node restarts, snap
+sync, interop, and operational tools like `setDebugHead`.
 
-Overlapping span batches exist to handle a race condition during sequencing window elapse, where
-auto-derivation races with submitted batches. This is an unlikely scenario, and the batcher can
-temporarily switch to singular batches as a fallback. This makes removal of overlapping span batch
-acceptance safe from a liveness perspective.
+Nine approaches to resolving these issues were explored. None are satisfactory: they either introduce
+rule divergence between normal derivation and fault proofs, are too expensive for single-block fault
+proof execution, require protocol changes disproportionate to the benefit, or retain the overlap
+checking complexity that the rule change was meant to eliminate.
 
-**The fault proof interaction is an open design question.** The dispute game bisects to arbitrary L2
-blocks, which can place the safe head in the middle of a span batch. Under the new drop rule, the
-span batch that originally produced those blocks would be dropped — breaking derivation. This doc
-explores nine approaches to solving this, grouped by the depth of protocol change required. None are
-fully satisfactory; the trade-offs are presented for discussion.
+**Conclusion:** The overlap checks will be retained and implemented in the non-IO derivation pipeline
+refactor using a deferred fetching pattern, where the pipeline returns the list of required L2 blocks
+and the caller provides them.
 
 ## Problem Statement + Context
 
@@ -76,23 +74,45 @@ moved outside the pipeline. The overlap check complicates this by requiring look
 sequencing window into already-derived L2 history — fetching block references and full payloads for
 blocks that are behind the safe head.
 
-This does not strictly prevent a non-IO pipeline — the pipeline could return a list of required L2
-blocks and let the caller provide them (approach 3 below). But this carries the overlap checking
-logic and `SafeBlockFetcher` interface into the new implementation, adding complexity that dropping
-overlapping batches would eliminate entirely.
+This does not strictly prevent a non-IO pipeline — the pipeline can return a list of required L2
+blocks and let the caller provide them. But this carries the overlap checking logic into the new
+implementation, adding complexity that dropping overlapping batches would have eliminated entirely.
 
-### The fault proof complication
+### The implicit span batch boundary requirement
 
-Simply dropping overlapping span batches in the fault proof program does not work. The dispute game
-bisects to arbitrary L2 blocks above the `SPLIT_DEPTH` (bisecting over output roots). The agreed
-prestate can place the safe head at any block, including in the middle of a span batch.
+Dropping overlapping span batches introduces an implicit requirement: **derivation can only start
+from a safe head that is at a span batch boundary.** If the safe head is in the middle of a span
+batch, the span batch that produced those blocks would overlap with the safe head and be dropped under
+the new rule — breaking derivation.
 
-If the safe head is mid-span-batch and the overlapping span batch is dropped, the batch that
-originally produced the safe head's blocks would be dropped — and derivation cannot continue.
+This requirement is violated in multiple scenarios:
+
+- **Fault proofs:** The dispute game bisects to arbitrary L2 blocks above the `SPLIT_DEPTH`
+  (bisecting over output roots). The agreed prestate can place the safe head at any block, including
+  mid-span-batch.
+- **Node restarts:** If a node crashes while applying blocks from a span batch, the safe head may be
+  left part way through it. The node restart process must find the L1 block to resume from and
+  determine which safe L2 block to use. (This is mitigated by only updating the safe head once all
+  blocks from a span batch are applied, but op-node currently sometimes rewinds the safe head on
+  startup.)
+- **Snap sync:** A node may snap sync to a peer that is in the middle of deriving from a span batch.
+- **Interop:** The dispute game bisects over super roots at a particular timestamp. There is no way
+  to guarantee that each individual chain is at a span batch boundary at that timestamp.
+- **Operational tools:** `setDebugHead` can set the safe head to any block.
+
+Fundamentally, the difficult question is how to know which safe block is actually valid to start
+derivation from. Given an L2 block, you can iterate L1 to find the span batch it came from — but
+then you need to know whether that span batch overlapped with a previous one. To determine that, you
+find the previous span batch and check if it overlaps. But first you need to know if the previous
+span batch was valid, so you have to find its parent. This recurses back through the entire batch
+history, and with blobs, that history may not even be available.
+
+### The fault proof's output root gap
 
 The fault proof's agreed output root (`OutputV0`) captures L2 execution state (state root, block
 hash) but **not** derivation state (which batch was in progress, the position within it). This gap
-between execution state and derivation state is the core challenge.
+between execution state and derivation state means the fault proof has no way to determine the
+correct derivation starting point within a span batch.
 
 ### Relation to Holocene
 
@@ -100,61 +120,14 @@ The [Holocene derivation design doc](holocene-derivation.md) introduced several 
 
 - **Partial span batch validity** with forward-invalidation only: if a singular batch within a span
   batch is invalid, only subsequent batches are invalidated, never prior ones. This principle of
-  never backwards-invalidating batches is preserved by the Karst change.
+  never backwards-invalidating batches would be preserved by any Karst rule change.
 - **Strict batch ordering**: Batches within and across channels must be strictly ordered. This
   simplifies reasoning about which batch "owns" which block range.
 
-## Proposed Derivation Rule Change
+## Explored Approaches
 
-Post-Karst, in `checkSpanBatchPrefix` / `checkSpanBatch`:
-
-- If `batch.GetTimestamp() < nextTimestamp`, return `BatchDrop`.
-- The entire overlap verification codepath is removed.
-- The `SafeBlockFetcher` parameter is removed from the batch checking functions.
-- Gated by `cfg.IsKarst(l1InclusionBlock.Time)`, following the same pattern as Holocene checks in
-  `batches.go`.
-
-**Overlap semantics:** This applies to partially overlapping batches (start before safe head, end
-after) and fully overlapping batches (entirely before safe head). The existing Holocene rule for
-`span_end.timestamp < next_timestamp` (the whole batch is in the past) remains unchanged — Karst
-changes the handling of the partial overlap case where
-`span_start.timestamp < next_timestamp <= span_end.timestamp`.
-
-**Activation semantics:** A span batch is processed under pre-Karst or post-Karst rules based on its
-L1 inclusion block timestamp, not on individual L2 block timestamps. Channels that straddle the Karst
-activation boundary: the L1 inclusion block of the batch (not the channel's first frame) determines
-which rules apply.
-
-Batchers that submit batches before Karst that get included after Karst will have their overlapping
-batches dropped. Sane batchers never produce overlapping span batches anyways.
-
-### Resource usage
-
-| Scenario | Current (overlap verification) | Post-Karst (drop) |
-|----------|-------------------------------|-------------------|
-| Normal derivation | O(K) network IO + O(K×T) comparison | O(1) drop |
-| Fault proof VM | K+1 preimage reads + O(K×T) comparison | Depends on approach (see below) |
-
-### Multi-client considerations
-
-The derivation rule change applies to all clients that implement the derivation pipeline:
-
-| Component | Change Required |
-|-----------|----------------|
-| op-node (Go) | Drop overlapping span batches post-Karst, remove `SafeBlockFetcher` from batch checking |
-| kona (Rust) | Same derivation rule change |
-| op-program | Same derivation rule change (shares op-node derivation code) |
-| Derivation spec | Document new Karst rule |
-
-The fault proof impact depends on which approach is chosen for the open question below.
-
-## Open Question: Fault Proof Soundness
-
-The derivation rule change creates a problem for fault proofs: how does the fault proof program
-derive blocks when the safe head is mid-span-batch and the overlapping span batch is dropped?
-
-The following approaches were explored, grouped by the depth of protocol change required. Each
-includes the specific attack scenario or limitation that prevents it from being a complete solution.
+The following approaches were explored to resolve the fault proof (and broader mid-span-batch safe
+head) problem. They are grouped by the depth of protocol change required.
 
 ### Group 1: No protocol change (derivation-only)
 
@@ -198,10 +171,9 @@ fetching them. However, the overlap checking logic must still be implemented in 
 adding complexity. The fault proof would also still need K+1 preimage oracle reads for overlap
 verification, forgoing the performance improvement.
 
-**This raises the question of whether the derivation rule change is worth pursuing at all: if the
-overlap checks must be retained for fault proofs and for pre-Karst derivation, the simplification
-benefit is limited to normal post-Karst derivation, while the protocol gains a new hardfork-gated
-rule and the associated cross-client coordination cost.**
+**This is the approach we will take.** Since the overlap checks must be retained for fault proofs,
+node restarts, snap sync, interop, and pre-Karst derivation, the simplification benefit of dropping
+them is too limited to justify a protocol change.
 
 #### 4. Re-derive from a span batch boundary
 
@@ -213,6 +185,9 @@ execution must be over a single block. Re-deriving from a span batch boundary re
 intermediate blocks up to the disputed block. Constraining the dispute game's bisection to span batch
 boundaries does not help either — bisection above the split depth creates intermediate starting
 points at arbitrary L2 blocks regardless of the anchor state.
+
+Additionally, determining what the span batch boundary actually is requires checking every historic
+span batch — the same recursion problem described above.
 
 ### Group 2: Span batch format change
 
@@ -275,36 +250,15 @@ Hash the span batch encoding and add it as a new dispute game input to identify 
 protocol change (adding a new input) with the same trust model issue: the contract cannot compute the
 hash from on-chain state. The encoding is also less flexible than a cursor.
 
-## Impact on Developer Experience
+## Conclusion
 
-This is a protocol-internal derivation rule change. Application developers and Superchain developer
-tools (Supersim, templates, etc.) are not affected. The only external-facing change is that chain
-operators and batchers must ensure they do not produce overlapping span batches post-Karst.
+Dropping overlapping span batches is not feasible at this time. The implicit requirement that the
+safe head must be at a span batch boundary cannot be met in practice — fault proofs, node restarts,
+snap sync, interop, and operational tools all create situations where the safe head is mid-span-batch.
+No explored approach resolves this without either introducing soundness issues, requiring
+disproportionate protocol changes, or retaining the very complexity the change was meant to eliminate.
 
-## Risks & Uncertainties
-
-### Fault proof soundness remains an open question
-
-The core risk is that no explored approach fully solves the fault proof interaction without
-significant trade-offs. The most viable approach — deferred L2 block fetching (approach 3) — works
-but retains the overlap checking complexity in the new pipeline, limiting the simplification benefit
-and raising the question of whether the derivation rule change is worth the protocol change cost.
-
-### Sequencing window elapse migration
-
-Existing batchers that produce overlapping span batches must be updated before Karst activation. The
-fallback — singular batches for the sequencing window elapse race condition — must be implemented
-and tested in the batcher. Operators should plan batcher upgrades ahead of the Karst activation time.
-
-### Cross-client consistency
-
-All derivation clients (op-node, kona, op-program) must implement the new drop rule identically.
-Additionally, whatever approach is chosen for fault proof soundness must be implemented consistently
-across all clients.
-
-### Backwards compatibility
-
-Pre-Karst span batches with overlaps already on L1 remain processable — the Karst activation gate
-(based on L1 inclusion block timestamp) ensures old rules apply to old batches. Batches submitted
-before Karst but included after Karst are subject to the new rules; batchers must account for this
-during the transition.
+**The overlap checks will be retained and implemented in the non-IO derivation pipeline refactor**
+using a deferred fetching pattern: the pipeline returns the list of required L2 blocks for overlap
+verification, and the caller is responsible for providing them. This achieves the goal of moving IO
+outside the derivation pipeline without a protocol change.
