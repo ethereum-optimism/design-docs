@@ -13,7 +13,9 @@ Allow the sequencer of OP Stack chains to influence the fee paid on a per-transa
 
 ## Summary
 
-Introduce a subjective sequencer-defined gas refund alongside `gas used` and `gas limit`. SDM is introducing a new system post-execution transaction, with type `0x7D`, which contains post-execution data injected by the sequencer. The motivation for SDM and the first application of SDM is the **block-level warming rebates** policy: it allows transactions to benefit from already warmed accounts and storage slots from earlier in the same block by a sequencer-defined rebate, as described in [EIP-7863](https://eips.ethereum.org/EIPS/eip-7863). This is the initial go-to-market policy; future SDM policies may issue different kinds of refunds. Users still sign transactions in the usual way for the worst case, while the sequencer may charge less when execution benefits from block-local access reuse.
+Introduce SDM as a general mechanism for subjective sequencer-defined gas refunds alongside `gas used` and `gas limit`. SDM adds a new system post-execution transaction, with type `0x7D`, which contains post-execution refund data injected by the sequencer.
+
+The first application of SDM is the **block-level warming rebates** policy: it allows transactions to benefit from already warmed accounts and storage slots from earlier in the same block by a sequencer-defined rebate, as described in [EIP-7863](https://eips.ethereum.org/EIPS/eip-7863). This is the initial go-to-market policy; future SDM policies may issue different kinds of refunds. Users still sign transactions in the usual way for the worst case, while the sequencer may charge less when a given SDM policy determines that a refund is appropriate.
 
 ## Problem Statement + Context
 
@@ -25,20 +27,22 @@ This creates a few problems:
 - the sequencer cannot reflect block-local execution efficiencies in fees, even when those efficiencies are material;
 - repeated access patterns within a block are not surfaced in a way that can be inspected or analyzed later.
 
-The goal of SDM is to let the sequencer account for such effects explicitly, starting with a narrow and observable policy: **block-level warming rebates** - an implementation of [EIP-7863](https://eips.ethereum.org/EIPS/eip-7863).
+The goal of SDM is to let the sequencer account for such effects explicitly through sequencer-defined refunds, starting with a narrow and observable policy: **block-level warming rebates** - an implementation of [EIP-7863](https://eips.ethereum.org/EIPS/eip-7863).
 
 ## Proposed Solution
 
-The proposed solution is to introduce a sequencer-defined refund alongside **gas used** (EVM gas used) and **gas limit**, at the expense of putting more trust in the sequencer of a given OP Stack chain. In the initial policy, the sequencer computes block-warming rebates off-chain and communicates them in-block.
+The proposed solution is to introduce SDM as a sequencer-defined refund mechanism alongside **gas used** (EVM gas used) and **gas limit**, at the expense of putting more trust in the sequencer of a given OP Stack chain.
 
-Under this policy:
+Under SDM generally:
 
 - normal EVM execution remains unchanged;
 - users continue to sign standard transactions with a normal gas limit;
-- the sequencer computes a per-transaction rebate when a transaction benefits from accounts or storage slots already warmed earlier in the block;
-- the sequencer includes a new system post-execution transaction, with type `0x7D`, into each block. This transaction contains all rebates for all transactions in the block;
-- the rebate is applied during the state transition, and the user is refunded that rebate by having the `gas used` of their transaction reduced by the sequencer;
-- the rebate is exposed as metadata and projected onto receipts for each transaction.
+- the sequencer computes a per-transaction refund according to one or more SDM policies;
+- the sequencer includes a new system post-execution transaction, with type `0x7D`, into each block. This transaction contains all refunds for all transactions in the block;
+- the refund is applied during the state transition, and the user is refunded that amount by having the `gas used` of their transaction reduced by the sequencer;
+- the refund is exposed as metadata and projected onto receipts for each transaction.
+
+For the initial policy, the sequencer computes **block-level warming rebates** off-chain and communicates them in-block.
 
 ### Core Mechanism
 
