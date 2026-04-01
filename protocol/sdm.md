@@ -19,15 +19,13 @@ The first application of SDM is the **block-level warming rebates** policy: it a
 
 ## Problem Statement + Context
 
-The EVM gas model is a static, in-protocol approximation of resource consumption. It does not capture all execution characteristics that matter operationally to an OP Stack sequencer. In particular, it does not account for the fact that transaction ordering within a block can change the effective cost of later transactions when accounts and storage slots have already been accessed.
+The EVM gas model is a static, in-protocol approximation of resource consumption. It does not capture all execution characteristics that matter operationally to an OP Stack sequencer.
 
-This creates a few problems:
+The sequencer currently cannot reflect execution efficiencies and inefficiencies in fees, even when those are material.
 
-- transactions that benefit from prior accesses in the same block are priced as if they were paying the full cold-access cost;
-- the sequencer cannot reflect block-local execution efficiencies in fees, even when those efficiencies are material;
-- repeated access patterns within a block are not surfaced in a way that can be inspected or analyzed later.
+The goal of SDM is to let the sequencer account for such effects explicitly through subjective sequencer-defined refunds, starting with a narrow and observable policy: **block-level warming rebates** - an implementation of [EIP-7863](https://eips.ethereum.org/EIPS/eip-7863).
 
-The goal of SDM is to let the sequencer account for such effects explicitly through sequencer-defined refunds, starting with a narrow and observable policy: **block-level warming rebates** - an implementation of [EIP-7863](https://eips.ethereum.org/EIPS/eip-7863).
+Currently the EVM gas model does not account for the fact that transaction ordering within a block can change the effective cost of later transactions when accounts and storage slots have already been accessed. As a result, transactions that benefit from prior accesses in the same block are priced as if they were paying the full cold-access cost.
 
 ## Proposed Solution
 
