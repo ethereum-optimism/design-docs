@@ -15,7 +15,7 @@ Allow the sequencer of OP Stack chains to influence the fee paid on a per-transa
 
 Introduce SDM as a general mechanism for subjective sequencer-defined gas refunds alongside `gas used` and `gas limit`. SDM adds a new system post-execution transaction, with type `0x7D`, which contains post-execution refund data injected by the sequencer.
 
-The first application of SDM is the **block-level warming rebates** policy: it allows transactions to benefit from already warmed accounts and storage slots from earlier in the same block by a sequencer-defined rebate, as described in [EIP-7863](https://eips.ethereum.org/EIPS/eip-7863). This is the initial go-to-market policy; future SDM policies may issue different kinds of refunds. Users still sign transactions in the usual way for the worst case, while the sequencer may charge less when a given SDM policy determines that a refund is appropriate.
+The first application of SDM is the **block-level warming rebates** policy: it allows transactions to benefit from already warmed accounts and storage slots from earlier in the same block by a sequencer-defined rebate, as described in [EIP-7863](https://eips.ethereum.org/EIPS/eip-7863). This is the initial go-to-market policy; future SDM policies may issue different kinds of refunds. Users still sign transactions in the usual way, while the sequencer rebates according to its own off-chain SDM policies.
 
 ## Problem Statement + Context
 
