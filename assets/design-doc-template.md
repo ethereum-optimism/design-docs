@@ -49,6 +49,11 @@ Does it consume a large amount of computational resources or time? -->
 
 <!-- Link to the failure mode analysis document, created from the fma-template.md file. -->
 
+## Backward Compatibility
+
+<!--- What will break as a result of this change?
+Examples: block explorers, tenderly, and any other tools that depend on RPC APIs --->
+
 ## Impact on Developer Experience
 <!-- Does this proposed design change the way application developers interact with the protocol?
 Will any Superchain developer tools (like Supersim, templates, etc.) break as a result of this change? -->
