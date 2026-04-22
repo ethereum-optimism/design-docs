@@ -1,4 +1,4 @@
-# Fusaka on L2: Design Doc
+# Osaka on L2: Design Doc
 
 |                    |                                                    |
 | ------------------ | -------------------------------------------------- |
@@ -35,7 +35,7 @@ The following EIPs were added in the L1 Fusaka hardfork but are not relevant to 
 | [7935 Raise Default Gas Limit](https://eips.ethereum.org/EIPS/eip-7935) | OP Stack operator can set the block gas limit |
 | [7934 RLP EL Block Size Limit](https://eips.ethereum.org/EIPS/eip-7934) | Sequencer policy is sufficient |
 
-The following are the Fusaka EIPs that can be adopted on L2.
+The following are the Fusaka EIPs that can be adopted on L2 (all of them are from the Osaka execution layer fork only).
 
 | EIP |  Adoption Questions  |
 |-----|----------------------|
