@@ -16,10 +16,12 @@ This is a poor contributor experience and a bottleneck on a small group of maint
 
 ## Summary
 
-Enable automatic CircleCI on all fork PRs by relying on CircleCI's platform-level secret isolation, not on trust in the PR author. Two separable pieces:
+Enable automatic CircleCI on all fork PRs by relying on CircleCI's platform-level secret isolation, not on trust in the PR author. An experiment ([#20301](https://github.com/ethereum-optimism/optimism/pull/20301)) that stripped every `context:` from the config found that only 3 of ~140 jobs actually fail without their contexts, grounding the rest of this proposal in observed data.
 
-1. **Serialize `mise install`** into one upstream job so GitHub API rate-limit pressure does not scale with pipeline fanout. Independently valuable for trusted CI; prerequisite for fork CI to be reliable.
-2. **Enable fork PRs to run the full `main` workflow** with per-job `when:` gates hiding jobs that are meaningless without secrets, and with context expression restrictions as defence in depth.
+Two separable pieces:
+
+1. **Serialize `mise install`** into one upstream job so GitHub API rate-limit pressure does not scale with pipeline fanout. Independently valuable for trusted CI.
+2. **Enable fork PRs to run the full `main` workflow** with per-job `when:` gates on a small set of jobs that genuinely need secrets, plus context expression restrictions as defence in depth.
 
 Bailiff is retained as the escape hatch for running the full secret-requiring suite before merge. The merge gate continues to require the bailiff-authorized run.
 
@@ -82,6 +84,28 @@ GHA is deliberately restricted to a small set of security-reviewed workflows. Ex
 
 On trusted branches a warm cache hides this. Fork PRs live in their own cache namespace ([cache isolation][circleci-oss]), so they start cold relative to the main repo and the first pipeline per fork would blow the anonymous budget.
 
+### What actually fails without contexts — experiment results
+
+To ground the design in real data rather than inference, every `context:` reference was stripped from the CircleCI config in a throwaway branch off `develop` ([ethereum-optimism/optimism#20301](https://github.com/ethereum-optimism/optimism/pull/20301)) to simulate the environment a fork pipeline would run in. Of ~140 checks, only **3 unique CircleCI jobs failed**, all with the same root cause:
+
+| Job | Reason | Context required |
+| --- | --- | --- |
+| `ci-gate` | `ERROR: CIRCLE_API_TOKEN is not set` | `circleci-api-token` |
+| `generate-flaky-tests-report` | `CIRCLE_API_TOKEN length: 0` | `circleci-api-token` |
+| `required-contracts-ci` | Same ci-gate logic | `circleci-api-token` |
+
+(Two further failures — `main` and `contracts-feature-tests` — were workflow-level aggregations of the above.)
+
+Every job referencing `circleci-repo-readonly-authenticated-github-token` passed — cache hits masked any rate-limit concern, and the jobs' GitHub API usage (where any) stayed inside the anonymous budget for a single pipeline. Every job referencing `slack` or `discord` passed too: notification steps are fire-and-forget and do not fail the job when the webhook environment is missing.
+
+Jobs that fundamentally require secrets to do useful work — publish, release, Kontrol, Devin, GitHub-write (`close-issue`, `stale-check`) — were not observed because they aren't triggered on PR pipelines. They remain must-gate on inference, not observation.
+
+Implications for the design:
+
+- The list of jobs that actually fail without contexts is much shorter than the list of jobs that reference contexts. Only the CircleCI-self-API jobs (`ci-gate`, `generate-flaky-tests-report`, `required-contracts-ci`) reliably break.
+- Phase 1 (serializing `mise install`) is still independently valuable but the fork-PR-feedback argument for it is weaker than originally thought — a first fork pipeline's parallel `mise install` storm evidently fits inside the anonymous budget often enough that the experiment didn't surface rate-limit failures. The argument is better framed as "keep the margin, don't exhaust it in worst-case bursts."
+- Context expression restrictions (Phase 2a) remain worth adding, but the "attack surface" of a misconfigured fork is smaller than feared: most contexts are attached to jobs that don't produce useful results even when their context is present on a fork.
+
 ## Proposed Solution
 
 Two sequenced phases, each landable independently.
@@ -106,13 +130,18 @@ Builds on Phase 1. Order matters: the project-setting flip (2d) is what exposes 
 **2b. OIDC trust audit (defence in depth).** With "Pass secrets" OFF, fork pipelines receive no OIDC token and cannot exchange one for cloud credentials [[2]][circleci-oidc]. Not a hard prerequisite, but CircleCI's guidance is explicit: "you must check the `oidc.circleci.com/vcs-origin` claims in your policies to avoid forked builds having access to resources that they should not." Apply this to every IAM trust accepting this project's CircleCI OIDC tokens (at minimum the GCP trusts behind `oplabs-gcr-release` and `oplabs-network-optimism-io-bucket`) so a future accidental flip of "Pass secrets" is not an instant credential exposure.
 
 **2c. `is_fork_pr` pipeline parameter and per-job gates.** Setup config detects fork pipelines (via `CIRCLE_PR_USERNAME` and PR head repo URL) and passes `is_fork_pr: true|false` to every continuation config. Jobs that are pointless without secrets are gated `when: not is_fork_pr`:
-- `go-release-op-deployer`, `go-release-op-up` (GCR push)
+
+*Observed to fail without contexts* (from the #20301 experiment):
+- `ci-gate`, `required-contracts-ci`, `generate-flaky-tests-report` — all need `$CIRCLE_API_TOKEN` from `circleci-api-token` to call the CircleCI API
+
+*Inferred to require gating* (not triggered on PR pipelines, so not observed, but genuinely need secrets to do useful work):
+- `go-release-op-deployer`, `go-release-op-up` (GCR push, tag-triggered)
 - `publish-cannon-prestates` (GCS push)
 - `kontrol-tests` (Runtime Verification compute token)
 - `ai-contracts-test` (Devin API)
 - `close-issue`, `stale-check` (GitHub write)
-- `generate-flaky-report`, `ci-gate` (CircleCI API token)
-- Slack / Discord notification jobs
+
+Slack / Discord notification steps don't need gating — they fire-and-forget when their webhook isn't present, and the experiment confirmed no step failure resulted.
 
 These gates are UX hygiene, not security: a malicious fork can remove them, but the jobs then fail opaquely because contexts aren't injected (and after 2a, fail closed on attempt). The purpose is a clean, legible check list for contributors.
 
