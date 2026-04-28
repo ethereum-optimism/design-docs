@@ -26,7 +26,7 @@ directory after it is completed.
 For an example of usage, see the [FMA Template](https://github.com/ethereum-optimism/design-docs/blob/main/assets/fma-template.md?plain=1).
 
 Usage:
-1. `npm install -g doctoc`
+1. `mise install`
 2. `doctoc <filename>`
 
 ## Design Review Sessions
