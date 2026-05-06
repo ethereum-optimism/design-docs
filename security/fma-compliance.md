@@ -20,7 +20,19 @@
 
 ## Introduction
 
-This document covers failure modes for the **Compliance Module**, an optional on-chain compliance screening layer for deposits (`OptimismPortal2`) and withdrawals (`L2ToL1MessagePasser`). The module introduces an abstract `Compliance` contract (inheriting Solady's `Ownable`, using Solady's `EnumerableSetLib` for rule management) with two concrete implementations: `L1Compliance` (deployed on L1) and `L2Compliance` (deployed as a predeploy at `0x420000000000000000000000000000000000002D` on L2). Both use composable `IRule` contracts for configurable screening logic, an owner-controlled approval/rejection flow for flagged transactions, and user-initiated refunds for rejected/blocked transactions.
+This document covers failure modes for the **Compliance Module**, an optional on-chain
+compliance screening layer for deposits (`OptimismPortal2`) and withdrawals
+(`L2ToL1MessagePasser`). The module exposes a single `ICompliance` interface (`check(from, to)
+returns (bool)`) and ships a single concrete implementation, `ChainalysisCompliance`, which
+wraps the Chainalysis Sanctions Oracle. The contract is deployed behind an upgradeable proxy on
+L1 and as a predeploy at `0x420000000000000000000000000000000000002D` on L2.
+
+`ChainalysisCompliance` has no admin role and no ETH-egress function. ETH `msg.value` that
+arrives with a screened-out transaction (sanctioned or oracle-unavailable) is permanently
+locked in the contract. There is no `recover`, `settle`, `refund`, `withdraw`, owner override,
+or any other mechanism that releases locked funds. The contract's only externally callable
+entry point is `check`, gated to the bridge. The proxy admin (governance) retains the ability
+to upgrade the implementation.
 
 **References:**
 
@@ -29,115 +41,149 @@ This document covers failure modes for the **Compliance Module**, an optional on
 ## Failure Modes
 
 <details>
-<summary>FM1: Owner Key Compromise</summary>
+<summary>FM1: Compliance Contract Bug Blocks the Bridge</summary>
 
 #### Description
 
-The `Compliance` contract inherits Solady's `Ownable`. The owner controls approval and rejection of flagged transactions. If compromised, an attacker could approve sanctioned/malicious transactions that were correctly flagged by rules, or reject legitimate transactions to grief users. The owner can also call `addRule/removeRule` to modify the compliance rules themselves.
+A bug in `check()` — for example, an unconditional revert, a misconfigured `bridge` address
+(failing the caller check), or a mistake in the `try/catch` wrapping of the oracle calls — could
+cause every deposit or withdrawal to revert. Because the compliance check is on the
+`depositTransaction` / `initiateWithdrawal` hot path, this would halt all cross-chain
+transactions for the affected chain.
+
+A milder failure mode is `check()` returning `false` for compliant addresses (false positives
+caused by an implementation bug rather than a bad oracle response), which does not halt
+bridging but causes legitimate transactions to be permanently locked. See FM2 for the
+locked-ETH consequences.
 
 #### Risk Assessment
 
-High severity / Low likelihood
+High severity / Medium likelihood (new code in the bridge hot path)
 
 #### Mitigations
 
-- Use a multisig or governance-gated address for the owner role to reduce single-key risk
-- Key management best practices (HSM, key rotation policies)
-- The owner can only act on flagged transactions — compliant transactions that pass all rules are never held
-
-#### Detection
-
-- Monitor `Approved` and `Rejected` events for anomalous patterns (e.g., bulk approvals, approvals of known sanctioned addresses)
-- Alert on `addRule/removeRule` calls from the owner
-
-#### Recovery Path
-
-- Call `transferOwnership` to rotate to a new owner address (or governance upgrades the proxy if the owner key is compromised)
-- Users whose transactions were incorrectly rejected can still call `settle` to recover their ETH
-- If rules were tampered with via `addRule/removeRule`, restore correct rules
-
-#### Action Items
-
-- [ ] Define owner key management requirements (multisig, HSM, etc.)
-- [ ] Implement monitoring for owner actions
-
-</details>
-
-<details>
-<summary>FM2: Compliance Contract Bug Blocks All Transactions</summary>
-
-#### Description
-
-A bug in the `check()` function or in the configured rules causes all deposits/withdrawals to revert or be incorrectly flagged as `Pending`/`Rejected`. Since the compliance check is in the critical path of `depositTransaction()` and `initiateWithdrawal()`, this would effectively halt all cross-chain transactions for the affected chain.
-
-#### Risk Assessment
-
-High severity / Medium likelihood (new code with external rule calls in the hot path)
-
-#### Mitigations
-
-- Setting `compliance` to `address(0)` disables the module entirely, providing an escape hatch. Note: this requires governance action (proxy upgrade or reinitialization on L1, `setCompliance` via L2ProxyAdmin owner on L2) to maintain stage 1 requirements
-- Thorough testing of the `check()` path with various rule configurations
+- Setting `compliance` to `address(0)` disables the module entirely. On L1 this requires a
+  governance-gated proxy upgrade or reinitialization of `OptimismPortal2`; on L2 it is
+  `setCompliance(address(0))` from the `L2ProxyAdmin` owner. Stage 1 requirements are preserved.
+- Thorough testing of `check()` with the oracle in each of: returns `false`, returns `true`,
+  reverts, returns malformed data
+- Fork tests against the actual Chainalysis Sanctions Oracle on each target chain
 
 #### Detection
 
 - Monitor for sudden drop in successful deposits/withdrawals
-- Monitor for spike in `Pending` or `Rejected` events
-- Alert on revert rates in `depositTransaction()` / `initiateWithdrawal()`
+- Monitor revert rates in `depositTransaction()` / `initiateWithdrawal()`
+- Monitor the rate of `Sanctioned` and `OracleUnavailable` events for unexpected spikes
 
 #### Recovery Path
 
-- On L1 (`OptimismPortal2`): governance must execute a proxy upgrade or reinitialization to set `compliance` to `address(0)`. There is no direct `setCompliance` setter on `OptimismPortal2`
-- On L2 (`L2ToL1MessagePasser`): the `L2ProxyAdmin` owner calls `setCompliance(address(0))` to disable the compliance module
-- Recovery requires governance action on both L1 and L2 to maintain stage 1 requirements. This prevents the compliance contract from being changed arbitrarily outside of a security council action
+- L1: governance executes a proxy upgrade or reinitialization to set `compliance` to
+  `address(0)`. ETH locked by the buggy `check()` before the disable is **not** recoverable —
+  the contract has no egress function. A governance-introduced egress function via proxy
+  upgrade would release locked funds, but doing so eliminates the property that makes the
+  contract safe to leave unattended (see FM2).
+- L2: the `L2ProxyAdmin` owner calls `setCompliance(address(0))` to disable the module.
+- Recovery requires governance action on both L1 and L2 to maintain stage 1 requirements.
 
 #### Action Items
 
-- [ ] Test the `address(0)` disable path end-to-end
-- [ ] Establish runbook for emergency compliance module disable
+- [ ] Test the `address(0)` disable path end-to-end on both L1 and L2
+- [ ] Establish a runbook for emergency compliance module disable
+- [ ] Fork tests against the live Chainalysis Sanctions Oracle on supported chains
 
 </details>
 
 <details>
-<summary>FM3: Buggy IRule Implementation</summary>
+<summary>FM2: Compliant ETH Permanently Locked by Buggy `check()` or Bad Oracle</summary>
 
 #### Description
 
-The `IRule` interface allows external code to be called during the compliance check. A rule contract could: return unexpected values (e.g., `Refunded` status which is invalid for rules), revert unexpectedly, consume excessive gas causing out-of-gas errors, or contain buggy logic. Since rules are iterated in `check()`, a single bad rule can break the entire compliance flow.
+The screened-out path of `check()` retains `msg.value` and never releases it. By design, this
+applies to genuinely sanctioned addresses and to genuine oracle outages — that is the
+deliberate behaviour of the contract.
+
+The failure-mode-flavoured version of this is when the screened-out path is hit by a
+*compliant* user. There are two ways this can happen:
+
+1. **Bug in `check()`**. An incorrect oracle address, a misuse of `try/catch`, an off-by-one
+   in the `from` / `to` arguments, or any other logic error that returns `false` on a
+   compliant transaction. The user's ETH is locked.
+2. **False positive from the oracle**. The Chainalysis Sanctions Oracle (or whichever oracle
+   the deployment configures) flags an address that should not have been flagged. The
+   contract correctly emits `Sanctioned`; the user's ETH is locked.
+
+Both cases produce the same outcome: a compliant user's `msg.value` is permanently locked in
+the compliance contract with no on-chain remediation. The user's only recourse is off-chain
+(complaint to the oracle provider, governance proposal, etc.). This is the central
+trade-off of the no-recovery design and is the most user-visible failure mode of the module.
 
 #### Risk Assessment
 
-Medium severity / Low likelihood
-
-The contract owner (an aligned chain operator) controls which rules are configured via `addRule/removeRule`. A malicious rule implementation is out of scope because the owner would be denial-of-servicing their own chain. If a buggy rule does cause issues (e.g., excessive gas consumption or reverts), the owner can simply remove the rule via `removeRule` or disable the compliance module entirely via `setCompliance(address(0))`.
+High severity / Medium likelihood (oracle false positives are routine; `check()` bugs are a
+new-code risk)
 
 #### Mitigations
 
-- The `Compliance` contract validates that rule return values are only `Approved`, `Pending`, or `Rejected` (reverts if `Refunded` is returned)
-- Only the owner (an aligned actor) can add/remove rules via `addRule/removeRule`
-- Audit rule implementations before deployment
+- Conservative review and audit of every line of `check()`; this is the single function whose
+  bugs cause permanent user loss
+- Fork tests of `check()` against the live oracle on every supported chain, including known
+  sanctioned addresses (true positives), random clean addresses (true negatives), addresses at
+  the transition points of the oracle's flagging (boundary cases)
+- Operators should publish clear UX guidance to users that screened-out bridge transactions
+  result in irreversible loss of `msg.value`, so users do not accidentally bridge after being
+  flagged
+- Operators may choose to deploy with `compliance = address(0)` for an initial period to
+  collect telemetry on what `check()` *would* have returned, before flipping the bridge to
+  trust those decisions
 
 #### Detection
 
-- Monitor for reverts in `check()` originating from rule calls
+- Cross-reference `Sanctioned` events against external sanctions lists for false positives
+- Operators should monitor user complaints (Discord, support channels) for reports of
+  unexpected bridge "successes" with no destination-chain effect
+- Track the cumulative ETH locked in the compliance contract; an unexplained jump or a
+  mismatch with the sum of `Sanctioned.value + OracleUnavailable.value` indicates a bug
+  somewhere in the path
 
 #### Recovery Path
 
-- Operator removes the faulty rule via `removeRule`
-- If the rule causes `check()` to always revert, fall back to disabling compliance via `setCompliance(address(0))`
+- **There is no on-chain recovery.** Locked ETH stays locked.
+- A proxy upgrade can introduce an egress function, but doing so changes the contract's trust
+  model fundamentally: anyone with upgrade authority gains the ability to release every
+  historical locked deposit, including ones from genuinely sanctioned users. Operators should
+  treat such a proposal as an exceptional governance event, not routine remediation.
+- Off-chain remediation (e.g., the operator credits the affected user out-of-band) is
+  possible but is outside the scope of the on-chain protocol.
 
 #### Action Items
 
-- [ ] Define a rule validation/audit process before rules are added
+- [ ] Audit `check()` with explicit attention to the locked-funds blast radius
+- [ ] Define the operational decision criteria for whether and when to introduce an egress
+      function via governance upgrade
+- [ ] Document the user-visible loss in SDK error messages and operator-facing guidance
+- [ ] Decide whether the v1 launch should ship with an alternative `msg.value` disposition
+      (auto-bounce-to-sender, burn-to-zero) — both alternatives are documented in the design
+      doc's Alternatives section
 
 </details>
 
 <details>
-<summary>FM4: ETH Locked in Compliance Contract</summary>
+<summary>FM3: Access Control Misconfiguration</summary>
 
 #### Description
 
-When a deposit or withdrawal is flagged, the ETH value is held by the `Compliance` contract. Bugs in the `settle()` or refund logic could prevent users from recovering their ETH, either by reverting on valid refund claims or by failing to forward ETH to the bridge on approval. This is especially critical on L1 where real ETH is at stake.
+The compliance module's access control surface is small in this design: the `compliance`
+address on each bridge, and the proxy admin authority over `ChainalysisCompliance` itself.
+There is no owner role on `ChainalysisCompliance`, no `transferOwnership`, no `recover`, and no
+rule-management functions.
+
+If access control is misconfigured — e.g. `setCompliance` is callable by an unauthorized
+party, or the proxy admin authority is misassigned — an attacker could disable compliance on
+L2, point the bridge at a malicious `ICompliance` implementation, or upgrade the contract to
+a version that introduces an ETH-egress function and drains historical locked funds.
+
+On L1 there is no `setCompliance` setter; the compliance address is set via `initialize()` and
+changed only by governance proxy action.
 
 #### Risk Assessment
 
@@ -145,269 +191,207 @@ Critical severity / Low likelihood
 
 #### Mitigations
 
-- Thorough testing of all `settle()` paths: approved → forward to bridge, rejected → enable refund, pending → no-op
-- Test refund claim path independently
-- Invariant testing: ETH balance of Compliance contract should equal sum of all pending/rejected transaction values
-
-#### Detection
-
-- Monitor ETH balance of Compliance contracts
-- Alert if Compliance contract balance grows unexpectedly or if refund transactions revert
-
-#### Recovery Path
-
-- If a specific refund path is broken: contract upgrade to fix the bug
-- If `settle()` is broken: contract upgrade required
-- ETH is not lost permanently as long as the contract is upgradeable
-
-#### Action Items
-
-- [ ] Invariant tests for ETH accounting in the Compliance contract
-- [ ] Ensure Compliance contract is deployed behind an upgradeable proxy
-
-</details>
-
-<details>
-<summary>FM5: Nonce Reservation Issues for Withdrawals</summary>
-
-#### Description
-
-On L2, the withdrawal nonce is reserved in `initiateWithdrawal()` before the compliance check. If nonce accounting is incorrect — e.g., nonce is incremented but the withdrawal is later approved with a different nonce, or the same nonce is reused — withdrawals could become unprocessable on L1 (proving/finalizing fails) or replayable.
-
-#### Risk Assessment
-
-High severity / Low likelihood
-
-#### Mitigations
-
-- The nonce is reserved at the start of `initiateWithdrawal()` and passed to `check()`, which includes it in the hash stored in the status mapping
-- When the withdrawal is later approved, the `approved()` function on `L2ToL1MessagePasser` uses the exact reserved nonce
-- Careful testing of the nonce lifecycle: reservation → hold → approval → prove → finalize
-
-#### Detection
-
-- Monitor for withdrawal proving failures that correlate with previously-flagged withdrawals
-- Compare nonce sequences for gaps or duplicates
-
-#### Recovery Path
-
-- If nonce accounting is fundamentally broken: contract upgrade on L2
-- Individual stuck withdrawals may require manual intervention or upgrade
-
-#### Action Items
-
-- [ ] End-to-end test of the full flagged withdrawal lifecycle including L1 proving and finalization
-- [ ] Test nonce consistency between reservation and approval
-
-</details>
-
-<details>
-<summary>FM6: Owner Key Loss</summary>
-
-#### Description
-
-If the owner key is lost, pending transactions cannot be approved or rejected via owner override. The `settle()` function can still re-evaluate rules (when the owner-override bit is not set), but transactions that require explicit owner approval will be stuck indefinitely. The design doc explicitly calls this out as a single point of failure.
-
-#### Risk Assessment
-
-Medium severity / Low likelihood
-
-#### Mitigations
-
-- Key management practices: multisig, key backup procedures
-- Users can still claim refunds for rejected transactions, so ETH is not permanently stuck
-- The `settle()` function can still resolve transactions if rules change (rules are re-evaluated when the owner-override bit is not set)
-
-#### Detection
-
-- Alert if owner has not acted on pending transactions within a configurable time window
-
-#### Recovery Path
-
-- The `Compliance` contract inherits Solady's `Ownable`. If the owner key is lost, governance recovers by upgrading the `Compliance` proxy to set a new owner
-- For pending transactions: once a new owner is set via proxy upgrade, they can approve/reject the backlog
-
-#### Action Items
-
-- [ ] Document owner key management requirements
-- [ ] Define SLA for owner response time to pending transactions
-
-</details>
-
-<details>
-<summary>FM7: Access Control Misconfiguration</summary>
-
-#### Description
-
-The `setCompliance`, `transferOwnership`, and `addRule/removeRule` functions control critical security parameters. If access control is misconfigured — e.g., these functions are callable by unauthorized parties — an attacker could disable compliance entirely, install a malicious owner, or add malicious rules.
-
-#### Risk Assessment
-
-Critical severity / Low likelihood
-
-#### Mitigations
-
-- On `OptimismPortal2`, the compliance address is set via `initialize()` — changing it requires a governance upgrade through the L1 proxy admin
-- On `L2ToL1MessagePasser`, `setCompliance` is callable only by the `L2ProxyAdmin` owner
-- `transferOwnership` and `addRule/removeRule` on the Compliance contract are gated to the owner (via `Ownable`)
+- L1: compliance address is set via `initialize()`, governance-gated through the L1 proxy admin
+- L2: `setCompliance` is callable only by the `L2ProxyAdmin` owner
+- The proxy admin for `ChainalysisCompliance` should be governance, not an EOA, on both L1
+  and L2
 - Auth checks verified through unit tests
+- Storage-layout snapshot tests catch upgrades that would introduce a new state-mutating
+  function in an unexpected slot
 
 #### Detection
 
-- Monitor for unexpected calls to `setCompliance`, `transferOwnership`, `addRule/removeRule`
-- Alert on any changes to these values
+- Monitor for unexpected calls to `setCompliance`
+- Alert on any change to the `compliance` storage slot on either bridge
+- Alert on any upgrade of the `ChainalysisCompliance` proxy implementation
 
 #### Recovery Path
 
 - If compliance is disabled by an unauthorized party: governance action to re-enable
-- If malicious owner/rules are set: governance upgrade to restore correct configuration
-- Requires governance vote or proxy admin action depending on the access control design
+- If the bridge is pointed at a malicious `ICompliance`: governance action to set a correct
+  one. ETH already passed to the malicious implementation is not recoverable.
+- If the proxy is upgraded to a malicious implementation: governance action to revert the
+  upgrade. ETH already moved by the malicious implementation is not recoverable.
 
 #### Action Items
 
-- [ ] Define and document the access control model for all admin functions
-- [ ] Unit tests verifying auth checks on `setCompliance`, `transferOwnership`, `addRule/removeRule`
+- [ ] Define and document the access control model for `setCompliance` and the proxy admin
+- [ ] Unit tests verifying auth checks on `setCompliance` and the proxy admin gate
+- [ ] Confirm that the proxy admin authority for `ChainalysisCompliance` matches governance
+      expectations on both L1 and L2
 
 </details>
 
 <details>
-<summary>FM8: Reentrancy via External Rule Calls</summary>
+<summary>FM4: Chainalysis Sanctions Oracle Dependency</summary>
 
 #### Description
 
-The `check()` function calls external `IRule` contracts which could theoretically attempt to re-enter the `Compliance` contract, `OptimismPortal2`, or `L2ToL1MessagePasser`.
+`ChainalysisCompliance` calls the Chainalysis Sanctions Oracle on every bridge call. The oracle
+is a third-party dependency outside the OP Stack governance perimeter. Failure modes include:
+
+- **Oracle unreachable** — calls revert (e.g., contract self-destructed, paused, or address
+  changed). `check()` catches this and emits `OracleUnavailable`. The associated ETH is
+  permanently locked.
+- **Oracle returns malformed data** — caught the same way; locked the same way.
+- **Oracle returns false negatives** — sanctioned addresses pass the check. Not detectable
+  on-chain; the chain operator inherits the false-negative rate of the Chainalysis list.
+- **Oracle returns false positives** — legitimate addresses are flagged. ETH is permanently
+  locked. See FM2 for the user-impact analysis.
+- **Sanctions list update lag** — Chainalysis updates the on-chain list on a delay relative
+  to OFAC announcements. A user that becomes sanctioned during the lag window can still
+  bridge.
+- **Oracle compromise** — if the Chainalysis oracle owner is compromised and an attacker can
+  flip the list arbitrarily, the chain inherits whatever the attacker writes. False
+  positives at scale would result in mass permanent loss.
+
+The interaction between this dependency and the no-recovery property of the contract is the
+defining risk profile of the module: routine oracle failures (outages, false positives)
+translate directly into routine permanent user loss. This is significantly more punitive than
+a held-and-recoverable design and should be a primary topic of audit and operator review.
 
 #### Risk Assessment
 
-Low severity / Very low likelihood
-
-The contract owner (an aligned chain operator) controls which rules are configured via `addRule/removeRule`. Since only the owner can add rules, a malicious rule designed to exploit reentrancy is out of scope — the owner would be attacking their own chain. If they did, they could simply remove the rule. Reentrancy guards are still applied to `settle()` and the bridge's `approved()` callback as defense in depth, but reentrancy through `IRule` calls is not considered a realistic threat vector.
+High severity / Medium likelihood (oracle outages and update lag are routine; oracle
+compromise is rare but high-impact)
 
 #### Mitigations
 
-- Only the owner (an aligned actor) can add rules, so malicious rule implementations are out of scope
-- Reentrancy guards on `settle()` and the bridge `approved()` callback as defense in depth
-- Follow checks-effects-interactions pattern for state updates
+- `check()` wraps both `isSanctioned(from)` and `isSanctioned(to)` calls in `try/catch` so a
+  reverting or invalid-returndata oracle does not propagate a revert to the bridge — instead
+  the transaction is screened out under `OracleUnavailable`
+- `setCompliance(address(0))` (L2) or proxy reinitialization (L1) provides a governance-gated
+  escape hatch if the oracle is determined to be untrustworthy. This stops new losses but
+  does not unlock historical ones.
+- Operators should monitor Chainalysis status feeds and OFAC announcement channels
+- The oracle address is set at initialization and changing it requires governance action;
+  swapping to a different oracle implementation is a deliberate decision, not an attacker
+  capability
+- Operators may choose to gate the bridge launch with `compliance = address(0)` and a
+  shadow-mode deployment first, to surface the false-positive and outage rate before flipping
+  the bridge to act on the oracle's verdict
 
 #### Detection
 
-- Static analysis tools (Slither, etc.) flag reentrancy vectors
-- Audit review of the `settle()` and `approved()` callback paths
+- Monitor the ratio of `Allowed` / `Sanctioned` / `OracleUnavailable` events for anomalies
+- Cross-reference `Sanctioned` event addresses against external sanctions lists for false
+  positives
+- Alert on sustained `OracleUnavailable` events suggesting an oracle outage
 
 #### Recovery Path
 
-- If a buggy rule causes unexpected behavior: owner removes the rule via `removeRule`
-- Contract upgrade if needed
+- Oracle outage: there is no on-chain recovery for ETH already locked by `OracleUnavailable`.
+  Going forward, the operator can disable compliance until the oracle is healthy.
+- Oracle compromise: governance disables compliance via `setCompliance(address(0))` and/or
+  upgrades the proxy to point at a different oracle. Historical losses remain locked.
 
 #### Action Items
 
-- [ ] Ensure reentrancy guards are applied to `settle()` and bridge `approved()` callback
-- [ ] Static analysis scan for reentrancy vectors
+- [ ] Document operational runbook for oracle outage and oracle compromise scenarios
+- [ ] Implement monitoring on the rate of `OracleUnavailable` events and the
+      `Sanctioned` / `Allowed` ratio
+- [ ] Decide whether shadow-mode deployment is required before live operation
 
 </details>
 
 <details>
-<summary>FM9: Hash Collision in Status Mapping</summary>
+<summary>FM5: Interaction with Dispute Game / Withdrawal Proving</summary>
 
 #### Description
 
-The `_status` mapping uses `keccak256(abi.encode(...))` of the transaction parameters as the key. If two different transactions produce the same hash, one transaction's status could be confused with another's — e.g., an attacker's flagged transaction could be resolved by settling a different transaction with the same hash.
+The simplified design does not introduce a delayed-emission path on L2 withdrawals. When
+`check()` returns `false`, no `MessagePassed` event is emitted and no entry is added to
+`sentMessages`; the L2 message nonce counter advances only on successful withdrawals.
+
+A screened-out withdrawal therefore never enters the proving pipeline at all. There is no
+nonce-reservation race, no risk of a flagged withdrawal's hash being out-of-sync with proving,
+and no held → settled → output-root inclusion lifecycle.
+
+The remaining failure mode here is a tooling concern: tools that assume L2 withdrawal nonces
+are strictly contiguous from the user's perspective may need updates when screened-out
+withdrawals are part of the picture. (The chain-level message nonce remains contiguous for
+actually-emitted withdrawals.)
 
 #### Risk Assessment
 
-Low severity / Very low likelihood (keccak256 collision resistance)
+Low severity / Low likelihood
 
 #### Mitigations
 
-- Use of `abi.encode` (not `abi.encodePacked`) ensures unambiguous encoding and avoids collisions from variable-length fields
-- keccak256 provides 256-bit collision resistance, making intentional collisions computationally infeasible
+- No on-chain logic depends on the screened-out flow; the proving pipeline is unchanged from
+  a non-compliance world
+- SDK and tooling guidance documents the user-facing meaning of a screened-out bridge call (no
+  event, ETH permanently locked in the compliance contract)
 
 #### Detection
 
-- Not practically detectable since collision would require breaking keccak256
+- N/A — no proving-pipeline interaction to monitor
 
 #### Recovery Path
 
-- No recovery needed — this is a theoretical concern only
-- If keccak256 were ever broken, a contract upgrade to use a different hash function would be required
-
-</details>
-
-<details>
-<summary>FM10: Interaction with Dispute Game / Withdrawal Proving</summary>
-
-#### Description
-
-Flagged withdrawals that are later approved interact with the dispute game timing and withdrawal proving flow. A withdrawal's nonce is reserved at flag time, but the withdrawal message is only emitted when `settle()` approves it (possibly much later). This creates a timing gap where the withdrawal proof's inclusion in an output root may not align with expectations.
-
-Analysis of the flagged withdrawal lifecycle (see [design doc Risks section](../protocol/compliance-module.md#risks--uncertainties) for full details):
-
-1. **Flag time:** Nonce N is reserved in `initiateWithdrawal()`. The nonce counter advances to N+1 for subsequent withdrawals. No `MessagePassed` event is emitted and no message hash is stored in `sentMessages`.
-2. **Hold period:** The withdrawal is held in the Compliance contract. Other withdrawals (with nonces N+1, N+2, ...) proceed normally and are included in output roots.
-3. **Settle time:** `settle()` calls `approved()`, which emits the `MessagePassed` event with nonce N and stores the message hash in `sentMessages`. The withdrawal is now part of L2 state.
-4. **Output root inclusion:** The withdrawal's message hash is included in the next output root proposed after the settle transaction. Any output root proposed before settle will NOT contain this withdrawal.
-5. **Prove and finalize:** The user proves the withdrawal against an output root from step 4 (or later), then finalizes after the dispute game window.
-
-The total withdrawal time is extended by the hold duration (step 2). The dispute game window begins when the output root containing the settled withdrawal is proposed, not when the withdrawal was originally initiated. Nonce ordering is preserved — nonce N is deterministic from flag time — so the withdrawal hash computed on L1 during proving matches the one emitted at settle time.
-
-#### Risk Assessment
-
-Medium severity / Low likelihood (the interaction is well-understood and nonce ordering is preserved)
-
-#### Mitigations
-
-- The withdrawal message hash uses the reserved nonce, ensuring consistency between flag-time and settle-time
-- Withdrawal proving on L1 depends on the output root containing the withdrawal, which only happens after `settle()` emits the message — this is deterministic and correct by construction
-- Nonce ordering is preserved: nonce N is assigned at flag time and reused at settle time, so the L1 proof matches
-
-#### Detection
-
-- Monitor for failed withdrawal proofs that correspond to previously-flagged withdrawals
-- Monitor for withdrawals stuck in the proving/finalization pipeline
-
-#### Recovery Path
-
-- If a flagged withdrawal's proof fails on L1, the root cause is likely a nonce accounting bug in the Compliance contract or `L2ToL1MessagePasser.approved()` — this would require a contract upgrade
-- Individual stuck withdrawals may require manual intervention or upgrade
+- N/A — screened-out withdrawals never enter the proving pipeline
 
 #### Action Items
 
-- [ ] Test the full end-to-end flow: flag → hold → settle(approve) → prove → finalize
-- [ ] Test nonce consistency between reservation and approval across concurrent withdrawals
+- [ ] Update SDK/tooling documentation to describe the screened-out bridge-call user
+      experience, including the irreversibility of the loss
 
 </details>
 
 <details>
-<summary>FM11: Generic Smart Contract Failure Modes</summary>
+<summary>FM6: Generic Smart Contract Failure Modes</summary>
 
 #### Description
 
-The Compliance contract is a new contract deployed behind a proxy on both L1 and L2. All generic smart contract upgrade failure modes apply. See [generic smart contract failure modes](./fma-generic-contracts.md) for reference.
+`ChainalysisCompliance` is a new contract deployed behind a proxy on both L1 and L2. All
+generic smart contract upgrade failure modes apply. See [generic smart contract failure
+modes](./fma-generic-contracts.md) for reference.
 
 Applicable failure modes:
-- **Proxy Initialization Failure:** The Compliance contract must be correctly initialized with `owner`, `bridge`, and initial rules. A failed initialization could leave the contract in an unusable state or allow arbitrary reinitialization.
-- **Storage Layout Corruption:** New implementations must not overwrite existing storage slots. The `_status` mapping, `EnumerableSetLib.AddressSet` for rules, Solady `Ownable`'s owner slot, and `bridge` variable must be preserved across upgrades.
-- **Wrong Initialization Values:** Incorrect `bridge` address would break the caller check in `check()`. Incorrect `owner` address would give the wrong party control.
-- **Can't Upgrade Implementation:** If the proxy admin is misconfigured, the Compliance contract cannot be upgraded to fix bugs or recover stuck ETH.
-- **Reinitialization:** If `initialize()` is callable again, an attacker could reset the owner, bridge, and rules.
-- **ABI Compatibility:** OptimismPortal2 and L2ToL1MessagePasser call into the Compliance contract — ABI changes could break the integration.
+
+- **Proxy Initialization Failure:** the contract must be correctly initialized with `bridge`
+  and `sanctionsOracle`. A failed initialization could leave the contract unusable or allow
+  arbitrary reinitialization.
+- **Storage Layout Corruption:** new implementations must not overwrite the existing layout
+  (`bridge`, `sanctionsOracle`, `_nextId`).
+- **Wrong Initialization Values:** an incorrect `bridge` address breaks the caller check in
+  `check()`. An incorrect `sanctionsOracle` causes false positives or negatives.
+- **Can't Upgrade Implementation:** if the proxy admin is misconfigured, the contract cannot
+  be upgraded to fix bugs. Bugs that lock compliant ETH (FM2) become irrecoverable in
+  practice.
+- **Reinitialization:** if `initialize()` is callable again, an attacker could reset the
+  bridge and oracle.
+- **ABI Compatibility:** `OptimismPortal2` and `L2ToL1MessagePasser` call into the compliance
+  contract — ABI changes to `check(address,address)` would break the integration. The
+  `check(address,address)` selector is therefore stable forever; richer screening is added
+  via additional overloads, never by changing this one.
+- **Upgrade introducing an egress function:** a governance proxy upgrade could add a function
+  that drains the contract's locked balance. This is intentional capability — it is the only
+  remediation path for FM2-class losses — but it is also a single governance action that
+  controls every historical locked deposit. It should be treated as a high-scrutiny upgrade,
+  not routine.
 
 #### Risk Assessment
 
-High severity / Low likelihood (standard proxy risks, well-understood mitigations)
+High severity / Low likelihood (standard proxy risks, well-understood mitigations; the
+egress-via-upgrade case is unique to this design)
 
 #### Mitigations
 
-- Follow standard proxy patterns (TransparentUpgradeableProxy or similar)
+- Standard proxy patterns (TransparentUpgradeableProxy or similar)
 - Storage layout snapshot tests
 - Initialization tests (`test_initialize_succeeds`)
-- Verify `initializer` modifier prevents reinitialization
+- `initializer` modifier prevents reinitialization
+- Treat the `check(address,address)` selector as a permanent ABI commitment
+- Treat any proposed upgrade that adds ETH-egress capability as an exceptional governance
+  event with explicit user notification
 
 #### Detection
 
 - Fork tests verifying initialization state
 - Simulate upgrades before execution
 - ABI snapshot comparisons
+- Governance review process flags any upgrade introducing new state-mutating functions
 
 #### Recovery Path
 
@@ -416,40 +400,72 @@ High severity / Low likelihood (standard proxy risks, well-understood mitigation
 
 </details>
 
-- [x] Check this box to confirm that generic smart contract failure modes have been considered and incorporated above (FM11).
+- [x] Check this box to confirm that generic smart contract failure modes have been considered
+      and incorporated above (FM6).
 
 ## Risks & Uncertainties
 
-- The exact set of `IRule` implementations needed at launch is still an open question. Rule implementations are a significant part of the attack surface.
-- Interaction between the compliance module and the dispute game / withdrawal proving flow needs further analysis (see FM10).
-- Governance and access control model has been defined: `setCompliance` on `OptimismPortal2` is set via initializer (governance-gated), `setCompliance` on `L2ToL1MessagePasser` is gated to `L2ProxyAdmin` owner, and `addRule`/`removeRule`/`transferOwnership` on `Compliance` are gated to the owner (via `Ownable`).
-- The compliance module holds user ETH in custody, making it a high-value target. The amount of ETH at risk scales with the number of flagged transactions.
+- The Chainalysis Sanctions Oracle is a third-party dependency on the bridge hot path. Its
+  availability, integrity, and update cadence directly affect bridge UX when compliance is
+  enabled, and unlike the earlier draft, oracle failures translate into permanent user loss
+  rather than a recoverable hold (see FM2 and FM4).
+- There is no on-chain remediation for screened-out transactions. The contract is intentionally
+  designed without an admin role or egress function. The trade-off is contract simplicity and
+  the elimination of an admin-key compromise vector at the cost of harsher user impact on
+  false positives and oracle outages. Operators must decide whether this trade-off is
+  appropriate for their user base; the design doc's Alternatives section documents
+  auto-bounce-to-sender and burn-to-zero as drop-in alternatives.
+- The proxy admin retains the theoretical ability to introduce an egress function via upgrade.
+  This is the only remediation path for FM2-class losses. Governance practices around such an
+  upgrade should be defined ahead of time so the question is not litigated under pressure.
+- L2 chains without a Chainalysis Sanctions Oracle deployment cannot run
+  `ChainalysisCompliance` on L2 directly. Such operators must either ship a custom
+  `ICompliance` implementation or leave L2 compliance disabled.
 
 ## Audit Requirements
 
 **This component requires audit.**
 
-The Compliance module introduces a new contract that:
-1. Holds user ETH in custody (flagged deposits/withdrawals)
-2. Makes external calls to arbitrary `IRule` contracts
-3. Modifies the critical path of `OptimismPortal2.depositTransaction()` and `L2ToL1MessagePasser.initiateWithdrawal()`
-4. Introduces an owner role (via `Ownable`) with significant power
+The compliance module introduces a new contract that:
 
-All of these factors warrant a thorough security audit before deployment.
+1. Sits in the critical path of `OptimismPortal2.depositTransaction()` and
+   `L2ToL1MessagePasser.initiateWithdrawal()`
+2. Permanently locks user ETH on screened-out transactions, with no on-chain remediation
+3. Makes external calls to a third-party oracle on every bridge call
+
+The audit should pay particular attention to `check()` — this is the only function in the
+contract that touches user funds, and bugs in it directly cause irreversible user loss.
 
 ## Action Items
 
-Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
+Below is what needs to be done before launch to reduce the chances of the above failure modes
+occurring, and to ensure they can be detected:
 
-- [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
-- [ ] Define owner key management requirements — multisig, HSM, rotation policy (Assignee: chain operations)
-- [x] Define and document the access control model for `setCompliance`, `transferOwnership`, `addRule/removeRule` (Assignee: design author)
-- [x] Conduct detailed analysis of flagged withdrawal interaction with dispute game / proving flow (Assignee: design author)
-- [ ] End-to-end test of the full flagged withdrawal lifecycle: flag → hold → settle → prove → finalize (Assignee: implementation team)
-- [ ] Invariant tests for ETH accounting in the Compliance contract (Assignee: implementation team)
-- [ ] Ensure Compliance contract is deployed behind an upgradeable proxy (Assignee: implementation team)
-- [ ] Implement monitoring and alerting for owner actions, compliance events, and ETH balances (Assignee: chain operations)
-- [ ] Reentrancy guards on `settle()` and bridge `approved()` callback, plus static analysis scan (Assignee: implementation team)
-- [ ] Define a rule validation/audit process before rules are added to production (Assignee: security team)
-- [ ] Storage layout snapshot tests and initialization tests for the Compliance contract (Assignee: implementation team)
-- [ ] Security audit of Compliance contract, IRule interface, and modifications to OptimismPortal2 and L2ToL1MessagePasser (Assignee: security team)
+- [ ] Resolve all comments on this document and incorporate them into the document itself
+      (Assignee: document author)
+- [x] Define and document the access control model for `setCompliance` and the proxy admin
+      (Assignee: design author)
+- [ ] Audit `check()` with explicit attention to the locked-funds blast radius (Assignee:
+      security team)
+- [ ] Define the operational decision criteria for whether and when to introduce an egress
+      function via governance upgrade (Assignee: chain operations + governance)
+- [ ] Decide whether the v1 launch should ship with an alternative `msg.value` disposition
+      (auto-bounce-to-sender, burn-to-zero) — both alternatives are documented in the design
+      doc's Alternatives section (Assignee: design author)
+- [ ] Decide whether shadow-mode deployment is required before live operation (Assignee:
+      chain operations)
+- [ ] Implement monitoring for the cumulative locked balance and reconcile against the sum of
+      `Sanctioned.value + OracleUnavailable.value` events (Assignee: chain operations)
+- [ ] Implement monitoring for the rate of `OracleUnavailable` events and the
+      `Sanctioned` / `Allowed` ratio (Assignee: chain operations)
+- [ ] Storage layout snapshot tests and initialization tests (Assignee: implementation team)
+- [ ] Fork tests of `check()` against the live Chainalysis Sanctions Oracle on each target
+      chain (Assignee: implementation team)
+- [ ] Operational runbook for emergency compliance module disable (`setCompliance(address(0))`
+      / proxy reinitialization) (Assignee: chain operations)
+- [ ] Operational runbook for oracle outage and oracle compromise scenarios (Assignee: chain
+      operations)
+- [ ] Update SDK/tooling documentation to describe the screened-out bridge-call user
+      experience, including the irreversibility of the loss (Assignee: ecosystem)
+- [ ] Security audit of `ChainalysisCompliance`, the `ICompliance` interface, and modifications
+      to `OptimismPortal2` and `L2ToL1MessagePasser` (Assignee: security team)
