@@ -10,71 +10,78 @@
 
 ## Purpose
 
-Introduce an optional compliance screening layer for cross-chain transactions in the Optimism
-bridge. Chain operators need the ability to block deposits and withdrawals against an on-chain
-sanctions list in order to meet regulatory obligations and reduce liability. This design doc
-describes the smart contract changes required to support this capability, with a focus on a
-minimal first iteration that integrates with the on-chain Chainalysis Sanctions Oracle.
+Introduce an optional compliance screening layer for L1 deposits in the Optimism bridge. Chain
+operators need the ability to block deposits against an on-chain sanctions list in order to meet
+regulatory obligations and reduce liability. This design doc describes the smart contract changes
+required to support this capability, with a focus on a minimal first iteration that integrates
+with the on-chain Chainalysis Sanctions Oracle.
 
 ## Summary
 
-The compliance module adds an optional screening layer to `OptimismPortal2` (deposits) and
-`L2ToL1MessagePasser` (withdrawals). When enabled, every cross-chain transaction is screened by
-calling a single `ICompliance.check(from, to)` function. Compliant transactions proceed without
-delay. Sanctioned transactions and oracle failures are not allowed to proceed: the bridge call
-returns successfully without emitting a `TransactionDeposited` / `MessagePassed` event, and the
-ETH `msg.value` is retained by the compliance contract for the chain operator to handle off-chain.
+The compliance module adds an optional screening layer to `OptimismPortal2` (deposits). When
+enabled, every deposit is screened by calling a single `ICompliance.check(from, to)` function.
+Compliant deposits proceed without delay. Sanctioned deposits and oracle failures are not allowed
+to proceed: the bridge call returns successfully without emitting a `TransactionDeposited` event,
+and the ETH `msg.value` is retained by the compliance contract for the chain operator to handle
+off-chain.
+
+The module is L1-only. L2 → L1 withdrawals are intentionally out of scope for this iteration: the
+Chainalysis Sanctions Oracle is not deployed on most OP Stack chains, and the asymmetry of
+screening only one direction is preferable to running an L2 module against an oracle that may not
+exist on a given chain. A future iteration can introduce L2 screening once an appropriate L2
+oracle is available; the `ICompliance` interface is shaped to allow that without changes to the
+L1 contracts.
 
 Key design decisions:
 
 - **Single `ICompliance` interface** with one minimal function: `check(address from, address to)`
   returning `bool`. There is one concrete implementation, `ChainalysisCompliance`, which wraps the
   Chainalysis Sanctions Oracle. Operators with different requirements can ship a different
-  `ICompliance` implementation without touching the bridges.
+  `ICompliance` implementation without touching the bridge.
 - **Forward-compatible interface.** The `check(address,address)` selector is preserved
   indefinitely. Richer signatures (passing value, gas limit, calldata, etc.) can be added later
-  as additional overloads; bridges adopt the richer call when the richer screening is needed.
-- **Non-blocking for compliant transactions** — no latency added when both `from` and `to` pass
-  the sanctions screen.
-- **Bridge never reverts on compliance grounds.** Sanctioned transactions and oracle failures
-  cause `check` to return `false`; the bridge returns successfully and the compliance contract
-  retains custody of the ETH. A distinct event is emitted for each non-compliant outcome so
-  off-chain tooling can react.
+  as additional overloads; the bridge adopts the richer call when the richer screening is needed.
+- **Non-blocking for compliant deposits** — no latency added when both `from` and `to` pass the
+  sanctions screen.
+- **Bridge never reverts on compliance grounds.** Sanctioned deposits and oracle failures cause
+  `check` to return `false`; the bridge returns successfully and the compliance contract retains
+  custody of the ETH. A distinct event is emitted for each non-compliant outcome so off-chain
+  tooling can react.
 - **Held ETH is permanently locked.** The compliance contract has no recovery path. ETH that
-  arrives with a screened-out transaction stays in the contract forever — there is no
-  `recover`, no `settle`, no `refund`, and no admin role with the authority to move it. This is
-  a deliberate trade-off in favour of contract simplicity: the screening contract has no ETH
-  egress surface, and therefore no one to compromise to drain held funds. Alternatives
-  considered (auto-bounce to sender, burn to `address(0)`) are documented in the Alternatives
-  section.
-- **No state machine on flagged transactions.** The earlier draft's `Pending` / `Rejected` /
+  arrives with a screened-out deposit stays in the contract forever — there is no `recover`, no
+  `settle`, no `refund`, and no admin role with the authority to move it. This is a deliberate
+  trade-off in favour of contract simplicity: the screening contract has no ETH egress surface,
+  and therefore no one to compromise to drain held funds. Alternatives considered (auto-bounce
+  to sender, burn to `address(0)`) are documented in the Alternatives section.
+- **No state machine on flagged deposits.** The earlier draft's `Pending` / `Rejected` /
   `Refunded` enum, `IRule` plugin set, owner-override bit, and `settle()` / `approved()` callback
-  are all removed. The bridges no longer expose an `approved()` function.
+  are all removed. The bridge no longer exposes an `approved()` function.
 - **No owner role.** `ChainalysisCompliance` does not inherit `Ownable`. There are no admin
   functions on the deployed contract. The proxy admin (governance) retains the ability to
   upgrade the implementation, which is the only escape hatch.
 - **Contracts-only scope** — no changes to client software required.
-- **Opt-in** — setting the `compliance` address to `address(0)` disables the module entirely. The
-  L2 genesis generation script accepts a config option to set the compliance contract in the
-  `L2ToL1MessagePasser` at genesis; by default it is not set (compliance is off).
-- **L2 predeploy** — the L2 compliance contract is deployed at predeploy address
-  `0x420000000000000000000000000000000000002D` and set in genesis.
+- **Opt-in** — setting `OptimismPortal2.compliance` to `address(0)` disables the module entirely.
+  Compliance is off by default; the chain operator must explicitly opt in via initialization.
 
 ## Problem Statement + Context
 
 Chain operators deploying OP Stack chains may be subject to regulatory requirements that oblige
-them to screen cross-chain transactions for sanctioned addresses. Today there is no protocol-level
-mechanism for a chain operator to intercept, hold, or refund a deposit or withdrawal that involves
-a sanctioned counterparty. Off-chain monitoring after the fact does not prevent the transaction
-from executing and does not reduce the operator's potential liability.
+them to screen deposits for sanctioned addresses. Today there is no protocol-level mechanism for
+a chain operator to intercept, hold, or refund a deposit that involves a sanctioned counterparty.
+Off-chain monitoring after the fact does not prevent the deposit from executing and does not
+reduce the operator's potential liability.
 
 The Chainalysis Sanctions Oracle (`isSanctioned(address)(bool)`) is the de-facto on-chain
 sanctions list — it is consumed by USDC, Tether, and other major issuers, and is published on
-multiple EVM chains including Ethereum, OP Mainnet, Base, Arbitrum, Polygon, BNB and Avalanche.
-Outsourcing the sanctions list to Chainalysis lets the chain operator inherit a maintained,
-audited list rather than ship and curate one themselves. The compliance module described here
-makes that integration the minimum viable shape, while leaving the door open for chain operators
-to ship richer `ICompliance` implementations later.
+Ethereum mainnet (the L1 of the OP Stack). Outsourcing the sanctions list to Chainalysis lets the
+chain operator inherit a maintained, audited list rather than ship and curate one themselves. The
+compliance module described here makes that integration the minimum viable shape, while leaving
+the door open for chain operators to ship richer `ICompliance` implementations later.
+
+This iteration is scoped to L1 deposits. The Chainalysis oracle is not present on most OP Stack
+L2s, and a separate sanctions oracle would need to be sourced before an L2 → L1 withdrawal
+screening module would be useful. The `ICompliance` interface and the screened-out flow described
+below are shaped so that an L2 deployment can be added later without changes to the L1 contracts.
 
 ## Proposed Solution
 
@@ -108,57 +115,24 @@ flowchart TB
     Emit1 --> Executed1
 ```
 
-#### L2 → L1 Withdrawal Flow
-
-```mermaid
-flowchart TB
-    subgraph L2["L2 (OP Chain)"]
-        User2[User]
-        MessagePasser[L2ToL1MessagePasser]
-        Compliance2[ChainalysisCompliance]
-        Oracle2[Chainalysis Sanctions Oracle]
-
-        User2 -->|"initiateWithdrawal{value}(target, gasLimit, data)"| MessagePasser
-        MessagePasser -->|"check{value: msg.value}(msg.sender, target)"| Compliance2
-        Compliance2 -->|"isSanctioned(from)<br/>isSanctioned(to)"| Oracle2
-
-        Compliance2 -->|"both compliant: donateETH{value}"| MessagePasser
-        MessagePasser -->|"emit MessagePassed"| Emit2[Withdrawal emitted]
-
-        Compliance2 -->|"either sanctioned: emit Sanctioned, retain ETH, return false"| Locked2[ETH permanently locked in contract]
-        Compliance2 -->|"oracle reverts or invalid: emit OracleUnavailable, retain ETH, return false"| Locked2
-    end
-
-    subgraph L1["L1 (Ethereum)"]
-        Finalize[User proves and finalizes withdrawal via OptimismPortal2]
-    end
-
-    Emit2 --> Finalize
-```
-
-When `check` returns `false` on a withdrawal, the L2 nonce that would have been assigned to the
-withdrawal is effectively unused: no `MessagePassed` event is emitted and no entry is added to
-`sentMessages`. The `messageNonce()` counter still advances for any subsequent withdrawal. This
-is acceptable because L1 does not enumerate L2 nonces during proving — proofs target a specific
-message hash — so a "skipped" nonce is not observable on L1. The ETH `msg.value` is retained by
-the compliance contract and is unrecoverable; the user does not get it back, and there is no
-admin path to release it.
+When `check` returns `false`, the ETH `msg.value` is retained by the compliance contract and is
+unrecoverable; the user does not get it back, and there is no admin path to release it.
 
 ### New Interface: `ICompliance`
 
-The bridges depend only on this minimal interface:
+`OptimismPortal2` depends only on this minimal interface:
 
 ```solidity
 /// @title ICompliance
-/// @notice Compliance hook called by OptimismPortal2 (deposits) and
-///         L2ToL1MessagePasser (withdrawals). Implementations are expected
-///         to consult an external sanctions oracle.
+/// @notice Compliance hook called by OptimismPortal2 on deposits.
+///         Implementations are expected to consult an external sanctions
+///         oracle.
 ///
 ///         When `check` returns true, the implementation MUST have already
 ///         returned `msg.value` to the bridge via `IDonatable.donateETH`.
 ///         When `check` returns false, the implementation retains custody
-///         of `msg.value` and the bridge MUST NOT emit a deposit/withdrawal
-///         event for this transaction.
+///         of `msg.value` and the bridge MUST NOT emit a deposit event for
+///         this transaction.
 interface ICompliance {
     function check(address from, address to)
         external
@@ -172,14 +146,14 @@ When future iterations need richer screening (passing the cross-chain value, cal
 nonce, or other context), a new selector is added — for example
 `check(address,address,uint256,uint64,bool,bytes,uint256)` — and the bridge integration is
 upgraded to call the richer signature. Old `ICompliance` implementations that only support the
-minimal selector remain valid for the deployments that use them.
+minimal selector remain valid for the deployments that use them. The same shape also applies if
+an L2 module is added later: an L2 `ICompliance` implementation can re-use the existing selector
+or expose a richer one without affecting the L1 deployment.
 
 ### New Contract: `ChainalysisCompliance`
 
-A single concrete `ICompliance` implementation that wraps Chainalysis' Sanctions Oracle. The same
-contract is used on both L1 and L2; each deployment is configured with the address of the
-Chainalysis Sanctions Oracle for the chain it lives on. Operators on chains without a Chainalysis
-oracle can either ship their own `ICompliance` implementation or leave compliance disabled.
+A single concrete `ICompliance` implementation that wraps Chainalysis' Sanctions Oracle on L1.
+The contract is configured at initialization with the L1 Chainalysis Sanctions Oracle address.
 
 The contract inherits:
 
@@ -194,16 +168,16 @@ the only privileged action is a proxy upgrade through governance. There is also 
 transfer — `check` either calls `bridge.donateETH` (compliant) or retains the value (screened
 out), and the screened-out path performs no further external calls.
 
-The contract is deployed behind an upgradeable proxy on L1 and as a predeploy on L2.
-Upgradeability matters here for fixing bugs in `check` (e.g. a misconfigured oracle address or a
-bad `try/catch` predicate) — not for moving held ETH, which is intentionally unrecoverable.
+The contract is deployed behind an upgradeable proxy on L1. Upgradeability matters here for
+fixing bugs in `check` (e.g. a misconfigured oracle address or a bad `try/catch` predicate) — not
+for moving held ETH, which is intentionally unrecoverable.
 
 #### State Variables
 
 ```solidity
-/// @notice Reference to OptimismPortal2 (L1) or L2ToL1MessagePasser (L2).
-///         Used to enforce the caller of `check` and to route ETH back via
-///         `donateETH` when both addresses pass the screen.
+/// @notice Reference to OptimismPortal2. Used to enforce the caller of
+///         `check` and to route ETH back via `donateETH` when both
+///         addresses pass the screen.
 address payable public bridge;
 
 /// @notice The Chainalysis Sanctions Oracle for this chain.
@@ -280,7 +254,7 @@ event OracleUnavailable(
 ///        - oracle reverts/invalid: retains `msg.value`, emits `OracleUnavailable`,
 ///          returns false.
 ///      ETH retained on the screened-out paths is permanently locked.
-/// @return allowed_ True if the bridge should proceed with the deposit/withdrawal.
+/// @return allowed_ True if the bridge should proceed with the deposit.
 function check(address _from, address _to)
     external
     payable
@@ -314,16 +288,16 @@ has been emitted, the associated ETH cannot be retrieved.
 
 When `check` is called with `{value: msg.value}`, the ETH is transferred to the compliance
 contract. If both addresses pass the screen, the compliance contract returns the ETH to the
-bridge so that the normal deposit or withdrawal logic can proceed. Sending ETH to the bridge via
-a plain transfer would re-trigger a deposit (on L1) or a withdrawal (on L2). To avoid this, both
-`OptimismPortal2` and `L2ToL1MessagePasser` implement an `IDonatable` interface.
+bridge so that the normal deposit logic can proceed. Sending ETH to the bridge via a plain
+transfer would re-trigger a deposit. To avoid this, `OptimismPortal2` implements an `IDonatable`
+interface.
 
 ```solidity
 /// @title IDonatable
 /// @notice Interface for contracts that accept ETH donations without
-///         triggering side effects (deposits on L1, withdrawals on L2).
+///         triggering side effects (e.g., a deposit).
 interface IDonatable {
-    /// @notice Accepts ETH value without triggering a deposit or withdrawal.
+    /// @notice Accepts ETH value without triggering a deposit.
     function donateETH() external payable;
 }
 ```
@@ -332,8 +306,8 @@ interface IDonatable {
 
 `OptimismPortal2` gains a single configuration variable, `compliance`, and a single new branch in
 `depositTransaction`. There is no `approved()` function and no settlement callback. The
-`compliance` address is set via the `initialize()` function and is controlled by governance (L1
-proxy admin owner). There is no `setCompliance` setter on `OptimismPortal2` — changing the
+`compliance` address is set via the `initialize()` function and is controlled by governance (the
+L1 proxy admin owner). There is no `setCompliance` setter on `OptimismPortal2` — changing the
 compliance address requires a proxy upgrade or reinitialization through governance, ensuring
 stage 1 requirements are maintained.
 
@@ -374,78 +348,10 @@ function depositTransaction(
 }
 ```
 
-### Changes to `L2ToL1MessagePasser`
-
-`L2ToL1MessagePasser` gains the same single configuration variable and the same single new branch.
-Unlike `OptimismPortal2`, it retains an explicit `setCompliance` setter, callable only by the
-`L2ProxyAdmin` owner (governance-gated). As on L1, governance control over the compliance address
-is required to maintain stage 1 requirements.
-
-#### New State Variables
-
-```solidity
-/// @notice Address of the compliance module (address(0) if disabled).
-address public compliance;
-```
-
-#### New Functions
-
-```solidity
-/// @notice Sets the compliance module address.
-/// @dev Only callable by the L2ProxyAdmin owner (governance-gated).
-/// @param _compliance The compliance module address (address(0) to disable).
-function setCompliance(address _compliance) external;
-```
-
-#### Modified Functions
-
-```solidity
-/// @notice Modified initiateWithdrawal to include compliance check
-/// @dev If compliance is set and check() returns false, the withdrawal is
-///      held in the compliance module and no event is emitted. The L2
-///      message nonce counter is unaffected by held withdrawals — the next
-///      successful withdrawal uses the next nonce, and any nonce that
-///      "would have been" assigned to a held withdrawal is simply skipped.
-function initiateWithdrawal(
-    address _target,
-    uint256 _gasLimit,
-    bytes calldata _data
-) public payable {
-    if (compliance != address(0)) {
-        bool allowed = ICompliance(compliance).check{value: msg.value}(msg.sender, _target);
-        if (!allowed) {
-            return; // ETH custody handled by compliance module
-        }
-    }
-
-    // ... existing withdrawal logic ...
-}
-```
-
-### L2 Predeploy and Genesis Configuration
-
-#### Predeploy Address
-
-The L2 compliance contract is a predeploy at address `0x420000000000000000000000000000000000002D`,
-deployed behind a proxy at this address in the L2 genesis state, following the same pattern as
-other L2 predeploys (e.g. `L2ToL1MessagePasser` at `0x4200000000000000000000000000000000000016`).
-
-#### Genesis Configuration
-
-The L2 genesis generation script accepts configuration to set:
-
-1. The Sanctions Oracle address used by `ChainalysisCompliance` on L2.
-2. Whether `L2ToL1MessagePasser.compliance` is wired to the predeploy address at genesis.
-
-By default, `L2ToL1MessagePasser.compliance` is `address(0)` (compliance off). The chain operator
-must explicitly opt in. The compliance predeploy contract is always present in genesis state
-regardless of this flag — the flag only controls whether `L2ToL1MessagePasser` is configured to
-call it.
-
 ### Resource Usage
 
 No significant resource impact. When enabled, the compliance module adds two `staticcall`s to the
-Sanctions Oracle on the deposit/withdrawal hot path. When disabled (`compliance == address(0)`),
+Sanctions Oracle on the deposit hot path. When disabled (`compliance == address(0)`),
 the overhead is a single `SLOAD` and branch.
 
 ### Single Point of Failure and Multi Client Considerations
@@ -453,12 +359,12 @@ the overhead is a single `SLOAD` and branch.
 This change is scoped entirely to smart contracts and requires no changes to client software
 (`op-geth`, `op-reth`, `op-node`, etc.). There is no multi-client impact.
 
-The Chainalysis Sanctions Oracle is a dependency on the deposit/withdrawal hot path when
-compliance is enabled. If the oracle is unreachable or returns malformed data, the affected
-bridge transactions are screened out and the associated ETH is permanently locked. If the chain
-operator decides the oracle has been compromised, disabling compliance via
-`setCompliance(address(0))` (governance-gated) restores normal bridge operation for new
-transactions, but does not unlock ETH already locked by prior screened-out calls.
+The Chainalysis Sanctions Oracle is a dependency on the deposit hot path when compliance is
+enabled. If the oracle is unreachable or returns malformed data, the affected deposits are
+screened out and the associated ETH is permanently locked. If the chain operator decides the
+oracle has been compromised, disabling compliance via a governance-gated proxy reinitialization
+of `OptimismPortal2` restores normal deposit operation for new deposits, but does not unlock ETH
+already locked by prior screened-out calls.
 
 There is no owner key. The proxy admin (governance) is the only authority over the contract,
 and its only power is to upgrade the implementation. Even via a proxy upgrade, governance
@@ -469,23 +375,27 @@ control of all historical locked funds in whoever holds the upgrade authority.
 ## Failure Mode Analysis
 
 See [fma-compliance.md](../security/fma-compliance.md) for the full failure mode analysis. Key
-failure modes include compliance-contract bugs in the bridge hot path (FM1), permanent locking
+failure modes include compliance-contract bugs in the deposit hot path (FM1), permanent locking
 of compliant ETH from `check()` bugs or oracle false positives (FM2), access-control
 misconfiguration (FM3), and Chainalysis Sanctions Oracle dependency (FM4).
 
 ## Impact on Developer Experience
 
 The compliance module is fully opt-in. When `compliance` is set to `address(0)` (the default),
-the deposit and withdrawal flows are unchanged. Application developers interacting with chains
-that have not enabled the compliance module see no difference.
+the deposit flow is unchanged. Application developers interacting with chains that have not
+enabled the compliance module see no difference.
 
-For chains that enable the module, developers should be aware that deposits and withdrawals
-involving sanctioned addresses do not produce a `TransactionDeposited` or `MessagePassed` event;
-the bridge call returns successfully but the `msg.value` is permanently locked in the compliance
-contract. There is no refund path. SDK tooling should listen for `Sanctioned` and
-`OracleUnavailable` events on the compliance contract and surface clear, unambiguous warnings
-to users before they sign a transaction that may be screened out — the user-visible loss makes
-this UX guidance more important here than under designs with a refund path.
+For chains that enable the module, developers should be aware that deposits involving sanctioned
+addresses do not produce a `TransactionDeposited` event; the bridge call returns successfully but
+the `msg.value` is permanently locked in the compliance contract. There is no refund path. SDK
+tooling should listen for `Sanctioned` and `OracleUnavailable` events on the compliance contract
+and surface clear, unambiguous warnings to users before they sign a transaction that may be
+screened out — the user-visible loss makes this UX guidance more important here than under
+designs with a refund path.
+
+L2 → L1 withdrawals are not screened in this iteration. A withdrawal initiated on L2 by or to a
+sanctioned address proceeds normally; the chain operator must address withdrawal-side sanctions
+exposure off-chain or by introducing an L2 module in a later revision.
 
 ## Alternatives Considered
 
@@ -513,13 +423,22 @@ returned to the depositor on L1.
 
 ### `StandardBridge` integration
 
-Adds significant complexity. A L2-native ERC20 token with blacklist functionality would likely be
-a better fit for token-level compliance.
+Adds significant complexity. An L2-native ERC20 token with blacklist functionality would likely
+be a better fit for token-level compliance.
 
-### Compliance only on L1
+### Compliance on both L1 deposits and L2 withdrawals
 
-It is possible to cut scope to L1-only, but the L2 portion may be necessary if the chain operator
-believes that withdrawal screening is required to reduce their liability.
+An earlier draft of this module screened both directions: deposits via `OptimismPortal2` on L1
+and withdrawals via `L2ToL1MessagePasser` on L2, deployed as an L2 predeploy at
+`0x420000000000000000000000000000000000002D`. The cross-chain shape was symmetric (`check(from,
+to)` called with `msg.value`, ETH retained on the screened-out path).
+
+This was rejected for the MVP because the Chainalysis Sanctions Oracle is not deployed on most OP
+Stack chains, and shipping an L2 module without a corresponding oracle would leave operators with
+either a non-functional predeploy or a forced dependency on a custom `ICompliance` implementation
+on day one. Operators that need withdrawal-side screening today must address it off-chain. A
+later iteration can re-introduce the L2 module once an L2 sanctions oracle is sourced; the
+`ICompliance` interface used on L1 is unchanged in shape and would carry over directly.
 
 ### Per-transaction held-status mapping with user-callable `settle`
 
@@ -559,10 +478,8 @@ on a sanctioned or oracle-unavailable transaction:
    zero address. *Pros:* eliminates the locked-ETH balance on the compliance contract
    itself, so the contract has no growing honey-pot character. *Cons:* still permanent loss
    from the user's perspective, with the additional property that the funds are removed from
-   the supply. On L1 this destroys real ETH; on L2 it destroys L2 ETH (which has a
-   corresponding L1 representation through the `OptimismPortal2`'s ETH balance, so burning
-   on L2 does not unlock the L1 ETH). Functionally equivalent to option 1 from the user's
-   perspective; differs only in where the ETH ends up.
+   the supply. Functionally equivalent to option 1 from the user's perspective; differs only
+   in where the ETH ends up.
 
 Option 1 was chosen for MVP because it minimises contract surface and preserves auditability
 (events fully document where every locked wei came from). Options 2 and 3 are reasonable
@@ -572,31 +489,26 @@ so a bouncing-fails fallback path is explicit.
 
 ## Risks & Uncertainties
 
-- **Permanent ETH loss on false positives.** The chosen disposition for screened-out
-  transactions is to permanently lock the `msg.value` in the compliance contract. A user
-  incorrectly flagged by the Chainalysis Sanctions Oracle therefore loses their funds with no
-  on-chain remediation. Operators must weigh this against the Chainalysis list's historical
-  false-positive rate and against their tolerance for user harm. The Alternatives section
-  documents auto-bounce-to-sender and burn-to-zero as alternative dispositions; either could be
-  adopted in a future revision.
+- **Permanent ETH loss on false positives.** The chosen disposition for screened-out deposits
+  is to permanently lock the `msg.value` in the compliance contract. A user incorrectly flagged
+  by the Chainalysis Sanctions Oracle therefore loses their funds with no on-chain remediation.
+  Operators must weigh this against the Chainalysis list's historical false-positive rate and
+  against their tolerance for user harm. The Alternatives section documents auto-bounce-to-sender
+  and burn-to-zero as alternative dispositions; either could be adopted in a future revision.
 - **Permanent ETH loss during oracle outages.** A transient Chainalysis outage during the
-  bridge call results in permanent locking of any in-flight `msg.value`. Unlike a
+  deposit call results in permanent locking of any in-flight `msg.value`. Unlike a
   recoverable-funds design, there is no after-the-fact remediation once the oracle returns.
   The hot-path nature of the dependency makes this a sustained concern.
 - **Sanctions list update lag.** Chainalysis updates the on-chain list on a delay relative to
   OFAC announcements. This is unavoidable with any on-chain sanctions list and should be
   documented to chain operators.
-- **L2 oracle coverage.** OP Stack chains other than those where Chainalysis publishes a
-  Sanctions Oracle cannot use `ChainalysisCompliance` on L2 directly. Operators on those chains
-  must either ship a custom `ICompliance` implementation or leave L2 compliance disabled.
+- **Withdrawal-side exposure is not addressed by this iteration.** Sanctioned addresses can
+  still initiate or receive L2 → L1 withdrawals. Operators that need withdrawal screening must
+  either accept that exposure or wait for a later iteration that adds an L2 module.
 - **Locked balance grows monotonically.** The `ChainalysisCompliance` contract's ETH balance
   only ever increases. Off-chain monitoring should track this against the cumulative sum of
   `Sanctioned` and `OracleUnavailable` event values to verify the invariant. An unexplained
   delta in either direction is a red flag.
-- **L2 nonce gaps for held withdrawals.** When `check` returns false on a withdrawal, the L2
-  message nonce that would have been assigned is skipped. L1 proving does not enumerate L2
-  nonces, so this is invisible from the L1 side, but tooling that assumes contiguous nonces
-  should be updated.
 - **Upgrade authority concentration.** The proxy admin (governance) is the only authority that
   can change the contract. A governance proposal to introduce an ETH-egress function could
   unilaterally release accumulated locked funds. Operators choosing this design should
