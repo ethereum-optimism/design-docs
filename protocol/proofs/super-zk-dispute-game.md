@@ -244,7 +244,7 @@ That means the parent-chaining model introduces checks not present in FDG (which
 - Parent must not be blacklisted or retired
 - Parent must be the same game type
 - Parent must not have resolved as `CHALLENGER_WINS`
-- Parent’s `l2SequenceNumber` must be at or above the anchor state
+- Parent’s `l2SequenceNumber` must be above the anchor state
 - `isGameRespected` check on the parent is removed (which only gates withdrawals, not chaining)
 
 If a parent is blacklisted or retired after child games have already been created, the Guardian must individually blacklist or retire those child games, which places them into REFUND mode.
