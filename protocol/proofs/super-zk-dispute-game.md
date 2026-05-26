@@ -145,7 +145,7 @@ All the per-chain configurations move out of constructor immutables and into the
 
 The following fields are included in `gameArgs`:
 
-- `absolutePrestate`: identifies the ZK program being proven. In the case of SP1 deployment, this corresponds to the program’s verification key. It execute the state transition for every chain if an interoperable set of chains are in place.
+- `absolutePrestate`: identifies the ZK program being proven. In the case of SP1 deployment, this corresponds to the program’s verification key. It executes the state transition for every chain if an interoperable set of chains are in place.
 - `verifier`: address of the verifier contract.
 - `maxChallengeDuration`: Time window for challenges.
 - `maxProveDuration`: Time window for proof submission after a challenge.
@@ -179,7 +179,7 @@ function prove(bytes calldata _proofBytes) external {
 }
 ```
 
-The prove function constructs the public values from the game’s on-chain state (`l1Head`, `startingProposal.root`, `rootClaim`, `l2SequenceNumber`, and `msg.sender`), then calls the `IZKVerifier` with `verify`. Such an interface will be:
+The prove function constructs the public values from the game’s on-chain state (`l1Head`, `startingProposal.root`, `rootClaim`, `l2SequenceNumber`, and `msg.sender` to prevent proof replay), then calls the `IZKVerifier` with `verify`. Such an interface will be:
 
 ```solidity
 interface IZKVerifier is ISemver {
@@ -289,6 +289,8 @@ OPCM needs three things to support a new game type:
     ```
     
 3. Validation and super-game wiring: `SUPER_ZK_DISPUTE_GAME` is added to the `validGameTypes` array in `_assertValidFullConfig()`, extending the current set, and to the super game allowlist in the types library.
+
+Existing chains are expected to start with `SuperFaultDisputeGame` or `SuperPermissionedDisputeGame` and migrate to `SuperZKDisputeGame` via an upgrade. The migration updates the `absolutePrestate` and reconfigures the `DisputeGameFactory` and `AnchorStateRegistry`.
 
 ## Game Lifecycle
 
@@ -432,8 +434,8 @@ We considered keeping `rollupConfigHash` as an explicit on-chain check but rejec
 Three options were considered for how the anchor state should interact with parent validation during game creation:
 
 1. No anchor check: allow games to reference any non-blacklisted parent regardless of the anchor position.
-2. Parent must be at or above anchor: Enforce that the parent’s `l2SequenceNumber` is at or above the current anchor state’s `l2SequenceNumber`.
-3. New game must be above anchor (but parent can be below): Only check that the new game’s `l2SequenceNumber`  is above the anchor.
+2. Parent must be above anchor: Enforce that the parent’s `l2SequenceNumber` is above the current anchor state’s `l2SequenceNumber`.
+3. New game must be above anchor, but parent can be below: Only check that the new game’s `l2SequenceNumber`  is above the anchor.
 
 For this, Option 2 was chosen. Under normal operation, a rational proposer would never use a parent below the anchor, since it increases the proving range unnecessarily when they could start from the anchor directly via `parentIndex = type(uint32).max`. There is an assumption the anchor advances slowly (12+ hours minimum) relative to proposal frequency (1 hour), making the orphaning risk negligible in practice.
 
