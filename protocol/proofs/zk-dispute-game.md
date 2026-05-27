@@ -230,7 +230,7 @@ The `AccessManager` contract is removed entirely. Proposing, challenging, and pr
 
 The OP Succinct contracts use `ROLLUP_CONFIG_HASH` as a proof public value to bind proofs to a specific chain's configuration. Under super-root semantics, chain identification works differently:
 
-- The rootClaim is a super root that explicitly commits to (`chainId`, `outputRoot`) pairs via the `SuperRootProof` preimage in extraData.
+- The rootClaim is a super root that explicitly commits to a super-root timestamp (the `l2SequenceNumber`) and the `(chainId, outputRoot)` pairs via the `SuperRootProof` preimage in extraData.
 - `gameArgs.l2ChainId` is set to 0 (super-game convention).
 - The ZK program identified by `absolutePrestate` is compiled for a specific chain set and embeds each chain's `RollupConfig`. Changes to the chain set, to any participating chain's STF, or to any hardfork schedule require a new `absolutePrestate` via governance.
 - For standalone deployments, the chain set is one chain, and the `SuperRootProof` preimage contains one entry. Operationally, the chain operator still coordinates `absolutePrestate` updates across hardforks.
