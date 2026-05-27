@@ -283,7 +283,7 @@ OPCM needs three things to support a new game type:
             cfg.challengerBond,
             address(_anchorStateRegistry),
             address(_delayedWETH),
-            chainId
+            0
         );
     }
     ```
