@@ -11,9 +11,8 @@
     - [FM5: Prestate Mismatch](#fm5-prestate-mismatch)
     - [FM6: CWIA Game Args Layout and extraData Offset Mismatch](#fm6-cwia-game-args-layout-and-extradata-offset-mismatch)
     - [FM7: Bond and Duration Misconfiguration](#fm7-bond-and-duration-misconfiguration)
-    - [FM8: Anchor State Type Mismatch on First Super Game](#fm8-anchor-state-type-mismatch-on-first-super-game)
-    - [FM9: Partial Chain Monitoring Allows Fraudulent Output Root to Stand](#fm9-partial-chain-monitoring-allows-fraudulent-output-root-to-stand)
-    - [FM10: Shared Parameter Drift as Superchain Scales](#fm10-shared-parameter-drift-as-superchain-scales)
+    - [FM8: Partial Chain Monitoring Allows Fraudulent Output Root to Stand](#fm8-partial-chain-monitoring-allows-fraudulent-output-root-to-stand)
+    - [FM9: Shared Parameter Drift as Superchain Scales](#fm9-shared-parameter-drift-as-superchain-scales)
 - [Audit Requirements](#audit-requirements)
 - [Action Items](#action-items)
 
@@ -69,14 +68,14 @@ Below are references for this project:
 
 ### FM2: Unchallenged Fraudulent Proposal
 
-- **Description:** If nobody challenges a fraudulent super root within the challenge window, the game resolves as `DEFENDER_WINS` by default. The fraudulent root becomes eligible to finalize withdrawals after the finality delay and the `DelayedWETH` delay elapse. The system's safety depends on at least one honest, always-online challenger. `ZKDisputeGame` requires only a single `challenge()` call, but the challenger must verify every `(chainId, outputRoot)` tuple embedded in the super root against a trusted node for each chain. The monitoring surface scales linearly with superchain size. See FM9 for the sub-variant where a challenger is online but only monitors a subset of chains.
+- **Description:** If nobody challenges a fraudulent super root within the challenge window, the game resolves as `DEFENDER_WINS` by default. The fraudulent root becomes eligible to finalize withdrawals after the finality delay and the `DelayedWETH` delay elapse. The system's safety depends on at least one honest, always-online challenger. `ZKDisputeGame` requires only a single `challenge()` call, but the challenger must verify every `(chainId, outputRoot)` tuple embedded in the super root against a trusted node for each chain. The monitoring surface scales linearly with superchain size. See FM8 for the sub-variant where a challenger is online but only monitors a subset of chains.
 - **Risk Assessment:** Critical severity / Low likelihood
 - **Mitigations:**
     1. Bond economics incentivize challengers: a successful challenge nets the challenger the proposer's `initBond` as profit, so `initBond` must be high enough to justify running multi-chain challenger infrastructure.
     2. `maxChallengeDuration` provides a configurable time window. It should be long enough to account for L1 congestion, censorship scenarios, and the time required to verify all chains in the superchain.
     3. The Guardian can blacklist fraudulent games during the `DISPUTE_GAME_FINALITY_DELAY_SECONDS` airgap, even if the challenge window was missed.
     4. `DelayedWETH` provides an additional freeze window after `closeGame()`.
-    5. Multiple independent challengers can run concurrently for redundancy, though only one challenge per game is accepted. Redundancy only holds if each challenger covers the full chain set. Partial-chain monitoring is a sub-variant of this failure mode (see FM9).
+    5. Multiple independent challengers can run concurrently for redundancy, though only one challenge per game is accepted. Redundancy only holds if each challenger covers the full chain set. Partial-chain monitoring is a sub-variant of this failure mode (see FM8).
 - **Detection:**
     - `op-dispute-mon` already detects games that are forecast to or do resolve incorrectly.
 - **Recovery Path(s):**
@@ -192,7 +191,7 @@ Below are references for this project:
     - **L1 gas pressure:** ZK proof verification can cost several hundred thousand gas units depending on the backend. During extreme gas spikes, `prove()` inclusion becomes expensive, not technically unfeasible given the margin against the block gas limit.
     - **Challenge griefing:** A sustained challenger forcing the proposer to prove every game is normally harmless. The attacker forfeits `challengerBond` per attempt and the proposer collects it on each successful proof. Worst case adds up to one full proof generation time of delay per game if the challenge occurs just before the game closes. Because `ZKDisputeGame` proves over all chains simultaneously, per-challenge proving cost is materially higher than in a single-chain game, making the `challengerBond > full superchain proving cost` invariant more critical to maintain. If bonds are set too low, griefing by challening every proposal can become economically rational for attackers.
 
-    These values are not set once. FM10 covers the recurring recalibration triggered by changes in the superchain composition over time.
+    These values are not set once. FM9 covers the recurring recalibration triggered by changes in the superchain composition over time.
 
 - **Risk Assessment:** Medium severity / Medium likelihood
 - **Mitigations:**
@@ -215,23 +214,7 @@ Below are references for this project:
 
 ---
 
-### FM8: Anchor State Type Mismatch on First Super Game
-
-- **Description:** When migrating from `SuperFaultDisputeGame` or `SuperPermissionedFaultDisputeGame`, the `AnchorStateRegistry` must hold a valid super root anchor rather than a single-chain output root before any `ZKDisputeGame` game is created. The ZK program derives its starting state from this anchor, so a type mismatch either causes every proof to fail or, if the program does not validate the anchor type, silently accepts an invalid starting point, allowing the prover to construct a fraudulent state transition. Note: this is handled by the SuperRoots migration that updates the anchor registry to use a super root as anchor (see [OPCM v2 Migration Mode](https://github.com/ethereum-optimism/design-docs/blob/main/protocol/proofs/super-dispute-game-migration.md#opcm-v2-migration-mode)), but the migration must be executed correctly for this invariant to hold.
-- **Risk Assessment:** High severity / Low likelihood
-- **Mitigations:**
-    1. OPCM migration scripts for Super Games must set the `AnchorStateRegistry` to a valid super root anchor atomically, in the same transaction as or immediately before `setRespectedGameType(ZKDisputeGame)` is called.
-- **Detection:**
-    - The `AnchorStateRegistry` and the game cannot detect this on `initialize`. After migration, perform an on-chain sanity check that the root returned by the `AnchorStateRegistry` is super root compatible (check the version byte in the decoded `SuperRootProof`).
-- **Recovery Path(s):**
-    1. Roll back `respectedGameType` to the previous game type.
-    2. Re-run OPCM migration with a correctly formatted super root anchor.
-- **Action Item(s):**
-    - [ ]  FM8: Verify OPCM migration script sets a valid super root anchor atomically before or in the same transaction as `setRespectedGameType(ZKDisputeGame)`.
-
----
-
-### FM9: Partial Chain Monitoring Allows Fraudulent Output Root to Stand
+### FM8: Partial Chain Monitoring Allows Fraudulent Output Root to Stand
 
 - **Description:** Unlike FM2 (no challenger at all), this failure mode involves a challenger that is online but only monitors a subset of the superchain. A fraudulent `(chainId, outputRoot)` tuple embedded in an otherwise-valid super root goes undetected, the game resolves `DEFENDER_WINS`, and a fraudulent withdrawal on the unmonitored chain finalizes. The challenger must be updated to parse every `(chainId, outputRoot)` tuple in `extraData`, verify each against a trusted RPC, and derive the SuperRoot hash from all monitored chains to assess the validity of a claim.
 - **Risk Assessment:** Medium severity / Low likelihood
@@ -246,7 +229,7 @@ Below are references for this project:
 
 ---
 
-### FM10: Shared Parameter Drift as Superchain Scales
+### FM9: Shared Parameter Drift as Superchain Scales
 
 - **Description:** FM7 covers the initial calibration of the shared parameters. This FM covers the recurring problem: values that were safe at deployment can drift out of range as the superchain composition evolves. Each chain addition, hardfork, or per-chain config change (gas limit, block time, EVM version) is a trigger for revisiting all four values. Three drift dimensions:
 
@@ -270,9 +253,9 @@ Below are references for this project:
 - **Recovery Path(s):**
     1. OPCM upgrade with recalibrated `maxProveDuration`, `maxChallengeDuration`, and bond values. Existing in-flight games continue under their original values.
 - **Action Item(s):**
-    - [ ]  FM10: Establish a parameter review process triggered by any chain addition or per-chain config change (gas limit, block time, EVM version).
-    - [ ]  FM10: Calibrate `maxProveDuration` and `maxChallengeDuration` to the worst-case chain in the current superchain set and document the required margin (≥20%).
-    - [ ]  FM10: Calibrate `initBond` to aggregate superchain TVL and `challengerBond` to full superchain proving cost on reference hardware, and document the methodology.
+    - [ ]  FM9: Establish a parameter review process triggered by any chain addition or per-chain config change (gas limit, block time, EVM version).
+    - [ ]  FM9: Calibrate `maxProveDuration` and `maxChallengeDuration` to the worst-case chain in the current superchain set and document the required margin (≥20%).
+    - [ ]  FM9: Calibrate `initBond` to aggregate superchain TVL and `challengerBond` to full superchain proving cost on reference hardware, and document the methodology.
 
 ---
 
@@ -309,7 +292,6 @@ Below is a consolidated list of all action items from the failure modes above.
 | FM7-2 | Calibrate `maxProveDuration` per aZKG-007 with analysis of L1 censorship costs and proof generation time on reference hardware for the full chain set. | [FM7](#fm7-bond-and-duration-misconfiguration) |
 | FM7-3 | Monitor challenge rates in production and have a runbook for adjusting bond and duration parameters if griefing is detected. | [FM7](#fm7-bond-and-duration-misconfiguration) |
 | FM7-4 | Add gas consumption regression tests for the verifier. | [FM7](#fm7-bond-and-duration-misconfiguration) |
-| FM8-1 | Verify OPCM migration script sets a valid super root anchor atomically before or in the same transaction as `setRespectedGameType(ZKDisputeGame)`. | [FM8](#fm8-anchor-state-type-mismatch-on-first-super-game) |
-| FM10-1 | Establish a parameter review process triggered by any chain addition or per-chain config change (gas limit, block time, EVM version). | [FM10](#fm10-shared-parameter-drift-as-superchain-scales) |
-| FM10-2 | Calibrate `maxProveDuration` and `maxChallengeDuration` to the worst-case chain in the current superchain set and document the required margin (≥20%). | [FM10](#fm10-shared-parameter-drift-as-superchain-scales) |
-| FM10-3 | Calibrate `initBond` to aggregate superchain TVL and `challengerBond` to full superchain proving cost on reference hardware, and document the methodology. | [FM10](#fm10-shared-parameter-drift-as-superchain-scales) |
+| FM9-1 | Establish a parameter review process triggered by any chain addition or per-chain config change (gas limit, block time, EVM version). | [FM10](#fm9-shared-parameter-drift-as-superchain-scales) |
+| FM9-2 | Calibrate `maxProveDuration` and `maxChallengeDuration` to the worst-case chain in the current superchain set and document the required margin (≥20%). | [FM10](#fm9-shared-parameter-drift-as-superchain-scales) |
+| FM9-3 | Calibrate `initBond` to aggregate superchain TVL and `challengerBond` to full superchain proving cost on reference hardware, and document the methodology. | [FM10](#fm9-shared-parameter-drift-as-superchain-scales) |
