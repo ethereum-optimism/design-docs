@@ -136,21 +136,17 @@ Below are references for this project:
 
 ### FM5: Prestate Mismatch
 
-- **Description:** `absolutePrestate` is the ZK program verification key (VKey) for all chains in the superchain. Any divergence between the on-chain value and the program actually running breaks proving for every chain simultaneously. Three root causes:
+- **Description:** `absolutePrestate` is the ZK program verification key (VKey) for all chains in the superchain. Any divergence between the on-chain value and the program actually running breaks proving for every chain simultaneously. Two root causes:
 
     **A -- Off-chain config lag:** `absolutePrestate` is updated on-chain but provers still run the old binary (or vice versa) (aZKG-002). All challenged games time out as `CHALLENGER_WINS` and proposers across the entire superchain lose bonds.
 
-    **B -- New chain added without program update:** When a new chain joins the superchain, the ZK program must be updated to include that chain's state transition function (STF) before games referencing that `chainId` are created. If not, the program either rejects all proofs for those games (completeness break) or silently validates fraudulent state transitions for the new chain.
-
-    **C -- Existing chain changes its STF without program update:** A hardfork or EVM config change on any superchain member without a corresponding ZK program and `absolutePrestate` update causes proof failures for that chain. There is no on-chain enforcement of this coordination, so an unmanaged STF change is indistinguishable from a fraudulent claim. Chains under a self-managed plan that modify core code without coordinating a program update could break proving for the entire superchain.
+    **B -- ZK program out of sync with L2s:** The ZK program encodes the state transition function (STF) and derivation rules for every chain in the superchain. There is no way to enforce that the on-chain value of the program tracks L2 changes. Any chain change not reflected in a coordinated program upgrade rejects valid proofs or silently accepts fraudulent state transitions. Ways to cause this include new chains joining, hardforks and EVM config changes.
 
 - **Risk Assessment:** High severity / Medium likelihood
 - **Mitigations:**
-    1. In-progress games use old configuration immutably (CWIA args fixed at clone creation). Off-chain software selects the correct prestate by hash, supporting multiple prestates concurrently.
-    2. Verifier contracts are immutable, so old verifiers remain functional indefinitely.
-    3. Off-chain software updates for all chains must be coordinated simultaneously when the ZK program changes.
-    4. Any chain addition or STF change on a superchain member must trigger a coordinated ZK program upgrade and `absolutePrestate` update via OPCM before the change takes effect, as a precondition of the governance process.
-    5. OP governance must enforce that only chains with program-incorporated STFs are permitted in the superchain set.
+    1. In-progress games use old configuration immutably (CWIA args fixed at clone creation). Off-chain software selects the correct prestate by hash, supporting multiple prestates concurrently. Updates are coordinated when the ZK program changes.
+    2. Any chain addition or STF change on a superchain member must trigger a coordinated ZK program upgrade and `absolutePrestate` update via OPCM before the change takes effect, as a precondition of the governance process.
+    3. OP governance must enforce that only chains with program-incorporated STFs are permitted in the superchain set.
 - **Detection:**
     - Alerts when a challenged game fails to receive a proof within a reasonable time.
     - Alerts when the proposer generates a proof found invalid on-chain.
@@ -158,13 +154,9 @@ Below are references for this project:
     - Alert when a new `chainId` appears in a super root not covered by the current `absolutePrestate`'s known chain set.
     - Alert when a chain's known hardfork block is reached without a corresponding `absolutePrestate` update.
 - **Recovery Path(s):**
-    1. For sub-case A: fix the off-chain software configuration. Proposers lose `initBond` on challenged games that couldn't be proven. Guardian can blacklist affected games for REFUND mode.
-    2. For sub-case B: block game creation for super roots containing the new `chainId` until the ZK program is updated and a new `absolutePrestate` is deployed via OPCM.
-    3. For sub-case C: Guardian blacklists in-flight games for the affected chain. OPCM deploys updated ZK program and `absolutePrestate`. In-flight games that cannot be proven resolve via REFUND mode.
+    - Guardian pauses the system or blacklists invalid games. Unprovable games resolve via REFUND mode.
 - **Action Item(s):**
-    - [ ]  FM5: Add monitoring alert for a new `chainId` in a super root not covered by the current `absolutePrestate` known chain set.
-    - [ ]  FM5: Enforce in the chain governance process that any hardfork or STF change triggers a ZK program upgrade and `absolutePrestate` update before the hardfork activates.
-
+    - [ ]  FM5: TODO: Update this section when we have a better sense of the required offchain infra.
 ---
 
 ### FM6: CWIA Game Args Layout and extraData Offset Mismatch
@@ -345,8 +337,6 @@ Below is a consolidated list of all action items from the failure modes above.
 | FM2-1 | Ensure `maxChallengeDuration` accounts for L1 congestion/censorship, multi-chain verification time, and that bond economics incentivize challengers at superchain scale. | [FM2](#fm2-unchallenged-fraudulent-proposal) |
 | FM4-1 | Implement iZKG-011 conservation invariant tests across all bond distribution scenarios. | [FM4](#fm4-bond-accounting-failure-and-delayedweth-insolvency) |
 | FM4-2 | Fuzz test bond accounting across randomized game lifecycles, including the burn path. | [FM4](#fm4-bond-accounting-failure-and-delayedweth-insolvency) |
-| FM5-1 | Add monitoring alert for a new `chainId` in a super root not covered by the current `absolutePrestate` known chain set. | [FM5](#fm5-prestate-mismatch) |
-| FM5-2 | Enforce in the chain governance process that any hardfork or STF change triggers a ZK program upgrade and `absolutePrestate` update before the hardfork activates. | [FM5](#fm5-prestate-mismatch) |
 | FM6-1 | Port `_preExtraDataByteCount()` and `_extraDataByteCount()` from `SuperFaultDisputeGame` without reimplementation, and document any intentional deviations. | [FM6](#fm6-cwia-game-args-layout-and-extradata-offset-mismatch) |
 | FM6-2 | Implement round-trip encoding/decoding tests for all `gameArgs` fields at n=1, n=2, and n=max chain counts, including edge-case values (zero, max, addresses with leading zeros). | [FM6](#fm6-cwia-game-args-layout-and-extradata-offset-mismatch) |
 | FM6-3 | Add fuzz tests verifying `_makeGameArgs()` output is correctly decoded by the game's accessor functions across random chain counts. | [FM6](#fm6-cwia-game-args-layout-and-extradata-offset-mismatch) |
