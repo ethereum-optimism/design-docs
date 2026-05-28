@@ -168,10 +168,8 @@ Below are references for this project:
     2. The encoding is defined in the spec ([Game Args Layout](https://github.com/ethereum-optimism/specs/blob/main/specs/fault-proof/stage-one/zk/zk-dispute-game.md#game-args-layout)) and implemented in `OPContractsManager._makeGameArgs()`.
     3. Round-trip tests that encode via `_makeGameArgs()` and decode via the game's accessor functions run at n=1, n=2, and n=max supported chain counts.
 - **Detection:**
-    - Unit tests round-tripping all fields through encode/decode at variable extraData lengths.
-    - Fuzz tests verifying accessor output matches encoding input for random values and chain counts.
-    - Specific tests asserting `l2ChainId == 0` and correct super root timestamp decoding.
-    - Integration test: create a game via the factory and verify all accessor functions return expected values.
+    - Simulate the OPCM upgrade or `gameArgs` update using superchain-ops task templates and verify the resulting game argument before execution. Signers will to check the simulation as part of the standard operating procedure.
+    - Unit, fuzz, and integration tests round-tripping all `gameArgs` fields through encode/decode and asserting getter outputs match expected values across variable extraData lengths and different chain configs.
 - **Recovery Path(s):**
     1. If detected before deployment, fix the encoding, offset helpers, and validation then redeploy.
     2. If detected after deployment, OPCM deploys a new implementation with corrected logic and updates the factory. In-progress games with incorrect decoding or missing validation are blacklisted.
