@@ -5,14 +5,13 @@
 - [Introduction](#introduction)
 - [Failure Modes and Recovery Paths](#failure-modes-and-recovery-paths)
     - [FM1: ZK Verifier Soundness or Completeness Break](#fm1-zk-verifier-soundness-or-completeness-break)
-    - [FM2: Unchallenged Fraudulent Proposal](#fm2-unchallenged-fraudulent-proposal)
+    - [FM2: Faulty Challenger Coverage Allows Fraudulent Proposal](#fm2-faulty-challenger-coverage-allows-fraudulent-proposal)
     - [FM3: Missed Child Blacklist After Parent Invalidation](#fm3-missed-child-blacklist-after-parent-invalidation)
     - [FM4: Bond Accounting Failure and DelayedWETH Insolvency](#fm4-bond-accounting-failure-and-delayedweth-insolvency)
     - [FM5: Prestate Mismatch](#fm5-prestate-mismatch)
     - [FM6: CWIA Game Args Layout and extraData Offset Mismatch](#fm6-cwia-game-args-layout-and-extradata-offset-mismatch)
     - [FM7: Bond and Duration Misconfiguration](#fm7-bond-and-duration-misconfiguration)
-    - [FM8: Partial Chain Monitoring Allows Fraudulent Output Root to Stand](#fm8-partial-chain-monitoring-allows-fraudulent-output-root-to-stand)
-    - [FM9: Shared Parameter Drift as Superchain Scales](#fm9-shared-parameter-drift-as-superchain-scales)
+    - [FM8: Shared Parameter Drift as Superchain Scales](#fm8-shared-parameter-drift-as-superchain-scales)
 - [Audit Requirements](#audit-requirements)
 - [Action Items](#action-items)
 
@@ -66,24 +65,26 @@ Below are references for this project:
 
 ---
 
-### FM2: Unchallenged Fraudulent Proposal
+### FM2: Faulty Challenger Coverage Allows Fraudulent Proposal
 
-- **Description:** If nobody challenges a fraudulent super root within the challenge window, the game resolves as `DEFENDER_WINS` by default. The fraudulent root becomes eligible to finalize withdrawals after the finality delay and the `DelayedWETH` delay elapse. The system's safety depends on at least one honest, always-online challenger. `ZKDisputeGame` requires only a single `challenge()` call, but the challenger must verify every `(chainId, outputRoot)` tuple embedded in the super root against a trusted node for each chain. The monitoring surface scales linearly with superchain size. See FM8 for the sub-variant where a challenger is online but only monitors a subset of chains.
+- **Description:** If a fraudulent super root is not challenged within the challenge window, the game resolves as `DEFENDER_WINS` by default. This includes both no challenger being available or lack of challenger coverage, such as a challenger that is online but only monitors a subset of the superchain. The fraudulent root becomes eligible to finalize withdrawals after the finality delay and the `DelayedWETH` delay elapse. `ZKDisputeGame` requires only a single `challenge()` call, but the challenger must parse every `(chainId, outputRoot)` tuple in `extraData`, verify each against a trusted RPC/node for every chain, and derive the SuperRoot hash from the full monitored set before accepting the claim as valid. The monitoring surface scales linearly with superchain size.
 - **Risk Assessment:** Critical severity / Low likelihood
 - **Mitigations:**
-    1. Bond economics incentivize challengers: a successful challenge nets the challenger the proposer's `initBond` as profit, so `initBond` must be high enough to justify running multi-chain challenger infrastructure.
+    1. Bond economics incentivize challengers: a successful challenge nets the challenger the proposer's `initBond` as profit, so `initBond` must be high enough to justify running full multi-chain challenger infrastructure.
     2. `maxChallengeDuration` provides a configurable time window. It should be long enough to account for L1 congestion, censorship scenarios, and the time required to verify all chains in the superchain.
     3. The Guardian can blacklist fraudulent games during the `DISPUTE_GAME_FINALITY_DELAY_SECONDS` airgap, even if the challenge window was missed.
     4. `DelayedWETH` provides an additional freeze window after `closeGame()`.
-    5. Multiple independent challengers can run concurrently for redundancy, though only one challenge per game is accepted. Redundancy only holds if each challenger covers the full chain set. Partial-chain monitoring is a sub-variant of this failure mode (see FM8).
+    5. Multiple independent challengers can run concurrently for redundancy, though only one challenge per game is accepted. Redundancy only holds if each challenger covers the full chain set.
 - **Detection:**
     - `op-dispute-mon` already detects games that are forecast to or do resolve incorrectly.
+    - Off-chain monitors must cross-check every `(chainId, outputRoot)` tuple against trusted nodes before accepting any game as valid. `op-challenger` must verify all chains in every super root.
 - **Recovery Path(s):**
-    1. If the challenge window is missed, the Guardian blacklists the game before the finality delay expires.
+    1. If the challenge window is missed or the fraudulent tuple is not detected by challengers, the Guardian blacklists the game before the finality delay expires.
     2. If the finality delay has also passed, the Guardian pauses the system to prevent withdrawal finalization.
-    3. As a last resort, governance can upgrade contracts to recover.
+    3. Challenge any open games containing the fraudulent tuple via `challenge()`.
+    4. As a last resort, governance can upgrade contracts to recover.
 - **Action Item(s):**
-    - [ ]  FM2: Ensure `maxChallengeDuration` accounts for L1 congestion/censorship, multi-chain verification time, and that bond economics incentivize challengers at superchain scale.
+    - [ ]  FM2: Ensure `maxChallengeDuration` accounts for L1 congestion/censorship and full multi-chain verification time, and that bond economics incentivize challengers to monitor every chain in the super root.
 
 ---
 
@@ -191,7 +192,7 @@ Below are references for this project:
     - **L1 gas pressure:** ZK proof verification can cost several hundred thousand gas units depending on the backend. During extreme gas spikes, `prove()` inclusion becomes expensive, not technically unfeasible given the margin against the block gas limit.
     - **Challenge griefing:** A sustained challenger forcing the proposer to prove every game is normally harmless. The attacker forfeits `challengerBond` per attempt and the proposer collects it on each successful proof. Worst case adds up to one full proof generation time of delay per game if the challenge occurs just before the game closes. Because `ZKDisputeGame` proves over all chains simultaneously, per-challenge proving cost is materially higher than in a single-chain game, making the `challengerBond > full superchain proving cost` invariant more critical to maintain. If bonds are set too low, griefing by challening every proposal can become economically rational for attackers.
 
-    These values are not set once. FM9 covers the recurring recalibration triggered by changes in the superchain composition over time.
+    These values are not set once. FM8 covers the recurring recalibration triggered by changes in the superchain composition over time.
 
 - **Risk Assessment:** Medium severity / Medium likelihood
 - **Mitigations:**
@@ -214,22 +215,8 @@ Below are references for this project:
 
 ---
 
-### FM8: Partial Chain Monitoring Allows Fraudulent Output Root to Stand
 
-- **Description:** Unlike FM2 (no challenger at all), this failure mode involves a challenger that is online but only monitors a subset of the superchain. A fraudulent `(chainId, outputRoot)` tuple embedded in an otherwise-valid super root goes undetected, the game resolves `DEFENDER_WINS`, and a fraudulent withdrawal on the unmonitored chain finalizes. The challenger must be updated to parse every `(chainId, outputRoot)` tuple in `extraData`, verify each against a trusted RPC, and derive the SuperRoot hash from all monitored chains to assess the validity of a claim.
-- **Risk Assessment:** Medium severity / Low likelihood
-- **Mitigations:**
-    1. Off-chain challengers must parse every `(chainId, outputRoot)` tuple in `extraData` and verify each against a trusted RPC before deciding on claim validity.
-    2. Bond economics from FM2 still apply: `initBond` must cover the cost of running multi-chain verification infrastructure. The bond should generally scale as more chains are added to the superchain.
-- **Detection:**
-    - Off-chain monitor cross-checks every tuple against trusted nodes before accepting any game as valid. `op-challenger` must be updated to verify all chains in every super root.
-- **Recovery Path(s):**
-    1. Blacklist the resolved game before the finality delay expires.
-    2. Challenge any open games containing the fraudulent tuple via `challenge()`.
-
----
-
-### FM9: Shared Parameter Drift as Superchain Scales
+### FM8: Shared Parameter Drift as Superchain Scales
 
 - **Description:** FM7 covers the initial calibration of the shared parameters. This FM covers the recurring problem: values that were safe at deployment can drift out of range as the superchain composition evolves. Each chain addition, hardfork, or per-chain config change (gas limit, block time, EVM version) is a trigger for revisiting all four values. Three drift dimensions:
 
@@ -280,7 +267,7 @@ Below is a consolidated list of all action items from the failure modes above.
 | Action Item | Description | Source |
 | --- | --- | --- |
 | FM1-1 | Fuzz test `IZKVerifier.verify()` with malformed inputs to confirm it always reverts. | [FM1](#fm1-zk-verifier-soundness-or-completeness-break) |
-| FM2-1 | Ensure `maxChallengeDuration` accounts for L1 congestion/censorship, multi-chain verification time, and that bond economics incentivize challengers at superchain scale. | [FM2](#fm2-unchallenged-fraudulent-proposal) |
+| FM2-1 | Ensure `maxChallengeDuration` accounts for L1 congestion/censorship and full multi-chain verification time, and that bond economics incentivize challengers to monitor every chain in the super root. | [FM2](#fm2-faulty-challenger-coverage-allows-fraudulent-proposal) |
 | FM4-1 | Implement iZKG-011 conservation invariant tests across all bond distribution scenarios. | [FM4](#fm4-bond-accounting-failure-and-delayedweth-insolvency) |
 | FM4-2 | Fuzz test bond accounting across randomized game lifecycles, including the burn path. | [FM4](#fm4-bond-accounting-failure-and-delayedweth-insolvency) |
 | FM6-1 | Port `_preExtraDataByteCount()` and `_extraDataByteCount()` from `SuperFaultDisputeGame` without reimplementation, and document any intentional deviations. | [FM6](#fm6-cwia-game-args-layout-and-extradata-offset-mismatch) |
@@ -292,6 +279,6 @@ Below is a consolidated list of all action items from the failure modes above.
 | FM7-2 | Calibrate `maxProveDuration` per aZKG-007 with analysis of L1 censorship costs and proof generation time on reference hardware for the full chain set. | [FM7](#fm7-bond-and-duration-misconfiguration) |
 | FM7-3 | Monitor challenge rates in production and have a runbook for adjusting bond and duration parameters if griefing is detected. | [FM7](#fm7-bond-and-duration-misconfiguration) |
 | FM7-4 | Add gas consumption regression tests for the verifier. | [FM7](#fm7-bond-and-duration-misconfiguration) |
-| FM9-1 | Establish a parameter review process triggered by any chain addition or per-chain config change (gas limit, block time, EVM version). | [FM10](#fm9-shared-parameter-drift-as-superchain-scales) |
-| FM9-2 | Calibrate `maxProveDuration` and `maxChallengeDuration` to the worst-case chain in the current superchain set and document the required margin (≥20%). | [FM10](#fm9-shared-parameter-drift-as-superchain-scales) |
-| FM9-3 | Calibrate `initBond` to aggregate superchain TVL and `challengerBond` to full superchain proving cost on reference hardware, and document the methodology. | [FM10](#fm9-shared-parameter-drift-as-superchain-scales) |
+| FM8-1 | Establish a parameter review process triggered by any chain addition or per-chain config change (gas limit, block time, EVM version). | [FM8](#fm8-shared-parameter-drift-as-superchain-scales) |
+| FM8-2 | Calibrate `maxProveDuration` and `maxChallengeDuration` to the worst-case chain in the current superchain set and document the required margin (≥20%). | [FM8](#fm8-shared-parameter-drift-as-superchain-scales) |
+| FM8-3 | Calibrate `initBond` to aggregate superchain TVL and `challengerBond` to full superchain proving cost on reference hardware, and document the methodology. | [FM8](#fm8-shared-parameter-drift-as-superchain-scales) |
