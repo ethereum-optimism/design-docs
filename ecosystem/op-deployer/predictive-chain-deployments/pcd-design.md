@@ -2,8 +2,8 @@
 
 |                    |                                    |
 | ------------------ | ---------------------------------- |
-| Author             | _Author Name_                      |
-| Created at         | _YYYY-MM-DD_                       |
+| Author             | Joxess, 0xOneTony, 0xiamflux       |
+| Created at         | _2026-05-26_                       |
 | Initial Reviewers  | _Reviewer Name 1, Reviewer Name 2_ |
 | Need Approval From | _Reviewer Name_                    |
 | Status             | _Draft_                            |
