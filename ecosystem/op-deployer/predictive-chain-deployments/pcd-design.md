@@ -253,9 +253,12 @@ The prestate is the starting point both sides of a dispute agree on. It is the C
 
 Because the chain config is embedded at compile time rather than fetched at runtime, the prestate hash is deterministic for a given chain config. Concretely: `rollup.json` contains `l2_time`, which is the genesis timestamp set at step 2.
 
-The prestate stage already exists in `op-deployer/pkg/deployer/pipeline/pre_state.go`. It takes `genesis.json`, `rollup.json`, and `depsets.json` as inputs, sends them to a build service, and stores the returned prestate hash in state. The only structural change is ordering: it currently runs after `DeployOPChain` and must move before it.
+The resolved prestate hash is written to the state, and the op-deployers reads `absolutePrestate` from there.
 
-This step requires a hosted prestate build service. `op-deployer` uploads `genesis.json`, `rollup.json`, and `depsets.json` to the URL configured via `--op-program-svc-url` (or `OP_DEPLOYER_OP_PROGRAM_SVC_URL`). The flag `--op-program-svc-url` must be set before running a full deployment.
+`op-deployer` derives that state value two ways, and treats the result identically:
+
+- **Computed.** A dedicated command builds the prestate from the Phase 1 artifacts and writes the hash to the state.
+- **From an override.** The operator declares a prestate override in the intent. `op-deployer` resolves it into the state prestate without building, so no build runs inside `op-deployer`.
 
 ### Step 9: Wiring into `OPCM.deploy()`
 
@@ -275,23 +278,28 @@ Runs after `DeployOPChain` completes. It confirms the deployed chain matches wha
 2. `AnchorStateRegistry` is seeded with the genesis output root computed in Step 6. Without this seed, the dispute game has no valid starting point.
 3. Guardian and system config addresses are set to the values in the intent. These gate privileged operations and must be confirmed before handing off to the operator.
 
-### `op-deployer` and Build Service Interaction
+### Pipeline commands: prepare, prestate, and continue
+
+`op-deployer` splits the flow into three commands around the **prestate boundary**:
+
+1. **`prepare`** runs Steps 1–7: pick the anchor, set `genesis_time`, predict the L1 addresses, run `L2Genesis`, build the genesis block, compute the output root, and emit `genesis.json`, `rollup.json`, and `depsets.json`. Pure off-chain computation, no L1 transaction, no Docker.
+2. **`prestate`** computes the prestate hash from `rollup.json`, `genesis.json`, and `depsets.json` and writes it to the state. It is skipped when the intent carries a prestate override, which `op-deployer` resolves into the state instead.
+3. **`continue`** runs Steps 9–10: submit `OPCM.deploy()` with `startingAnchorRoot` and the `absolutePrestate` read from the state, then run post-deploy validation.
+
+The prestate and the output root in the state are the hand-off point between the commands and the sole driver of continuation. `continue` reads them and proceeds only if they are set; if they are unset, the deployment halts.
+
+This is what lets a caller without Docker deploy: run `prepare`, have the prestate computed elsewhere, declare it as a prestate override in the intent, then run `continue`. A caller with Docker can run all three commands in sequence.
 
 ```mermaid
-sequenceDiagram
-    participant D as op-deployer
-    participant L1 as L1 RPC
-    participant B as Prestate build service
-
-    D->>L1: eth_call OPCM.deploy() [dry-run]
-    L1-->>D: ChainContracts (predicted addresses)
-    D->>D: Run L2Genesis with predicted addresses
-    D->>D: Build genesis block, compute output root
-    D->>B: genesis.json + rollup.json + depsets.json
-    B-->>D: PrestateManifest (chainID → prestate hash)
-    D->>L1: OPCM.deploy(outputRoot, prestateHash) [real tx]
-    L1-->>D: ChainContracts (deployed)
-    D-->>D: Post-Deploy Validation
+flowchart TD
+    A["prepare<br/>Steps 1–7 (off-chain)"] --> ART["genesis.json + rollup.json + depsets.json"]
+    ART --> B["prestate command<br/>compile to MIPS, Cannon hash (Docker)"]
+    B -->|"writes"| F["state: prestate"]
+    OV["prestate override<br/>declared in intent"] -.->|"resolved by op-deployer"| F
+    F --> G{"set?"}
+    G -->|"yes"| C["continue<br/>Steps 9–10: OPCM.deploy + validation"]
+    G -->|"no"| H["halt: deployment does not continue"]
+    C --> J["Permissionless game valid<br/>from L2 block 0"]
 ```
 
 ### Resource Usage
@@ -300,7 +308,7 @@ The prestate build moves from a deferred upgrade path to the critical path of ev
 
 ### Single Point of Failure and Multi Client Considerations
 
-The hosted prestate build service, when used, may represent a blocker for new chain deployments using permissionless proofs. The usage of an RPC also represents a point of failure for the loop to work properly.
+The prestate gates deployment through the state: `continue` does not proceed until the state prestate is set, whether computed by the `prestate` command or resolved from an intent override. The L1 RPC used for the `eth_call` dry-run and for `OPCM.deploy()` is a dependency for the loop to work properly.
 
 The design is client-agnostic and requires no changes on node clients. It is compatible with Cannon and Kona today and with future ZK fault-proof clients.
 
