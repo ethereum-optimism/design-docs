@@ -26,13 +26,13 @@
 
 ## Introduction
 
-The Predictive Chain Deployments feature reorders `op-deployer`'s pipeline to compute `startingAnchorRoot` and `absolutePrestate` off-chain before calling `OPCM.deploy()`. This enables the permissionless dispute game from L2 block 0.
+The Predictive Chain Deployments feature reorders `op-deployer`'s pipeline to compute two values off-chain before calling `OPCM.deploy()`: the `startingAnchorRoot` (the dispute system's starting anchor) and the `absolutePrestate` (the fault proof's agreed starting state). This makes the permissionless dispute game valid from L2 block 0.
 
-The pipeline introduces one new external dependency on the critical path before any transaction lands on L1: the L1 RPC, for the `eth_call` dry-run. The failure modes below cover where that step, the L1 RPC, and the new sequencing can go wrong.
+The new risk comes from deriving those values off-chain. One external dependency now sits on the critical path before any transaction lands on L1: the L1 RPC, used for the `eth_call` dry-run. The failure modes below cover that dependency and the new sequencing.
 
 References:
 
-- [design.md](./pcd-design.md)
+- [PCD design](./pcd-design.md)
 
 ## Failure Modes and Recovery Paths
 
@@ -73,13 +73,13 @@ References:
 - **Mitigations:**
   1. Source any override from a trusted, reproducible build.
   2. Before running `continue`, reproduce the prestate build and compare the result against the value in the state.
-- **Detection:** Replay the prestate build using the same `genesis.json`, `rollup.json`, and `depsets.json` from `prepare`, and compare the result against the `absolutePrestate` in the state, and after deployment against the value written into the deployed dispute game contract. A mismatch confirms a wrong hash.
+- **Detection:** Replay the prestate build using the same `genesis.json`, `rollup.json`, and `depsets.json` from `prepare`. Compare the result against the `absolutePrestate` in the state, and after deployment against the value in the deployed dispute game contract. A mismatch confirms a wrong hash.
 - **Recovery Path(s):** Full redeployment with the correct prestate hash sourced from a verified build.
 
 ### FM5: Genesis Timestamp Overrun
 
 - **Description:** Steps 3–8 take longer than `X` (the configured offset between the anchor timestamp and `genesis_time`). `genesis_time` is already in the past when `OPCM.deploy()` mines. The deployment succeeds with no on-chain guard catching the overrun. `op-node` fills the elapsed gap with empty L2 blocks before user transactions can land.
-- **Risk Assessment:** Low likelihood, low impact. A 10-minute overrun produces ~300 empty blocks at the default 2-second `L2BlockTime`. The chain operates correctly; no state is corrupted.
+- **Risk Assessment:** Low likelihood, low impact. A 10-minute overrun produces ~300 empty blocks at the default 2-second `L2BlockTime`. The chain operates correctly. No state is corrupted.
 - **Mitigations:**
   1. Set `X` conservatively above the typical end-to-end pipeline runtime, including the prestate build.
   2. Operators on slower hardware should raise `X` via the override flag before deploying.
