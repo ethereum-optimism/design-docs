@@ -14,7 +14,7 @@ Eliminate the ~7-day permissioned window every new OP Stack chain currently incu
 
 ## Summary
 
-New OP Stack chains today launch under a permissioned dispute game for roughly a week. The deployment pipeline can't seed the L1 dispute system with a real anchor at deploy time, because the L2 genesis depends on L1 contract addresses and the L1 dispute system needs the resulting output root, and today's tooling can't satisfy both at once. It ships placeholder values and defers permissionless proofs until a real dispute resolves a week later.
+New OP Stack chains today launch under a permissioned dispute game for roughly a week. The deployment pipeline can't seed the L1 dispute system with a real anchor at deploy time. The L2 genesis depends on L1 contract addresses, and the L1 dispute system needs the resulting output root, so today's tooling can't satisfy both at once. It ships placeholder values and defers permissionless proofs until a real dispute resolves a week later.
 
 This design closes the gap by deriving everything off-chain before any transaction lands. `op-deployer` predicts the L1 contract addresses, builds the L2 genesis state and its output root, obtains the prestate hash, and finally submits `OPCM.deploy()` with the real values. The dispute system is seeded atomically with L1 contract deployment, and the permissionless game is valid from L2 block 0.
 
@@ -58,11 +58,11 @@ Today's tooling resolves the cycle by deferring the L1 commitments: hardcoded `s
 
 ## Proposed Solution
 
-The pipeline shifts from "deploy first, derive everything after" to "derive everything off-chain, then submit a fully-specified deploy". This is possible since the current deployment can be predicted given the configs and constants, so that it is possible to known everything beforehand and get a predictable behavior during the deployment.
+The pipeline shifts from "deploy first, derive everything after" to "derive everything off-chain, then submit a fully-specified deploy". This works because the deployment is deterministic. Given the configs and constants, every value can be computed before the deploy transaction is sent.
 
 ### High-level flow
 
-The proposed flow will be as follows:
+The proposed flow:
 
 1. Pick the L1 block as the anchor reference.
 2. Set the L2 genesis timestamp to the anchor's timestamp plus a configurable offset `X`.
@@ -70,7 +70,7 @@ The proposed flow will be as follows:
 4. Run `L2Genesis.s.sol` with the predicted addresses to produce the chain-specific L2 allocs.
 5. Build the genesis block from the allocs, chain config, and genesis timestamp.
 6. Compute the L2 genesis output root from the genesis block.
-7. Generating `depsets.json`. For non-interop chains this contains only the chain itself.
+7. Generate `depsets.json`. For non-interop chains this contains only the chain itself.
 8. Build the prestate: `op-program` or `kona` compiles to MIPS with the chain config embedded, and Cannon hashes the initial machine state to produce the prestate hash.
 9. Submit `OPCM.deploy()` carrying the real `startingAnchorRoot` and `absolutePrestate`.
 10. Chain starts. The permissionless dispute game is valid from block 0.
@@ -94,7 +94,7 @@ The numbered steps below detail each stage.
 
 The L1 anchor block is the L2 chain's immutable reference point on L1. The artifacts `rollup.json`, the prestate, and the L2 genesis block header all depend on it. The anchor records the `hash`, `number`, and `timestamp`.
 
-Picking a block that later gets reorged out invalidates `rollup.json` and the prestate, requiring a full redeployment. Only blocks at the `safe` tag or deeper are eligible. `op-deployer` can pick a block e.g., the latest safe block at the time `deploy` is executed. Safe blocks take one epoch (~6 minutes) to finalize on L1, so the anchor will trail the wall clock by that margin. In this case, a drift of a few minutes is acceptable.
+Picking a block that later gets reorged out invalidates `rollup.json` and the prestate, requiring a full redeployment. Only blocks at the `safe` tag or deeper are eligible. `op-deployer` can pick the latest safe block at the time `deploy` is executed. Safe blocks take one epoch (~6 minutes) to finalize on L1, so the anchor will trail the wall clock by that margin. In this case, a drift of a few minutes is acceptable.
 
 **Reorg Safety**
 
@@ -158,7 +158,7 @@ sequenceDiagram
 2. Full runtime of steps 3-8.
 3. L1 inclusion latency for the `OPCM.deploy()` transaction.
 
-The Docker-based prestate build in step 8 is the bottleneck. The default X should be set conservatively above the typical build time. Operators running faster build infrastructure can lower it via the override flag; operators on slower hardware should raise it.
+The Docker-based prestate build in step 8 is the bottleneck. The default X should be set conservatively above the typical build time. Operators running faster build infrastructure can lower it via the override flag. Operators on slower hardware should raise it.
 
 ### Step 3: Predicting L1 Addresses
 
@@ -201,7 +201,7 @@ The dry-run must be sent `from` the same address that will broadcast the real `O
 
 ### Step 4: Generating L2 Allocs
 
-The `L2Genesis.s.sol` produces the L2 genesis state with the set of accounts, code and storage. This generates the `stateRoot`.
+The `L2Genesis.s.sol` produces the L2 genesis state with the set of accounts, code, and storage. This generates the `stateRoot`.
 
 ### Step 5: Building the Genesis Block
 
@@ -243,9 +243,9 @@ outputRoot = keccak256(version || stateRoot || messagePasserStorageRoot || block
 
 This root is passed as `startingAnchorRoot` to `OPCM.deploy()` at step 9, with `l2SequenceNumber` as 0.
 
-### Step 7: Generating `depset.json`
+### Step 7: Generating `depsets.json`
 
-The dependency set will contain only the chain itself. The `depset.json` file enumerates the chains the proof program needs to know about. Generation is unchanged from the current pipeline: a single-chain depset for standalone deployments, and a multi-chain depset for shared-depset deployments. Note that deploying chains directly into a shared super dispute game is not supported and is out of scope for this milestone.
+The dependency set will contain only the chain itself. The `depsets.json` file enumerates the chains the proof program needs to know about. Generation is unchanged from the current pipeline: a single-chain depset for standalone deployments, and a multi-chain depset for shared-depset deployments. Deploying chains directly into a shared super dispute game is not supported and is out of scope for this milestone.
 
 ### Step 8: Prestate Generation
 
@@ -253,7 +253,7 @@ The prestate is the starting point both sides of a dispute agree on. It is the C
 
 Because the chain config is embedded at compile time rather than fetched at runtime, the prestate hash is deterministic for a given chain config. Concretely: `rollup.json` contains `l2_time`, which is the genesis timestamp set at step 2.
 
-The resolved prestate hash is written to the state, and the op-deployers reads `absolutePrestate` from there.
+The resolved prestate hash is written to the state, and `op-deployer` reads `absolutePrestate` from there.
 
 `op-deployer` derives that state value two ways, and treats the result identically:
 
@@ -266,11 +266,11 @@ The resolved prestate hash is written to the state, and the op-deployers reads `
 
 Three call-site changes are required:
 
-1. In the OP Chain deployment script, the require guard that currently restricts game types to `PERMISSIONED_CANNON` at initial deployment is removed; `CANNON` and `CANNON_KONA` are enabled with their respective prestate hashes read from the prestate field; and the hardcoded `0xdead` placeholder for the starting anchor root is replaced with the computed genesis output root.
+1. The OP Chain deployment script changes in three places. The require guard that restricts game types to `PERMISSIONED_CANNON` at initial deployment is removed. `CANNON` and `CANNON_KONA` are enabled with their respective prestate hashes read from the state. The hardcoded `0xdead` placeholder for the starting anchor root is replaced with the computed genesis output root.
 2. The Go-side input struct for the OP Chain deployment gains a `StartingAnchorRoot` field and per-game-type prestate-hash fields.
 3. op-deployer's chain orchestration code wires those new fields through into the FullConfig passed to OPCM.
 
-### Step 10: Post Deploy verification
+### Step 10: Post-Deploy Verification
 
 Runs after `DeployOPChain` completes. It confirms the deployed chain matches what was computed in earlier pipeline steps.
 
@@ -286,7 +286,7 @@ Runs after `DeployOPChain` completes. It confirms the deployed chain matches wha
 2. **`prestate`** computes the prestate hash from `rollup.json`, `genesis.json`, and `depsets.json` and writes it to the state. It is skipped when the intent carries a prestate override, which `op-deployer` resolves into the state instead.
 3. **`continue`** runs Steps 9–10: submit `OPCM.deploy()` with `startingAnchorRoot` and the `absolutePrestate` read from the state, then run post-deploy validation.
 
-The prestate and the output root in the state are the hand-off point between the commands and the sole driver of continuation. `continue` reads them and proceeds only if they are set; if they are unset, the deployment halts.
+The prestate and the output root in the state are the hand-off point between the commands and the sole driver of continuation. `continue` reads them and proceeds only if they are set. If they are unset, the deployment halts.
 
 This is what lets a caller without Docker deploy: run `prepare`, have the prestate computed elsewhere, declare it as a prestate override in the intent, then run `continue`. A caller with Docker can run all three commands in sequence.
 
@@ -318,18 +318,18 @@ See [fma.md](./fma.md).
 
 ## Backward Compatibility
 
-No on-chain contract logic changes. Existing deployed chains are unaffected. The `op-deployer` pipeline change replaces the previous `startingAnchorRoot = 0xdead` flow; no compatibility layer is provided.
+No on-chain contract logic changes. Existing deployed chains are unaffected. The `op-deployer` pipeline change replaces the previous `startingAnchorRoot = 0xdead` flow. No compatibility layer is provided.
 
 ## Impact on Developer Experience
 
 - Operators must set the prestate before deploying, either by running the `prestate` command or by declaring a precomputed prestate override in the intent. This adds to the end-to-end deployment time.
-- Permissioness games are possible from block 0, highly useful for all cases: mainnets, testnets and devnets.
+- Permissionless games are valid from block 0, for mainnets, testnets, and devnets alike.
 
 ## Alternatives Considered
 
 ### Standard Allocs + Chain Init Transaction
 
-A previous proposal considered breaking the cyclic dependency by making L2 genesis allocs chain-agnostic, and injecting chain-specific data via a `chainInitTx` system transaction. However, it was rejected since it requires `op-node`, `op-program` and `kona` changes without actually providing real value since that did not avoid per-chain prestate.
+A previous proposal considered breaking the cyclic dependency by making L2 genesis allocs chain-agnostic and injecting chain-specific data through a `chainInitTx` system transaction. It was rejected. It requires changes to `op-node`, `op-program`, and `kona`, and still does not avoid a per-chain prestate.
 
 ## Risks & Uncertainties
 
