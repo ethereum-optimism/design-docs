@@ -16,7 +16,7 @@ Eliminate the ~7-day permissioned window every new OP Stack chain currently incu
 
 New OP Stack chains today launch under a permissioned dispute game for roughly a week. The deployment pipeline can't seed the L1 dispute system with a real anchor at deploy time, because the L2 genesis depends on L1 contract addresses and the L1 dispute system needs the resulting output root, and today's tooling can't satisfy both at once. It ships placeholder values and defers permissionless proofs until a real dispute resolves a week later.
 
-This design closes the gap by deriving everything off-chain before any transaction lands. `op-deployer` predicts the L1 contract addresses, builds the L2 genesis state and its output root, drives the prestate build, and finally submits `OPCM.deploy()` with the real values. The dispute system is seeded atomically with L1 contract deployment, and the permissionless game is valid from L2 block 0. No on-chain contract logic changes, the work lives entirely in tooling orchestration.
+This design closes the gap by deriving everything off-chain before any transaction lands. `op-deployer` predicts the L1 contract addresses, builds the L2 genesis state and its output root, obtains the prestate hash, and finally submits `OPCM.deploy()` with the real values. The dispute system is seeded atomically with L1 contract deployment, and the permissionless game is valid from L2 block 0.
 
 ## Problem Statement + Context
 
@@ -55,7 +55,6 @@ Today's tooling resolves the cycle by deferring the L1 commitments: hardcoded `s
 **Out of scope for this milestone**
 
 - **Shared super dispute game deployments**: Since chains can be deployed today even into a shared dependency set while keeping separate per-chain dispute games.
-- **Prestate build consolidation**: The existing hosted-service architecture for prestate generation is preserved as-is.
 
 ## Proposed Solution
 
@@ -264,7 +263,7 @@ This step requires a hosted prestate build service. `op-deployer` uploads `genes
 
 Three call-site changes are required:
 
-1. In the OP Chain deployment script, the require guard that currently restricts game types to `PERMISSIONED_CANNON` at initial deployment is removed; `CANNON` and `CANNON_KONA` are enabled with their respective prestate hashes from the manifest; and the hardcoded `0xdead` placeholder for the starting anchor root is replaced with the computed genesis output root.
+1. In the OP Chain deployment script, the require guard that currently restricts game types to `PERMISSIONED_CANNON` at initial deployment is removed; `CANNON` and `CANNON_KONA` are enabled with their respective prestate hashes read from the prestate field; and the hardcoded `0xdead` placeholder for the starting anchor root is replaced with the computed genesis output root.
 2. The Go-side input struct for the OP Chain deployment gains a `StartingAnchorRoot` field and per-game-type prestate-hash fields.
 3. op-deployer's chain orchestration code wires those new fields through into the FullConfig passed to OPCM.
 
@@ -313,11 +312,9 @@ See [fma.md](./fma.md).
 
 No on-chain contract logic changes. Existing deployed chains are unaffected. The `op-deployer` pipeline change replaces the previous `startingAnchorRoot = 0xdead` flow; no compatibility layer is provided.
 
-Operators running `op-deployer` must configure `--op-program-svc-url` (or `OP_DEPLOYER_OP_PROGRAM_SVC_URL`) before executing a deployment with permissionless proofs.
-
 ## Impact on Developer Experience
 
-- Operators must configure a reachable build service when using permissionless proofs, impacting the end-to-end deployment time
+- Operators must set the prestate before deploying, either by running the `prestate` command or by declaring a precomputed prestate override in the intent. This adds to the end-to-end deployment time.
 - Permissioness games are possible from block 0, highly useful for all cases: mainnets, testnets and devnets.
 
 ## Alternatives Considered
@@ -328,17 +325,12 @@ A previous proposal considered breaking the cyclic dependency by making L2 genes
 
 ## Risks & Uncertainties
 
-### Hosted-service Dependency
-
-The prestate build service is on the critical path of every greenfield deployment for permissionless proofs. This creates operational concentration that did not exist under the old desigh, where prestate generation was optional and deferred.
-
 ### Open Questions
 
-- **Prestate service hosting**: who provides a hosted build service endpoint for operators?
-- **Default X**: what is the right default offset between the anchor block timestamp and `genesis_time`? Needs benchmarking against a real build service to determine typical end-to-end pipeline runtime.
+- **Default X**: what is the right default offset between the anchor block timestamp and `genesis_time`? Needs benchmarking of the typical end-to-end pipeline runtime, including the prestate build.
 - **Re-run idempotency spec**: the exact skip conditions for `PredictL1Addresses`, `ComputeGenesisOutputRoot`, and the updated `GeneratePreState` need to be formally defined.
 - **Permissioned Games**: Should this still be supported?
-- **Netchef…**
+- **Docker-free callers**: the prepare/prestate/continue split lets an orchestrator without Docker run `prepare`, declare a prestate override in the intent, and run `continue`. Integration specifics for such callers are tracked separately.
 
 ---
 

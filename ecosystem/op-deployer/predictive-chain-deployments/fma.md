@@ -8,9 +8,8 @@
   - [FM1: L1 Anchor Reorg](#fm1-l1-anchor-reorg)
   - [FM2: Predicted ≠ Deployed L1 Addresses](#fm2-predicted-%E2%89%A0-deployed-l1-addresses)
   - [FM3: Compromised L1 RPC](#fm3-compromised-l1-rpc)
-  - [FM4: Build Service Returns Wrong Prestate Hash](#fm4-build-service-returns-wrong-prestate-hash)
-  - [FM5: Build Service Unavailability](#fm5-build-service-unavailability)
-  - [FM6: Genesis Timestamp Overrun](#fm6-genesis-timestamp-overrun)
+  - [FM4: Wrong Prestate Hash](#fm4-wrong-prestate-hash)
+  - [FM5: Genesis Timestamp Overrun](#fm5-genesis-timestamp-overrun)
 - [Audit Requirements](#audit-requirements)
 - [Appendix](#appendix)
   - [Appendix A: CREATE2 Address Prediction](#appendix-a-create2-address-prediction)
@@ -29,7 +28,7 @@
 
 The Predictive Chain Deployments feature reorders `op-deployer`'s pipeline to compute `startingAnchorRoot` and `absolutePrestate` off-chain before calling `OPCM.deploy()`. This enables the permissionless dispute game from L2 block 0.
 
-The pipeline introduces two new external dependencies on the critical path before any transaction lands on L1: the L1 RPC (for the `eth_call` dry-run) and the hosted prestate build service. The failure modes below cover where those dependencies and the new sequencing can go wrong.
+The pipeline introduces one new external dependency on the critical path before any transaction lands on L1: the L1 RPC, for the `eth_call` dry-run. The failure modes below cover where that step, the L1 RPC, and the new sequencing can go wrong.
 
 References:
 
@@ -67,26 +66,17 @@ References:
 - **Detection:** Post-deploy validation compares every address the dry-run returned against what `OPCM.deploy()` actually emitted. A fabricated address produces an immediate mismatch.
 - **Recovery Path(s):** Full redeployment against a trusted RPC.
 
-### FM4: Build Service Returns Wrong Prestate Hash
+### FM4: Wrong Prestate Hash
 
-- **Description:** The hosted build service returns an incorrect prestate hash without signaling an error. The deployed dispute game carries the wrong `absolutePrestate` (the agreed starting MIPS machine state for fault proof disputes). Fault proofs fail silently from genesis.
+- **Description:** The prestate hash written to the state is incorrect, either miscomputed by the `prestate` command or a bad override resolved from the intent. The deployed dispute game carries the wrong `absolutePrestate` (the agreed starting MIPS machine state for fault proof disputes). Fault proofs fail silently from genesis.
 - **Risk Assessment:** Low likelihood, high impact. The fault proof system is broken from block 0 with no on-chain guard to catch it at deploy time.
 - **Mitigations:**
-  1. Use a trusted build service endpoint.
-  2. Before submitting `OPCM.deploy()`, reproduce the prestate build locally and compare the returned hash against the local result.
-- **Detection:** After deployment, replay the prestate build locally using the same `genesis.json`, `rollup.json`, and `depsets.json` that were submitted to the build service. Compare the result against the `absolutePrestate` written into the deployed dispute game contract. A mismatch confirms the build service returned a wrong value.
-- **Recovery Path(s):** Full redeployment with the correct prestate hash sourced from a verified local build.
+  1. Source any override from a trusted, reproducible build.
+  2. Before running `continue`, reproduce the prestate build and compare the result against the value in the state.
+- **Detection:** Replay the prestate build using the same `genesis.json`, `rollup.json`, and `depsets.json` from `prepare`, and compare the result against the `absolutePrestate` in the state, and after deployment against the value written into the deployed dispute game contract. A mismatch confirms a wrong hash.
+- **Recovery Path(s):** Full redeployment with the correct prestate hash sourced from a verified build.
 
-### FM5: Build Service Unavailability
-
-- **Description:** The hosted build service is unreachable. The prestate build step cannot complete, blocking deployment.
-- **Risk Assessment:** Medium likelihood (external dependency), medium impact. Deployment is blocked; no deployed chain is harmed.
-- **Mitigations:**
-  1. Configure the build service URL to point to an alternative endpoint.
-- **Detection:** The prestate build step returns a connection error. `op-deployer` exits with a failure message identifying the step.
-- **Recovery Path(s):** Retry once the build service is available. Each pipeline step checks whether its output already exists in state before running, so a retry resumes from the failed step without re-executing earlier stages.
-
-### FM6: Genesis Timestamp Overrun
+### FM5: Genesis Timestamp Overrun
 
 - **Description:** Steps 3–8 take longer than `X` (the configured offset between the anchor timestamp and `genesis_time`). `genesis_time` is already in the past when `OPCM.deploy()` mines. The deployment succeeds with no on-chain guard catching the overrun. `op-node` fills the elapsed gap with empty L2 blocks before user transactions can land.
 - **Risk Assessment:** Low likelihood, low impact. A 10-minute overrun produces ~300 empty blocks at the default 2-second `L2BlockTime`. The chain operates correctly; no state is corrupted.
