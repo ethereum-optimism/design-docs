@@ -288,7 +288,7 @@ Runs after `DeployOPChain` completes. It confirms the deployed chain matches wha
 
 The prestate and the output root in the state are the hand-off point between the commands and the sole driver of continuation. `continue` reads them and proceeds only if they are set. If they are unset, the deployment halts.
 
-This is what lets a caller without Docker deploy: run `prepare`, have the prestate computed elsewhere, declare it as a prestate override in the intent, then run `continue`. A caller with Docker can run all three commands in sequence.
+This is what lets a caller without Docker deploy: run `prepare`, have the prestate computed elsewhere, declare it as an override in the intent so `op-deployer` resolves it as the canonical prestate in the state (no build, no Docker), then run `continue`. A caller with Docker can instead run `prestate` to build it in place, all three commands in sequence.
 
 ```mermaid
 flowchart TD
