@@ -266,7 +266,7 @@ The resolved prestate hash is written to the state, and `op-deployer` reads `abs
 
 Three call-site changes are required:
 
-1. The OP Chain deployment script changes in three places. The require guard that restricts game types to `PERMISSIONED_CANNON` at initial deployment is removed. `CANNON` and `CANNON_KONA` are enabled with their respective prestate hashes read from the state. The hardcoded `0xdead` placeholder for the starting anchor root is replaced with the computed genesis output root.
+1. The OP Chain deployment script changes in three places. The require guard that restricts game types to `PERMISSIONED_CANNON` at initial deployment is replaced with a branch keyed on the intent: the default permissionless path enables `CANNON` and `CANNON_KONA` with their respective prestate hashes read from the state, and a permissioned-only deployment remains supported as a non-default option. The hardcoded `0xdead` placeholder for the starting anchor root is replaced with the computed genesis output root.
 2. The Go-side input struct for the OP Chain deployment gains a `StartingAnchorRoot` field and per-game-type prestate-hash fields.
 3. op-deployer's chain orchestration code wires those new fields through into the FullConfig passed to OPCM.
 
