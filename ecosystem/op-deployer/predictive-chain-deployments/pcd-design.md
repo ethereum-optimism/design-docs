@@ -270,6 +270,8 @@ Three call-site changes are required:
 2. The Go-side input struct for the OP Chain deployment gains a `StartingAnchorRoot` field and per-game-type prestate-hash fields.
 3. op-deployer's chain orchestration code wires those new fields through into the FullConfig passed to OPCM.
 
+**Pre-broadcast preflight.** Before broadcasting, `continue` re-runs the Step 3 `eth_call` dry-run against the RPC that will receive the real transaction and asserts the returned `ChainContracts` match the L1 addresses baked into the committed `genesis.json` and `rollup.json`. A mismatch aborts the deployment before the any `OPCM.deploy()` transaction is sent. This catches a changed sender, an L1-state or OPCM change during the deployment window, or a divergent RPC, while the failure is still cheap to recover from.
+
 ### Step 10: Post-Deploy Verification
 
 Runs after `DeployOPChain` completes. It confirms the deployed chain matches what was computed in earlier pipeline steps.
@@ -284,7 +286,7 @@ Runs after `DeployOPChain` completes. It confirms the deployed chain matches wha
 
 1. **`prepare`** runs Steps 1–7: pick the anchor, set `genesis_time`, predict the L1 addresses, run `L2Genesis`, build the genesis block, compute the output root, and emit `genesis.json`, `rollup.json`, and `depsets.json`. Pure off-chain computation, no L1 transaction, no Docker.
 2. **`prestate`** computes the prestate hash from `rollup.json`, `genesis.json`, and `depsets.json` and writes it to the state. It is skipped when the intent carries a prestate override, which `op-deployer` resolves into the state instead.
-3. **`continue`** runs Steps 9–10: submit `OPCM.deploy()` with `startingAnchorRoot` and the `absolutePrestate` read from the state, then run post-deploy validation.
+3. **`continue`** runs Steps 9–10: re-check the predicted addresses against current L1 state, submit `OPCM.deploy()` with `startingAnchorRoot` and the `absolutePrestate` read from the state, then run post-deploy validation.
 
 The prestate and the output root in the state are the hand-off point between the commands and the sole driver of continuation. `continue` reads them and proceeds only if they are set. If they are unset, the deployment halts.
 
