@@ -10,6 +10,7 @@
   - [FM3: Compromised L1 RPC](#fm3-compromised-l1-rpc)
   - [FM4: Wrong Prestate Hash](#fm4-wrong-prestate-hash)
   - [FM5: Genesis Timestamp Overrun](#fm5-genesis-timestamp-overrun)
+  - [FM6: Stale Prestate After Re-run of `prepare`](#fm6-stale-prestate-after-re-run-of-prepare)
 - [Audit Requirements](#audit-requirements)
 - [Appendix](#appendix)
   - [Appendix A: CREATE2 Address Prediction](#appendix-a-create2-address-prediction)
@@ -85,6 +86,16 @@ References:
   2. Operators on slower hardware should raise `X` via the override flag before deploying.
 - **Detection:** `op-node` logs indicate it is behind and filling gap blocks. The gap size is `(mining_time - genesis_time) / L2BlockTime` blocks.
 - **Recovery Path(s):** No action required if the empty-block gap is acceptable. For deployments where the gap is unacceptable, redeploy with a larger `X`.
+
+### FM6: Stale Prestate After Re-run of `prepare`
+
+- **Description:** `prepare` is re-run, for example to recover a stuck deployment or after a reorg, and re-picks a fresh anchor. That produces a new `genesis_time` and therefore new `genesis.json` and `rollup.json`. If a prestate built against the previous `genesis_time` is reused instead of rebuilt, the deployed `absolutePrestate` does not match the committed `rollup.json`. Fault proofs are broken from genesis.
+- **Risk Assessment:** Low likelihood, high impact. Requires `prepare` to be re-run with a new `genesis_time` while a prestate from the prior run is still present. Impact is high as fault proofs are broken from block 0.
+- **Mitigations:**
+  1. Re-running `prepare` with a fresh anchor invalidates the prestate in the state, forcing a rebuild before `continue` proceeds.
+  2. The prestate is built from the committed `rollup.json`, so rebuilding after any `genesis_time` change keeps the prestate and the deployed artifacts consistent.
+- **Detection:** Reproduce the prestate from the current committed `genesis.json`, `rollup.json`, and `depsets.json` and compare against the `absolutePrestate` in the state. A mismatch means the prestate is stale relative to the current artifacts.
+- **Recovery Path(s):** Rebuild the prestate from the current artifacts and re-commit the hash before running `continue`.
 
 ## Audit Requirements
 
