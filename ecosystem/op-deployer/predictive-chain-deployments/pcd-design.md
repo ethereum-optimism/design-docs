@@ -288,7 +288,7 @@ Runs after `DeployOPChain` completes. It confirms the deployed chain matches wha
 2. **`prestate`** computes the prestate hash from `rollup.json`, `genesis.json`, and `depsets.json` and writes it to the state. It is skipped when the intent carries a prestate override, which `op-deployer` resolves into the state instead.
 3. **`continue`** runs Steps 9–10: re-check the predicted addresses against current L1 state, submit `OPCM.deploy()` with `startingAnchorRoot` and the `absolutePrestate` read from the state, then run post-deploy validation.
 
-The prestate and the output root in the state are the hand-off point between the commands and the sole driver of continuation. `continue` reads them and proceeds only if they are set. If they are unset, the deployment halts.
+The prestate and the output root in the state are the hand-off point between the commands and the driver of continuation. For the default permissionless deployment, `continue` reads them and proceeds only if they are set; if they are unset, the deployment halts. The prestate gate is conditional on a permissionless game type being enabled as a permissioned deployment carries no prestate and can proceed without one.
 
 This is what lets a caller without Docker deploy: run `prepare`, have the prestate computed elsewhere, declare it as an override in the intent so `op-deployer` resolves it as the canonical prestate in the state (no build, no Docker), then run `continue`. A caller with Docker can instead run `prestate` to build it in place, all three commands in sequence.
 
@@ -324,8 +324,8 @@ No on-chain contract logic changes. Existing deployed chains are unaffected. The
 
 ## Impact on Developer Experience
 
-- Operators must set the prestate before deploying, either by running the `prestate` command or by declaring a precomputed prestate override in the intent. This adds to the end-to-end deployment time.
-- Permissionless games are valid from block 0, for mainnets, testnets, and devnets alike.
+- Operators deploying a permissionless chain must set the prestate before deploying, either by running the `prestate` command or by declaring a precomputed prestate override in the intent. This adds to the end-to-end deployment time. A permissioned-only deployment needs no prestate and skips this step.
+- With the default permissionless path, permissionless games are valid from block 0, for mainnets, testnets, and devnets alike.
 
 ## Alternatives Considered
 
@@ -339,7 +339,6 @@ A previous proposal considered breaking the cyclic dependency by making L2 genes
 
 - **Default X**: what is the right default offset between the anchor block timestamp and `genesis_time`? Needs benchmarking of the typical end-to-end pipeline runtime, including the prestate build.
 - **Re-run idempotency spec**: the exact skip conditions for `PredictL1Addresses`, `ComputeGenesisOutputRoot`, and the updated `GeneratePreState` need to be formally defined.
-- **Permissioned Games**: Should this still be supported?
 - **Docker-free callers**: the prepare/prestate/continue split lets an orchestrator without Docker run `prepare`, declare a prestate override in the intent, and run `continue`. Integration specifics for such callers are tracked separately.
 
 ---
