@@ -53,9 +53,10 @@ References:
 - **Risk Assessment:** Low likelihood, high impact. CREATE2 is deterministic given the same `msg.sender` and `saltMixer`. The most likely cause is a dry-run sent from a different address than the real broadcast.
 - **Mitigations:**
   1. The `eth_call` dry-run must use the same `from` address as the real `OPCM.deploy()` broadcast.
-  2. Post-deploy validation compares predicted vs. deployed addresses.
-- **Detection:** Post-deploy validation catches any mismatch immediately after deployment.
-- **Recovery Path(s):** Full redeployment using the correct sender address.
+  2. A pre-broadcast preflight in `continue` re-checks the predicted addresses against current L1 state before the actual deployment.
+  3. Post-deploy validation compares predicted vs. deployed addresses.
+- **Detection:** The pre-broadcast preflight in `continue` re-runs the dry-run and aborts before the deploy if the predicted addresses no longer match the committed genesis. Post-deploy validation is the backstop.
+- **Recovery Path(s):** If the preflight catches the mismatch, fix the sender address and re-run `continue`; nothing was deployed. If it is caught only post-deploy, full redeployment with the correct sender address is required.
 
 ### FM3: Compromised L1 RPC
 
