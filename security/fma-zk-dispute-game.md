@@ -111,7 +111,7 @@ Below are references for this project:
 
 - **Description:** Multiple `ZKDisputeGame` instances share the same per-chain `DelayedWETH`. The spec requires (iZKG-011) that for every game: `sum(distributions) + sum(burns) == initBond + challengerBond`. An accounting bug in `closeGame()` that violates this invariant by distributing more than deposited, double-crediting, or mishandling the burn path could drain `DelayedWETH` or permanently lock funds.
 
-    The burn path deserves attention: when a parent resolves as `CHALLENGER_WINS` and the child was unchallenged, the child's `initBond` is sent to `address(0)`. A bug here could create unbacked withdrawals or lock residual funds. The bond distribution table has 10 NORMAL + 3 REFUND scenarios, each with distinct logic paths.
+    The burn path deserves attention: when a parent resolves as `CHALLENGER_WINS` and the child was unchallenged, the child's `initBond` is sent to `address(0)`. A bug here could create unbacked withdrawals or lock residual funds. The bond distribution table has 7 NORMAL + 2 REFUND scenarios, each with distinct logic paths.
 
 - **Risk Assessment:** Critical severity / Low likelihood
 - **Mitigations:**
@@ -152,7 +152,7 @@ Below are references for this project:
     - Alert when a new `chainId` appears in a super root not covered by the current `absolutePrestate`'s known chain set.
     - Alert when a chain's known hardfork block is reached without a corresponding `absolutePrestate` update.
 - **Recovery Path(s):**
-    - Guardian pauses the system or blacklists invalid games. Unprovable games resolve via REFUND mode.
+    1. Guardian pauses the system or blacklists invalid games. Unprovable games resolve via REFUND mode.
 - **Action Item(s):**
     - [ ]  FM5: TODO: Update this section when we have a better sense of the required offchain infra.
 
@@ -160,14 +160,14 @@ Below are references for this project:
 
 ### FM6: CWIA Game Args Layout and extraData Offset Mismatch
 
-- **Description:** Each game's Clone-With-Immutable-Args (CWIA) payload contains a fixed pre-extraData section followed by a variable-length `extraData` of `9 + n×64 bytes` (1 version byte, 8-byte super root timestamp, n `(chainId:32, outputRoot:32)` pairs), with the implementation argument region appended after. All implementation argument getters (`verifier`, `absolutePrestate`, `anchorStateRegistry`, `weth`, bond amounts, durations) derive their byte offsets at runtime via `_preExtraDataByteCount() + _extraDataByteCount()`. `OPContractsManager._makeGameArgs()` produces the encoded payload, and `initialize()` enforces two invariants on the decoded values: `l2ChainId == 0`, and `l2SequenceNumber` (uint64) is the super root timestamp. A mismatch anywhere in this encode / decode / validate chain — off-by-one offsets, stale hardcoded constants, wrong field order, incorrect type sizes, or missing validation — corrupts every implementation argument simultaneously for all games created from that implementation, or silently accepts malformed games.
+- **Description:** Each game's Clone-With-Immutable-Args (CWIA) payload contains an 88-byte fixed pre-extraData section (creator, root claim, L1 head, game type), a variable-length `extraData`, and a 140-byte implementation argument region appended after. The `extraData` is a 4-byte `parentIndex` (uint32) followed by the tightly-packed `SuperRootProof` bytes — 1 version byte (`0x01`), an 8-byte super root timestamp, and n `(chainId:32, outputRoot:32)` pairs — so the proof portion is `9 + n×64` bytes and `extraData` is `13 + n×64` bytes total. The proof is packed and parsed bytewise by `Encoding.decodeSuperRootProof`, not `abi.encode`-encoded; the spec describes it loosely as "ABI-encoded" and must be aligned to this packed layout. All implementation argument getters (`verifier`, `absolutePrestate`, `anchorStateRegistry`, `weth`, bond amounts, durations) derive their byte offsets at runtime via `_preExtraDataByteCount() + _extraDataByteCount()`, while `parentIndex` (offset `0x58`) and the super root timestamp (offset `0x5D`) sit at fixed offsets. `OPContractsManager._makeGameArgs()` produces the encoded payload, and `initialize()` enforces an exact-calldata-length check (`_verifyInitCallDataLength`, preventing extraData padding/truncation that would change the game UUID and allow duplicate games for one proposal) and `Hashing.hashSuperRootProof(decode(superRootProof)) == rootClaim` (else `BadExtraData`), with the proof version required to be `0x01`. A mismatch anywhere in this encode / decode / validate chain — off-by-one offsets, stale hardcoded constants, wrong field order, incorrect type sizes, a packed-vs-ABI encoding divergence between spec and implementation, or missing validation — corrupts every implementation argument simultaneously for all games created from that implementation, or silently accepts malformed games.
 - **Risk Assessment:** Medium severity / Low likelihood
 - **Mitigations:**
     1. Port `_preExtraDataByteCount()` and `_extraDataByteCount()` directly from `SuperFaultDisputeGame` rather than reimplementing them. Any deviation from the established pattern must be explicitly justified.
     2. The encoding is defined in the spec ([Game Args Layout](https://github.com/ethereum-optimism/specs/blob/main/specs/fault-proof/stage-one/zk/zk-dispute-game.md#game-args-layout)) and implemented in `OPContractsManager._makeGameArgs()`.
     3. Round-trip tests that encode via `_makeGameArgs()` and decode via the game's accessor functions run at n=1, n=2, and n=max supported chain counts.
 - **Detection:**
-    - Simulate the OPCM upgrade or `gameArgs` update using superchain-ops task templates and verify the resulting game argument before execution. Signers will to check the simulation as part of the standard operating procedure.
+    - Simulate the OPCM upgrade or `gameArgs` update using superchain-ops task templates and verify the resulting game argument before execution. Signers will check the simulation as part of the standard operating procedure.
     - Unit, fuzz, and integration tests round-tripping all `gameArgs` fields through encode/decode and asserting getter outputs match expected values across variable extraData lengths and different chain configs.
 - **Recovery Path(s):**
     1. If detected before deployment, fix the encoding, offset helpers, and validation then redeploy.
@@ -177,7 +177,8 @@ Below are references for this project:
     - [ ]  FM6: Implement round-trip encoding/decoding tests for all `gameArgs` fields at n=1, n=2, and n=max chain counts, including edge-case values (zero, max, addresses with leading zeros).
     - [ ]  FM6: Add fuzz tests verifying `_makeGameArgs()` output is correctly decoded by the game's accessor functions across random chain counts.
     - [ ]  FM6: Review the `Duration` type's packed size and ensure it matches the offset calculations in the dynamic CWIA decoding logic.
-    - [ ]  FM6: Add tests asserting `l2ChainId == 0` enforcement and correct super root timestamp `uint64` decoding.
+    - [ ]  FM6: Add tests asserting correct super root timestamp `uint64` decoding.
+    - [ ]  FM6: Align the spec's `SuperRootProof` encoding description (currently "ABI-encoded") with the tightly-packed layout implemented by `Encoding.decodeSuperRootProof`, including the 4-byte `parentIndex` prefix in `extraData`.
 
 ---
 
@@ -190,7 +191,7 @@ Below are references for this project:
     - **Durations too long:** Withdrawal finality delayed on the unchallenged path. The latency benefit of ZK proofs is only realized if someone eagerly proves, which has its own cost.
     - **Super root timestamp selection:** The proposer is responsible for selecting a super root timestamp that all included chains can prove within `maxProveDuration`. Proving cost scales with chain count, not a single block range.
     - **L1 gas pressure:** Verification gas is bounded (~200-300K depending on the backend) and well below the block gas limit, so `prove()` is always technically includable. The risk is economic, not technical: during extreme L1 fee spikes, the gas fee to submit `prove()` can exceed the prover's expected reward (the `challengerBond` they stand to win), temporarily removing the incentive to defend. The proposer still has their `initBond` at stake, but third-party provers will sit out until fees subside.
-    - **Challenge griefing:** A sustained challenger forcing the proposer to prove every game is normally harmless. The attacker forfeits `challengerBond` per attempt and the proposer collects it on each successful proof. Worst case adds up to one full proof generation time of delay per game if the challenge occurs just before the game closes. Because `ZKDisputeGame` proves over all chains simultaneously, per-challenge proving cost is materially higher than in a single-chain game, making the `challengerBond > full superchain proving cost` invariant more critical to maintain. If bonds are set too low, griefing by challening every proposal can become economically rational for attackers.
+    - **Challenge griefing:** A sustained challenger forcing the proposer to prove every game is normally harmless. The attacker forfeits `challengerBond` per attempt and the proposer collects it on each successful proof. Worst case adds up to one full proof generation time of delay per game if the challenge occurs just before the game closes. Because `ZKDisputeGame` proves over all chains simultaneously, per-challenge proving cost is materially higher than in a single-chain game, making the `challengerBond > full superchain proving cost` invariant more critical to maintain. If bonds are set too low, griefing by challenging every proposal can become economically rational for attackers.
 
     These values are not set once. FM8 covers the recurring recalibration triggered by changes in the superchain composition over time.
 
@@ -240,9 +241,9 @@ Below are references for this project:
 - **Recovery Path(s):**
     1. OPCM upgrade with recalibrated `maxProveDuration`, `maxChallengeDuration`, and bond values. Existing in-flight games continue under their original values.
 - **Action Item(s):**
-    - [ ]  FM9: Establish a parameter review process triggered by any chain addition or per-chain config change (gas limit, block time, EVM version).
-    - [ ]  FM9: Calibrate `maxProveDuration` and `maxChallengeDuration` to the worst-case chain in the current superchain set and document the required margin (≥20%).
-    - [ ]  FM9: Calibrate `initBond` to aggregate superchain TVL and `challengerBond` to full superchain proving cost on reference hardware, and document the methodology.
+    - [ ]  FM8: Establish a parameter review process triggered by any chain addition or per-chain config change (gas limit, block time, EVM version).
+    - [ ]  FM8: Calibrate `maxProveDuration` and `maxChallengeDuration` to the worst-case chain in the current superchain set and document the required margin (≥20%).
+    - [ ]  FM8: Calibrate `initBond` to aggregate superchain TVL and `challengerBond` to full superchain proving cost on reference hardware, and document the methodology.
 
 ---
 
@@ -274,7 +275,8 @@ Below is a consolidated list of all action items from the failure modes above.
 | FM6-2 | Implement round-trip encoding/decoding tests for all `gameArgs` fields at n=1, n=2, and n=max chain counts, including edge-case values (zero, max, addresses with leading zeros). | [FM6](#fm6-cwia-game-args-layout-and-extradata-offset-mismatch) |
 | FM6-3 | Add fuzz tests verifying `_makeGameArgs()` output is correctly decoded by the game's accessor functions across random chain counts. | [FM6](#fm6-cwia-game-args-layout-and-extradata-offset-mismatch) |
 | FM6-4 | Review the `Duration` type's packed size and ensure it matches the offset calculations in the dynamic CWIA decoding logic. | [FM6](#fm6-cwia-game-args-layout-and-extradata-offset-mismatch) |
-| FM6-5 | Add tests asserting `l2ChainId == 0` enforcement and correct super root timestamp `uint64` decoding. | [FM6](#fm6-cwia-game-args-layout-and-extradata-offset-mismatch) |
+| FM6-5 | Add tests asserting correct super root timestamp `uint64` decoding. | [FM6](#fm6-cwia-game-args-layout-and-extradata-offset-mismatch) |
+| FM6-6 | Align the spec's `SuperRootProof` encoding description (currently "ABI-encoded") with the tightly-packed layout implemented by `Encoding.decodeSuperRootProof`, including the 4-byte `parentIndex` prefix in `extraData`. | [FM6](#fm6-cwia-game-args-layout-and-extradata-offset-mismatch) |
 | FM7-1 | Establish a minimum `challengerBond` policy such that `challengerBond > expected full superchain proving cost` to ensure defending is always profitable. | [FM7](#fm7-bond-and-duration-misconfiguration) |
 | FM7-2 | Calibrate `maxProveDuration` per aZKG-007 with analysis of L1 censorship costs and proof generation time on reference hardware for the full chain set. | [FM7](#fm7-bond-and-duration-misconfiguration) |
 | FM7-3 | Monitor challenge rates in production and have a runbook for adjusting bond and duration parameters if griefing is detected. | [FM7](#fm7-bond-and-duration-misconfiguration) |
