@@ -74,7 +74,7 @@ References:
 - **Risk Assessment:** Low likelihood, high impact. The fault proof system is broken from block 0 with no on-chain guard to catch it at deploy time.
 - **Mitigations:**
   1. Source any override from a trusted, reproducible build.
-  2. Before running `continue`, reproduce the prestate build and compare the result against the value in the state.
+  2. Before running `continue`, the reviewer should reproduce the prestate build locally, and compare the result against the value in the state.
 - **Detection:** Replay the prestate build using the same `genesis.json`, `rollup.json`, and `depsets.json` from `prepare`. Compare the result against the `absolutePrestate` in the state, and after deployment against the value in the deployed dispute game contract. A mismatch confirms a wrong hash.
 - **Recovery Path(s):** Full redeployment with the correct prestate hash sourced from a verified build.
 
