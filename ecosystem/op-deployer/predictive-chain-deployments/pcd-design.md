@@ -71,7 +71,7 @@ The proposed flow:
 5. Build the genesis block from the allocs, chain config, and genesis timestamp.
 6. Compute the L2 genesis output root from the genesis block.
 7. Generate `depsets.json`. For non-interop chains this contains only the chain itself.
-8. Build the prestate: `op-program` or `kona` compiles to MIPS with the chain config embedded, and Cannon hashes the initial machine state to produce the prestate hash.
+8. Commit the prestate: the prestate is built through the monorepo's `reproducible-prestate` or `reproducible-prestate-kona` recipes used today. The `prestate` command commits the hash back into the pipeline.
 9. Submit `OPCM.deploy()` carrying the real `startingAnchorRoot` and `absolutePrestate`.
 10. Chain starts. The permissionless dispute game is valid from block 0.
 
@@ -83,7 +83,7 @@ flowchart TD
     D --> E["Build genesis block</br>(allocs + config + genesis_time)"]
     E --> F["Compute genesis output root"]
     F --> G["Generate depsets.json"]
-    G --> H["Build prestate</br>(compile to MIPS, Cannon hash)"]
+    G --> H["Commit prestate hash</br>(through prestate command)"]
     H --> I["OPCM.deploy(outputRoot, prestateHash)"]
     I --> J["Chain starts</br>Permissionless dispute game valid from block 0"]
 ```
@@ -255,10 +255,12 @@ Because the chain config is embedded at compile time rather than fetched at runt
 
 The resolved prestate hash is written to the state, and `op-deployer` reads `absolutePrestate` from there.
 
-`op-deployer` derives that state value two ways, and treats the result identically:
+The `prestate` command commits the prestate to the `op-deployer` pipeline. It writes the externally built hash to the state from one of two sources and treats both identically:
 
-- **Computed.** A dedicated command builds the prestate from the Phase 1 artifacts and writes the hash to the state.
-- **From an override.** The operator declares a prestate override in the intent. `op-deployer` resolves it into the state prestate without building, so no build runs inside `op-deployer`.
+- **From a flag.** The caller passes the hash directly to the command.
+- **From an override.** The operator declares a prestate override in the intent. The command resolves it into the state.
+
+The command fails if neither source is provided. If both are provided, it fails only when the hashes disagree.
 
 ### Step 9: Wiring into `OPCM.deploy()`
 
@@ -285,19 +287,20 @@ Runs after `DeployOPChain` completes. It confirms the deployed chain matches wha
 `op-deployer` splits the flow into three commands around the **prestate boundary**:
 
 1. **`prepare`** runs Steps 1–7: pick the anchor, set `genesis_time`, predict the L1 addresses, run `L2Genesis`, build the genesis block, compute the output root, and emit `genesis.json`, `rollup.json`, and `depsets.json`. Pure off-chain computation, no L1 transaction, no Docker.
-2. **`prestate`** computes the prestate hash from `rollup.json`, `genesis.json`, and `depsets.json` and writes it to the state. It is skipped when the intent carries a prestate override, which `op-deployer` resolves into the state instead.
+2. **`prestate`** writes the prestate hash to the state, taking it from a command flag or from an override declared in the intent.
 3. **`continue`** runs Steps 9–10: re-check the predicted addresses against current L1 state, submit `OPCM.deploy()` with `startingAnchorRoot` and the `absolutePrestate` read from the state, then run post-deploy validation.
 
 The prestate and the output root in the state are the hand-off point between the commands and the driver of continuation. For the default permissionless deployment, `continue` reads them and proceeds only if they are set; if they are unset, the deployment halts. The prestate gate is conditional on a permissionless game type being enabled as a permissioned deployment carries no prestate and can proceed without one.
 
-This is what lets a caller without Docker deploy: run `prepare`, have the prestate computed elsewhere, declare it as an override in the intent so `op-deployer` resolves it as the canonical prestate in the state (no build, no Docker), then run `continue`. A caller with Docker can instead run `prestate` to build it in place, all three commands in sequence.
+A caller runs `prepare`, builds the prestate in the monorepo from the emitted artifacts, hands the hash to `prestate` through the flag or an intent override, and runs `continue`.
 
 ```mermaid
 flowchart TD
     A["prepare<br/>Steps 1–7 (off-chain)"] --> ART["genesis.json + rollup.json + depsets.json"]
-    ART --> B["prestate command<br/>compile to MIPS, Cannon hash (Docker)"]
+    ART -.-> BUILD["prestate built externally<br/>(reproducible-prestate recipes)"]
+    BUILD --> B["prestate command<br/>hash via flag or intent override"]
+    OV["prestate override<br/>declared in intent"] -.-> B
     B -->|"writes"| F["state: prestate"]
-    OV["prestate override<br/>declared in intent"] -.->|"resolved by op-deployer"| F
     F --> G{"set?"}
     G -->|"yes"| C["continue<br/>Steps 9–10: OPCM.deploy + validation"]
     G -->|"no"| H["halt: deployment does not continue"]
@@ -306,11 +309,11 @@ flowchart TD
 
 ### Resource Usage
 
-The prestate build moves from a deferred upgrade path to the critical path of every greenfield deployment that intends to use permissionless proofs. On `op-deployer`'s side, the end-to-end deployment time grows by the prestate build duration. There are no changes on node clients.
+The prestate build moves from a deferred upgrade path to the critical path of every greenfield deployment that intends to use permissionless proofs. The end-to-end deployment time grows by the prestate build duration. There are no changes on node clients.
 
 ### Single Point of Failure and Multi Client Considerations
 
-The prestate gates deployment through the state: `continue` does not proceed until the state prestate is set, whether computed by the `prestate` command or resolved from an intent override. The L1 RPC used for the `eth_call` dry-run and for `OPCM.deploy()` is a dependency for the loop to work properly.
+The prestate gates deployment through the state: `continue` does not proceed until the state prestate is set, whether passed to the `prestate` command as a flag or resolved from an intent override. The L1 RPC used for the `eth_call` dry-run and for `OPCM.deploy()` is a dependency for the loop to work properly.
 
 The design is client-agnostic and requires no changes on node clients. It is compatible with Cannon and Kona today and with future ZK fault-proof clients.
 
@@ -324,7 +327,7 @@ No on-chain contract logic changes. Existing deployed chains are unaffected. The
 
 ## Impact on Developer Experience
 
-- Operators deploying a permissionless chain must set the prestate before deploying, either by running the `prestate` command or by declaring a precomputed prestate override in the intent. This adds to the end-to-end deployment time. A permissioned-only deployment needs no prestate and skips this step.
+- Operators deploying a permissionless chain must set the prestate before deploying, through the `prestate` command flag or an intent override. This adds to the end-to-end deployment time. A permissioned-only deployment needs no prestate and skips this step.
 - With the default permissionless path, permissionless games are valid from block 0, for mainnets, testnets, and devnets alike.
 
 ## Alternatives Considered

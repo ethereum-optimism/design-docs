@@ -70,7 +70,7 @@ References:
 
 ### FM4: Wrong Prestate Hash
 
-- **Description:** The prestate hash written to the state is incorrect, either miscomputed by the `prestate` command or a bad override resolved from the intent. The deployed dispute game carries the wrong `absolutePrestate` (the agreed starting MIPS machine state for fault proof disputes). Fault proofs fail silently from genesis.
+- **Description:** The prestate hash written to the state is incorrect, either a bad hash passed through the command flag or a bad override resolved from the intent. The deployed dispute game carries the wrong `absolutePrestate` (the agreed starting MIPS machine state for fault proof disputes). Fault proofs fail silently from genesis.
 - **Risk Assessment:** Low likelihood, high impact. The fault proof system is broken from block 0 with no on-chain guard to catch it at deploy time.
 - **Mitigations:**
   1. Source any override from a trusted, reproducible build.
