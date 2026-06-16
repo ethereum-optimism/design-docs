@@ -69,7 +69,7 @@ graph TB
     end
     
     subgraph Game Creation
-        ZKClone["ZKDisputeGame<br/> (MCP clone)<br/><br/>gameArgs:<br/>- absolutePrestate<br/>- verifier<br/>- maxChallengeDuration<br/>- maxProveDuration<br/>- challengerBond<br/>- anchorStateRegistry<br/>- weth<br/>- l2ChainId (= 0 for super games)"]
+        ZKClone["ZKDisputeGame<br/> (MCP clone)<br/><br/>gameArgs:<br/>- absolutePrestate<br/>- verifier<br/>- maxChallengeDuration<br/>- maxProveDuration<br/>- challengerBond<br/>- anchorStateRegistry<br/>- weth"]
         
         ZKImpl -.->|implementation of| ZKClone
         DGF -->|clone with gameArgs| ZKClone
@@ -152,13 +152,14 @@ The following fields are included in `gameArgs`:
 - `challengerBond`: bond required to challenge a proposal.
 - `anchorStateRegistry`
 - `weth` (per-chain `DelayedWETH`)
-- `l2ChainId`: forced to 0 for super games, following the `SuperFaultDisputeGame` convention. Chain scoping is provided by the `SuperRootProof` preimage embedded in `extraData`.
 
 The `absolutePrestate` represents the zkVM-specific program identity values. For example, in the SP1 backend, the `absolutePrestate` corresponds to the program's verification key.
 
-`rootClaim` is always a super root hash: `Hashing.hashSuperRootProof(superRootProof)`. The `extraData` blob has the `l2SequenceNumber`, `parentIndex`, `superRootProof`, as a variable length.
+`l2ChainId` was removed as an argument since chain scoping comes from the `SuperRootProof` preimage committed to via `rootClaim`.
 
-The `anchorStateRegistry`, `weth`, and `l2ChainId` are already known by OPCM from the chain's deployment, and are injected by `makeGameArgs()` directly. 
+`rootClaim` is always a super root hash: `Hashing.hashSuperRootProof(superRootProof)`. The `extraData` blob carries the `parentIndex` and the variable-length `superRootProof` preimage. The `l2SequenceNumber` (the super-root timestamp) is not a separate parameter: it lives inside the `superRootProof` and is therefore committed to via `rootClaim`.
+
+The `anchorStateRegistry` and `weth` are already known by OPCM from the chain's deployment, and are injected by `makeGameArgs()` directly. 
 
 ### 2. Verifier Agnosticism
 
@@ -179,7 +180,7 @@ function prove(bytes calldata _proofBytes) external {
 }
 ```
 
-The prove function constructs the public values from the game’s on-chain state (`l1Head`, `startingProposal.root`, `rootClaim`, `l2SequenceNumber`, and `msg.sender` to prevent proof replay), then calls the `IZKVerifier` with `verify`. Such an interface will be:
+The prove function constructs the public values from the game’s on-chain state (`l1Head`, `startingProposal.root`, `rootClaim`), the `l2SequenceNumber` fetched from the `superRootProof`, and `msg.sender` (to prevent proof replay), then calls the `IZKVerifier` with `verify`. Such an interface will be:
 
 ```solidity
 interface IZKVerifier is ISemver {
@@ -231,7 +232,7 @@ The `AccessManager` contract is removed entirely. Proposing, challenging, and pr
 The OP Succinct contracts use `ROLLUP_CONFIG_HASH` as a proof public value to bind proofs to a specific chain's configuration. Under super-root semantics, chain identification works differently:
 
 - The rootClaim is a super root that explicitly commits to a super-root timestamp (the `l2SequenceNumber`) and the `(chainId, outputRoot)` pairs via the `SuperRootProof` preimage in extraData.
-- `gameArgs.l2ChainId` is set to 0 (super-game convention).
+- The `l2ChainId` field is removed entirely from `gameArgs` rather than enforced to 0, since super games have no single chain ID.
 - The ZK program identified by `absolutePrestate` is compiled for a specific chain set and embeds each chain's `RollupConfig`. Changes to the chain set, to any participating chain's STF, or to any hardfork schedule require a new `absolutePrestate` via governance.
 - For standalone deployments, the chain set is one chain, and the `SuperRootProof` preimage contains one entry. Operationally, the chain operator still coordinates `absolutePrestate` updates across hardforks.
 
@@ -256,10 +257,10 @@ The `ZKDisputeGame` (as game type = 10) integrates into OPCM v2 through the exis
 OPCM needs three things to support a new game type:
 
 1. An implementation address: The `ZKDisputeGame` is deployed once (via DeployImplementations script) and tracked in `OPContractsManagerContainer.Implementations` alongside the existing fault game implementations. The `zkDisputeGameImpl` slot is already wired in the container.
-2. Config struct for per-chain parameters: A `ZKDisputeGameConfig` struct carries the fields that vary per deployment (`absolutePrestate`, `verifier`, `maxChallengeDuration`, `maxProveDuration`, `challengerBond`). This struct is ABI-encoded by the caller (op-deployer or upgrade scripts) and passed as the `gameArgs` bytes in `DisputeGameConfig`. OPCM's `_makeGameArgs()` decodes it, injects the chain-specific values it already knows (`anchorStateRegistry`, `delayedWETH`), and forces `l2ChainId = 0` for super games via the existing `GameTypes.isSuperGame()` check, then packs the final variable-length CWIA bytes for the factory.
+2. Config struct for per-chain parameters: A `ZKDisputeGameConfig` struct carries the fields that vary per deployment (`absolutePrestate`, `verifier`, `maxChallengeDuration`, `maxProveDuration`, `challengerBond`). This struct is ABI-encoded by the caller (op-deployer or upgrade scripts) and passed as the `gameArgs` bytes in `DisputeGameConfig`. OPCM's `_makeGameArgs()` decodes it, injects the chain-specific values it already knows (`anchorStateRegistry`, `delayedWETH`), then packs the final variable-length CWIA bytes for the factory.
     
     ```solidity
-    // anchorStateRegistry, delayedWETH, and l2ChainId are injected
+    // anchorStateRegistry and delayedWETH are injected
     // by OPCM directly.
     struct ZKDisputeGameConfig {
         Claim absolutePrestate;
@@ -282,8 +283,7 @@ OPCM needs three things to support a new game type:
             cfg.maxProveDuration,
             cfg.challengerBond,
             address(_anchorStateRegistry),
-            address(_delayedWETH),
-            0
+            address(_delayedWETH)
         );
     }
     ```
