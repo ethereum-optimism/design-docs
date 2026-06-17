@@ -249,7 +249,7 @@ The dependency set will contain only the chain itself. The `depsets.json` file e
 
 ### Step 8: Prestate Generation
 
-The prestate is the starting point both sides of a dispute agree on. It is the Cannon hash of the initial MIPS machine state produced by compiling `op-program` or `kona` with the chain config baked in.
+The prestate is the starting point both sides of a dispute agree on. It is the Cannon hash of the initial MIPS machine state produced by compiling `kona` with the chain config baked in.
 
 Because the chain config is embedded at compile time rather than fetched at runtime, the prestate hash is deterministic for a given chain config. Concretely: `rollup.json` contains `l2_time`, which is the genesis timestamp set at step 2.
 
@@ -334,7 +334,7 @@ No on-chain contract logic changes. Existing deployed chains are unaffected. The
 
 ### Standard Allocs + Chain Init Transaction
 
-A previous proposal considered breaking the cyclic dependency by making L2 genesis allocs chain-agnostic and injecting chain-specific data through a `chainInitTx` system transaction. It was rejected. It requires changes to `op-node`, `op-program`, and `kona`, and still does not avoid a per-chain prestate.
+A previous proposal considered breaking the cyclic dependency by making L2 genesis allocs chain-agnostic and injecting chain-specific data through a `chainInitTx` system transaction. It was rejected. It requires changes to `op-node` and `kona`, and still does not avoid a per-chain prestate.
 
 ## Risks & Uncertainties
 
@@ -360,7 +360,7 @@ keccak256(version || stateRoot || messagePasserStorageRoot || blockHash);
 
 **Prestate / prestate hash**
 
-The agreed starting point for a fault proof dispute. It is the Cannon hash of the initial MIPS machine state produced by compiling `op-program` (Go) or `kona` (Rust) with the chain config baked in. Because the chain config is embedded at compile time, the prestate hash is deterministic for a given chain config. Both the challenger and defender must agree on this hash before a dispute can proceed.
+The agreed starting point for a fault proof dispute. It is the Cannon hash of the initial MIPS machine state produced by compiling `kona` with the chain config baked in. Because the chain config is embedded at compile time, the prestate hash is deterministic for a given chain config. Both the challenger and defender must agree on this hash before a dispute can proceed.
 
 **Genesis block**
 
