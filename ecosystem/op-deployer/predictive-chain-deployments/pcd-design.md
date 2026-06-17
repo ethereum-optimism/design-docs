@@ -71,7 +71,7 @@ The proposed flow:
 5. Build the genesis block from the allocs, chain config, and genesis timestamp.
 6. Compute the L2 genesis output root from the genesis block.
 7. Generate `depsets.json`. For non-interop chains this contains only the chain itself.
-8. Commit the prestate: the prestate is built through the monorepo's `reproducible-prestate` or `reproducible-prestate-kona` recipes used today. The `prestate` command commits the hash back into the pipeline.
+8. Commit the prestate: the prestate is built through the monorepo's `reproducible-prestate-kona` recipe used today. The `prestate` command commits the hash back into the pipeline.
 9. Submit `OPCM.deploy()` carrying the real `startingAnchorRoot` and `absolutePrestate`.
 10. Chain starts. The permissionless dispute game is valid from block 0.
 
@@ -297,7 +297,7 @@ A caller runs `prepare`, builds the prestate in the monorepo from the emitted ar
 ```mermaid
 flowchart TD
     A["prepare<br/>Steps 1–7 (off-chain)"] --> ART["genesis.json + rollup.json + depsets.json"]
-    ART -.-> BUILD["prestate built externally<br/>(reproducible-prestate recipes)"]
+    ART -.-> BUILD["prestate built externally<br/>(reproducible-prestate-kona recipe)"]
     BUILD --> B["prestate command<br/>hash via flag or intent override"]
     OV["prestate override<br/>declared in intent"] -.-> B
     B -->|"writes"| F["state: prestate"]
