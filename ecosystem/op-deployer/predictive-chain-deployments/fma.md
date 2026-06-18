@@ -11,6 +11,7 @@
   - [FM4: Wrong Prestate Hash](#fm4-wrong-prestate-hash)
   - [FM5: Genesis Timestamp Overrun](#fm5-genesis-timestamp-overrun)
   - [FM6: Stale Prestate After Re-run of `prepare`](#fm6-stale-prestate-after-re-run-of-prepare)
+  - [FM7: Wrong startingAnchorRoot](#fm7-wrong-startinganchorroot)
 - [Audit Requirements](#audit-requirements)
 - [Appendix](#appendix)
   - [Appendix A: CREATE2 Address Prediction](#appendix-a-create2-address-prediction)
@@ -97,6 +98,17 @@ References:
   2. The prestate is built from the committed `rollup.json`, so rebuilding after any `genesis_time` change keeps the prestate and the deployed artifacts consistent.
 - **Detection:** Reproduce the prestate from the current committed `genesis.json`, `rollup.json`, and `depsets.json` and compare against the `absolutePrestate` in the state. A mismatch means the prestate is stale relative to the current artifacts.
 - **Recovery Path(s):** Rebuild the prestate from the current artifacts and re-commit the hash before running `continue`.
+
+### FM7: Wrong startingAnchorRoot
+
+- **Description:** The `startingAnchorRoot` committed to the state is incorrect. `OPCM.deploy()` seeds `AnchorStateRegistry` with this anchor, and every dispute game bootstraps its proof from it. Because the anchor does not match the real genesis, the program is told to start from a state that never existed, so honest proposals that descend from the real genesis cannot be proven and fault proofs are broken from block 0.
+- **Risk Assessment:** Low likelihood, high impact. The output root is computed deterministically from the genesis block in the `op-deployer` pipeline which makes the most probable causes are either a derivation bug or a wrong value written in state files.
+- **Mitigations:**
+  1. Before running `continue`, the reviewer should recompute `outputRoot = keccak256(version || stateRoot || messagePasserStorageRoot || blockHash)` from the committed genesis block and compare against the `startingAnchorRoot` in the state.
+- **Detection:** Recompute the `startingAnchorRoot` from the same values the pipeline computes it from. Post-deploy validation reads the anchor from `AnchorStateRegistry.getStartingAnchorRoot()` and compares it against recomputed anchor root for the genesis block. A mismatch confirms a wrong anchor root.
+- **Recovery Path(s):** Depends on where in the pipeline the bad anchor is caught:
+  1. **Before `OPCM.deploy()`.** A reviewer recomputing the `startingAnchorRoot` flags the mismatch while the anchor still lives only in the configuration artifacts. Fix the value and continue the pipeline.
+  2. **During post-deploy validation** Full redeployment is required with the correct anchor root.
 
 ## Audit Requirements
 
