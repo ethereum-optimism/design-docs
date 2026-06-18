@@ -65,7 +65,8 @@ References:
 - **Risk Assessment:** Low likelihood, high impact. The chain is unusable if the fabricated addresses differ from what OPCM actually deploys.
 - **Mitigations:**
   1. Use a trusted or self-hosted L1 RPC endpoint.
-  2. Post-deploy validation is the backstop for this failure mode.
+  2. `op-deployer` cross-checks the dry-run against a second, independent L1 RPC. Different addresses flag a compromised endpoint before deployment.
+  3. Post-deploy validation is the backstop for this failure mode.
 - **Detection:** Post-deploy validation compares every address the dry-run returned against what `OPCM.deploy()` actually emitted. A fabricated address produces an immediate mismatch.
 - **Recovery Path(s):** Full redeployment against a trusted RPC.
 
