@@ -3,27 +3,29 @@
 | Field | Content |
 | --- | --- |
 | **Author** | Wonderland |
-| **Created at** | 2026-02-27 |
+| **Created at** | 2026-02-27 (last updated: 2026-05-22) |
 | **Initial Reviewers** | TBD |
 | **Need Approval From** | TBD |
 | **Status** | Draft |
 
 # **Purpose**
 
-The goal is to integrate a ZK-based dispute game into the OP Stack as a first-class game type, offered alongside the current multi-round bisection protocol.
+The goal is to integrate a ZK-based dispute game into the OP Stack as a first-class game type, offered alongside the current multi-round bisection protocol and adopting super roots from day one, making it compatible with both standalone chains and chains sharing the dispute game protocol.
 
 > ⚙
 > This design doc covers the smart contract work only. Off-chain components are covered in a separate design doc and work pipeline.
 
 # Summary
 
-The proposed `ZKDisputeGame` is a new dispute game type that resolves disputes in a single round: a proposer posts an output root with a bond, anyone can challenge it by depositing a challenger bond, and a prover submits a ZK proof to defend the claim or lets the proving window expire. The contract is fully permissionless (proposing, challenging, and proving), integrates with `DelayedWETH` for bond safety, uses the MCP clone pattern for per-chain deployment via OPCM, and calls a chosen ZK verifier through a generic `IZKVerifier` interface. In this first iteration, the work includes support for SP1 (PLONK) by Succinct while enabling future zkVM integrations.
+The proposed `ZKDisputeGame` is a new dispute game type that resolves disputes in a single round: a proposer posts a super root with a bond, anyone can challenge it by depositing a challenger bond, and a prover submits a ZK proof to defend the claim or lets the proving window expire. The contract is fully permissionless (proposing, challenging, and proving), integrates with `DelayedWETH` for bond safety, uses the MCP clone pattern for per-chain deployment via OPCM, and calls a chosen ZK verifier through a generic `IZKVerifier` interface. The same contract handles standalone deployments (single chain, N=1 super root) and interop sets (multiple chains, N>1 super root) under a shared dispute game. In this first iteration, the work includes support for SP1 (PLONK) by Succinct while enabling future zkVM integrations.
 
 # Problem Statement + Context
 
 The OP Stack currently relies on fault proofs, which require seven days in total by default to finalize withdrawals. The fault proof system uses an interactive bisection protocol where disputes are resolved through multiple rounds of on-chain interaction. This multi-round process is complex and may further delay even more the withdrawal finality.
 
 ZK proofs offer an alternative: instead of interactively bisecting to find the disputed instruction, a prover generates a single cryptographic proof that the entire state transition is correct. This eliminates the need for multiple rounds of interaction and the associated time window. Multiple zkVM implementations (SP1, RISC Zero, Jolt, Zisk, among others) are capable of generating such proofs, making a verifier-agnostic design both feasible and desirable.
+
+In parallel, the OP Stack is converging on super roots as the canonical state commitment for chains. As an example, a `SuperFaultDisputeGame` implementation already exists, and `OptimismPortal` already supports routing for super root commitments. Shipping a ZK game with super-root semantics from day one avoids future migrations.
 
 The current OP Succinct Lite implementation (ZK-Fault Proof mode) has demonstrated the feasibility of resolving a dispute game with a single ZK proof at production-grade level. Its contracts serve as the starting point for this design, but several changes are needed to make it OP Stack compliant:
 
@@ -33,9 +35,10 @@ The current OP Succinct Lite implementation (ZK-Fault Proof mode) has demonstrat
 - Missing safety checks: No pause check in `closeGame`, which must be present to comply with the current security mode as in Fault Proofs.
 - No OPCM integration: The ZK game type is not recognized by it.
 - No MCP compatibility: All configurations live in the constructor immutables, preventing OPCM from deploying per-chain instances from a shared implementation.
+- No super-root semantics: The contract proves single-chain output roots, not the super-root commitments.
 
 > 📝
-> The design doc builds on the following existing contracts: `OptimisticZkGame` [0.2.0](https://github.com/ethereum-optimism/optimism/blob/80804af288d016d28bf26e3b14e58679bb070d87/packages/contracts-bedrock/src/dispute/zk/OptimisticZkGame.sol) (equivalent to `OPSuccinctFaultDisputeGame` [2.0.0](https://github.com/succinctlabs/op-succinct/blob/47435327eecf8d207fe6f5f1945078224a85e954/contracts/src/fp/OPSuccinctFaultDisputeGame.sol)) with the FDG described in [develop](https://github.com/ethereum-optimism/optimism/tree/develop/packages/contracts-bedrock/src/dispute).
+> The design doc builds on the following existing contracts: `OptimisticZkGame` [0.2.0](https://github.com/ethereum-optimism/optimism/blob/80804af288d016d28bf26e3b14e58679bb070d87/packages/contracts-bedrock/src/dispute/zk/OptimisticZkGame.sol) (equivalent to `OPSuccinctFaultDisputeGame` [2.0.0](https://github.com/succinctlabs/op-succinct/blob/47435327eecf8d207fe6f5f1945078224a85e954/contracts/src/fp/OPSuccinctFaultDisputeGame.sol)) with the FDG/SPDG/SFDG described in [develop](https://github.com/ethereum-optimism/optimism/tree/develop/packages/contracts-bedrock/src/dispute).
 
 # Proposed Solution
 
@@ -44,10 +47,11 @@ The current OP Succinct Lite implementation (ZK-Fault Proof mode) has demonstrat
 - Align with the current OP Stack security model for proofs.
 - Maintain the Stage 1 reachable by default.
 - Enable zkVM agnosticism.
+- Support standalone and interop deployments under a single contract.
 
 ## General Architecture
 
-The `ZKDisputeGame` (as a renaming of the current `OptimisticZkGame`/`OPSuccinctFaultDisputeGame`) sits at the center of the OP Stack dispute system, interacting with the same infrastructure as the existing `FaultDisputeGame`.
+The `ZKDisputeGame` (as a renaming of the current `OptimisticZkGame`/`OPSuccinctFaultDisputeGame`) sits at the center of the OP Stack dispute system, interacting with the same infrastructure as `SuperFaultDisputeGame`. Its `rootClaim` is a super root (a hash committing to all chains' output roots at a given timestamp), and the Portal queries per-chain output roots via `rootClaimByChainId` during withdrawal verification.
 
 The following chart provides an insight of how the general architecture of the design would look like:
 
@@ -65,7 +69,7 @@ graph TB
     end
     
     subgraph Game Creation
-        ZKClone["ZKDisputeGame<br/> (MCP clone)<br/><br/>gameArgs:<br/>- absolutePrestate<br/>- verifier<br/>- maxChallengeDuration<br/>- maxProveDuration<br/>- challengerBond<br/>- anchorStateRegistry<br/>- weth<br/>- l2ChainId"]
+        ZKClone["ZKDisputeGame<br/> (MCP clone)<br/><br/>gameArgs:<br/>- absolutePrestate<br/>- verifier<br/>- maxChallengeDuration<br/>- maxProveDuration<br/>- challengerBond<br/>- anchorStateRegistry<br/>- weth"]
         
         ZKImpl -.->|implementation of| ZKClone
         DGF -->|clone with gameArgs| ZKClone
@@ -123,7 +127,7 @@ graph TB
 | **AnchorStateRegistry** | Source of truth for game **finalization**, **anchor state**, **respected game type**, and **blacklisting**. | Enforces pause/blacklist checks. Governs which games can finalize withdrawals (via `isGameClaimValid` or equivalent) |
 | **DelayedWETH** | Bond custody with a time “airgap” lifecycle (deposit → unlock → withdraw). | Holds bond deposits. Adds delay before withdrawal so the system can pause/freeze funds if needed |
 | **IZKVerifier** | Generic verifier interface. A concrete deployment wraps a specific zkVM verifier (e.g., SP1 PLONK, RISC Zero). OPCM manages verifier versions. | `verify(absolutePrestate, publicValues, proofBytes)`. Versioning/upgrades coordinated by OPCM |
-| **Other related contracts (unchanged)** | `SuperchainConfig`, `OptimismPortal`, `SystemConfig` remain as in the known OP Stack flow. | Portal consumes game status/root claim for withdrawals. `SuperchainConfig` provides `paused()` (read by ASR through `SystemConfig`) |
+| **Other related contracts (unchanged)** | `SuperchainConfig`, `OptimismPortal`, `SystemConfig` remain as in the known OP Stack flow. | Portal consumes game status and calls `rootClaimByChainId(chainId)` on super games for withdrawal verification. `SuperchainConfig` provides `paused()` (read by ASR through `SystemConfig`). |
 
 ### Actors
 
@@ -137,22 +141,25 @@ graph TB
 
 ### 1. MCP Pattern Migration
 
-All the per-chain configurations move out of constructor immutables and into the `gameArgs` appended by `DisputeGameFactory` at clone time CWIA (clones-with-immutable-args), following the same pattern as in FDG. That means the `ZKDisputeGame` implementation contract has no constructor immutables related to the chain or program identity. This MCP pattern is what allows a single implementation contract to serve every chain, where each game instance is a lightweight clone that shares the implementation’s bytecode but carries its own per-chain configuration. 
+All the per-chain configurations move out of constructor immutables and into the `gameArgs` appended by `DisputeGameFactory` at clone time CWIA (clones-with-immutable-args), following the same pattern as in FDG and SFDG. That means the `ZKDisputeGame` implementation contract has no constructor immutables related to the chain or program identity. This MCP pattern is what allows a single implementation contract to serve every chain, where each game instance is a lightweight clone that shares the implementation’s bytecode but carries its own per-chain configuration. 
 
 The following fields are included in `gameArgs`:
 
-- `absolutePrestate`: identifies the ZK program being proven. In the case of SP1 deployment, this corresponds to the program’s verification key.
+- `absolutePrestate`: identifies the ZK program being proven. In the case of SP1 deployment, this corresponds to the program’s verification key. It executes the state transition for every chain if an interoperable set of chains are in place.
 - `verifier`: address of the verifier contract.
 - `maxChallengeDuration`: Time window for challenges.
 - `maxProveDuration`: Time window for proof submission after a challenge.
 - `challengerBond`: bond required to challenge a proposal.
 - `anchorStateRegistry`
 - `weth` (per-chain `DelayedWETH`)
-- `l2ChainId`
 
 The `absolutePrestate` represents the zkVM-specific program identity values. For example, in the SP1 backend, the `absolutePrestate` corresponds to the program's verification key.
 
-The `anchorStateRegistry`, `weth`, and `l2ChainId` are already known by OPCM from the chain's deployment, and are injected by `makeGameArgs()` directly. 
+`l2ChainId` was removed as an argument since chain scoping comes from the `SuperRootProof` preimage committed to via `rootClaim`.
+
+`rootClaim` is always a super root hash: `Hashing.hashSuperRootProof(superRootProof)`. The `extraData` blob carries the `parentIndex` and the variable-length `superRootProof` preimage. The `l2SequenceNumber` (the super-root timestamp) is not a separate parameter: it lives inside the `superRootProof` and is therefore committed to via `rootClaim`.
+
+The `anchorStateRegistry` and `weth` are already known by OPCM from the chain's deployment, and are injected by `makeGameArgs()` directly. 
 
 ### 2. Verifier Agnosticism
 
@@ -173,7 +180,7 @@ function prove(bytes calldata _proofBytes) external {
 }
 ```
 
-The prove function constructs the public values from the game’s on-chain state (`l1Head`, `startingOutputRoot`, `rootClaim`, `L2SequenceNumber`, and `l2ChainId`), then calls the `IZKVerifier` with `verify`. Such an interface will be:
+The prove function constructs the public values from the game’s on-chain state (`l1Head`, `startingProposal.root`, `rootClaim`), the `l2SequenceNumber` fetched from the `superRootProof`, and `msg.sender` (to prevent proof replay), then calls the `IZKVerifier` with `verify`. Such an interface will be:
 
 ```solidity
 interface IZKVerifier is ISemver {
@@ -191,7 +198,7 @@ Existing verifiers can be integrated by wrapping them in an `IZKVerifier`compati
 
 **Verifier Added**
 
-The `ZKDisputeGame` can accept any verifier that complies with `ZKVerifier` interface. The first verifier to be integrated in this phase will be the `PLONKVerifier` of Succinct, deployed behind an adapter implementing the `IZKVerifier`. PLONK is chosen over others like Groth16 because it has a better trust model and a simpler upgrade path. The performance tradeoff (~3-4x slower proving, ~30K more gas) is negligible in a dispute context where proofs are rare and time windows span hours.
+The `ZKDisputeGame` can accept any verifier that complies with `IZKVerifier` interface. The first verifier to be integrated in this phase will be the `PLONKVerifier` of Succinct, deployed behind an adapter implementing the `IZKVerifier`. PLONK is chosen over others like Groth16 because it has a better trust model and a simpler upgrade path. The performance tradeoff (~3-4x slower proving, ~30K more gas) is negligible in a dispute context where proofs are rare and time windows span hours.
 
 Future iterations can integrate additional zkVM backends such as RISC Zero, Jolt, or others through the same `IZKVerifier` adapter pattern.
 
@@ -218,14 +225,16 @@ Two checks from `FaultDisputeGame.closeGame()` are added in `ZKDisputeGame`:
 
 ### 5. Permissionless Access
 
-The `AccessManager` contract is removed entirely. Proposing, challenging, and proving are all fully permissionless, matching the `FaultDisputeGame` model.
+The `AccessManager` contract is removed entirely. Proposing, challenging, and proving are all fully permissionless, matching the `FaultDisputeGame` and `SuperFaultDisputeGame` model.
 
 ### 6. Chain Identification
 
-The OP Succinct contracts use `ROLLUP_CONFIG_HASH` as a proof public value. This value is replaced with the `l2ChainId` for two reasons:
+The OP Succinct contracts use `ROLLUP_CONFIG_HASH` as a proof public value to bind proofs to a specific chain's configuration. Under super-root semantics, chain identification works differently:
 
-- **Operational simplicity**: `l2ChainId` is a single integer already available in `SystemConfig` and passed through `gameArgs` by OPCM.
-- **Hardfork resilience**: When a new hardfork adds fields to `RollupConfig`, the hash changes for every chain and must be updated on-chain. With `l2ChainId`, hardfork config changes are absorbed uniquely into the program update (as a new `absolutePrestate`).
+- The rootClaim is a super root that explicitly commits to a super-root timestamp (the `l2SequenceNumber`) and the `(chainId, outputRoot)` pairs via the `SuperRootProof` preimage in extraData.
+- The `l2ChainId` field is removed entirely from `gameArgs` rather than enforced to 0, since super games have no single chain ID.
+- The ZK program identified by `absolutePrestate` is compiled for a specific chain set and embeds each chain's `RollupConfig`. Changes to the chain set, to any participating chain's STF, or to any hardfork schedule require a new `absolutePrestate` via governance.
+- For standalone deployments, the chain set is one chain, and the `SuperRootProof` preimage contains one entry. Operationally, the chain operator still coordinates `absolutePrestate` updates across hardforks.
 
 ### 7. Parent Validation
 
@@ -236,23 +245,22 @@ That means the parent-chaining model introduces checks not present in FDG (which
 - Parent must not be blacklisted or retired
 - Parent must be the same game type
 - Parent must not have resolved as `CHALLENGER_WINS`
-- Parent’s `l2SequenceNumber` must be at or above the anchor state
+- Parent’s `l2SequenceNumber` must be above the anchor state
 - `isGameRespected` check on the parent is removed (which only gates withdrawals, not chaining)
 
 If a parent is blacklisted or retired after child games have already been created, the Guardian must individually blacklist or retire those child games, which places them into REFUND mode.
 
 ### 8. OPCM Integration
 
-The `ZKDisputeGame` (as game type = 10) integrates into OPCM v2 through the existing `DisputeGameConfig` flow - the same as Cannon and Permissionless Cannon. No new OPCM primitives are needed - the integration reuses the existing pattern with three additions specific to the ZK game type.
+The `ZKDisputeGame` (as game type = 10) integrates into OPCM v2 through the existing `DisputeGameConfig` flow. No new OPCM primitives are needed - the integration reuses the existing pattern with three additions specific to the ZK game type.
 
 OPCM needs three things to support a new game type:
 
-1. An implementation address: The `ZKDisputeGame` is deployed once (with `DeployImplementations` script) and is tracked in `OPContractsManagerContainer.Implementations` alongside the existing fault game implementations.
-2. Config struct for per-chain parameters: A new `ZKDisputeGameConfig` struct carries the fields that vary per deployment (`absolutePrestate`, `verifier`, `maxChallengeDuration`, `maxProveDuration` and `challengerBond`. This struct is ABI-encoded by the caller (op-deployer or upgrade scripts) and passed as the `gameArgs` bytes in `DisputeGameConfig`.
-OPCM’s `_makeGameArgs()` decodes it, injects the chain specific values it already knows (`anchorStateRegistry`, `delayedWETH`, `l2ChainId`) and packs the final CWIA bytes for the factory. 
+1. An implementation address: The `ZKDisputeGame` is deployed once (via DeployImplementations script) and tracked in `OPContractsManagerContainer.Implementations` alongside the existing fault game implementations. The `zkDisputeGameImpl` slot is already wired in the container.
+2. Config struct for per-chain parameters: A `ZKDisputeGameConfig` struct carries the fields that vary per deployment (`absolutePrestate`, `verifier`, `maxChallengeDuration`, `maxProveDuration`, `challengerBond`). This struct is ABI-encoded by the caller (op-deployer or upgrade scripts) and passed as the `gameArgs` bytes in `DisputeGameConfig`. OPCM's `_makeGameArgs()` decodes it, injects the chain-specific values it already knows (`anchorStateRegistry`, `delayedWETH`), then packs the final variable-length CWIA bytes for the factory.
     
     ```solidity
-    // anchorStateRegistry, delayedWETH, and l2ChainId are injected
+    // anchorStateRegistry and delayedWETH are injected
     // by OPCM directly.
     struct ZKDisputeGameConfig {
         Claim absolutePrestate;
@@ -264,8 +272,8 @@ OPCM’s `_makeGameArgs()` decodes it, injects the chain specific values it alre
     
     ...
     
-    // Game type ID 10 (ZK_GAME_TYPE)
-    if (_gcfg.gameType.raw() == GameTypes.ZK_GAME_TYPE.raw()) {
+    // Game type ID 10 (ZK_DISPUTE_GAME)
+    if (_gcfg.gameType.raw() == GameTypes.ZK_DISPUTE_GAME.raw()) {
         ZKDisputeGameConfig memory cfg =
             abi.decode(_gcfg.gameArgs, (ZKDisputeGameConfig));
         return abi.encodePacked(
@@ -275,13 +283,14 @@ OPCM’s `_makeGameArgs()` decodes it, injects the chain specific values it alre
             cfg.maxProveDuration,
             cfg.challengerBond,
             address(_anchorStateRegistry),
-            address(_delayedWETH),
-            _l2ChainId
+            address(_delayedWETH)
         );
     }
     ```
     
-3. Validation: `ZK_DISPUTE_GAME` is added to the `validGameTypes` array in `_assertValidFullConfig()`, extending the current set of three (Cannon, Permissioned Cannon, Cannon Kona) to four.
+3. Validation and super-game wiring: `ZK_DISPUTE_GAME` is added to the `validGameTypes` array in `_assertValidFullConfig()`, extending the current set, and to the super game allowlist in the types library.
+
+Existing chains are expected to start with `SuperFaultDisputeGame` or `SuperPermissionedDisputeGame` and migrate to `ZKDisputeGame` via an upgrade. The migration updates the `absolutePrestate` and reconfigures the `DisputeGameFactory` and `AnchorStateRegistry`.
 
 ## Game Lifecycle
 
@@ -362,7 +371,7 @@ Resolution is permissionless. Anyone can call the `resolve` function once the ga
 
 ### Closing and Bond Distribution
 
-After resolution, bonds are distributed through a two-phase process, aligned with the `FaultDisputeGame`.
+After resolution, bonds are distributed through a two-phase process, aligned with the `FaultDisputeGame` and `SuperFaultDisputeGame`.
 
 1. `closeGame`: Closing a game is permissionless. It is also called when the `claimCredit` function is called.
     - Pause check: It reverts if the `AnchorStateRegistry` is paused.
@@ -377,14 +386,16 @@ After resolution, bonds are distributed through a two-phase process, aligned wit
 
 ## ZK Program Implications
 
-This design assumes a single `bytes32` `absolutePrestate` uniquely identifies the ZK program. In the case of Succinct, this has implications for the existing SP1 program architecture used by `OPSuccinctFaultDisputeGame`, which currently:
+This design assumes a single `bytes32` `absolutePrestate` uniquely identifies the ZK program. The program is interop-aware, which means it executes the derivation and state-transition logic for every chain in the interop set if there are multiple.
+
+In the case of Succinct, this has implications for the existing SP1 program architecture used by `OPSuccinctFaultDisputeGame`, which currently:
 
 - Uses a two-program model: a range program (`RANGE_VKEY`) that proves individual block ranges and an aggregation program (`AGGREGATION_VKEY`) that recursively verifies multiple range proofs into a single on-chain proof.
 - Requires `ROLLUP_CONFIG_HASH` as an on-chain public value to bind proofs to a specific chain's configuration.
 
 To satisfy the single-prestate model, the `RANGE_VKEY` and the chain's `RollupConfig` are embedded directly into the aggregation program's source code. Since the aggregation program now hardcodes which range program it verifies and which chain configuration it uses, its resulting `AGGREGATION_VKEY` becomes a unique fingerprint of the entire proving pipeline. Any change to the range program, the rollup configuration, or the aggregation logic itself produces a different verification key, and therefore a different `absolutePrestate`.
 
-Following the pattern used by fault proofs (op-program and kona), the ZK program can leverage the `superchain-registry` to load chain configurations by `l2ChainId`, allowing a single program binary to serve all chains in the registry.
+Following the pattern used by fault proofs (op-program and kona), the ZK program reads chain IDs from the `SuperRootProof` preimage carried in `extraData` and looks up each chain's configuration in the `superchain-registry` crate. This allows a single program binary to serve any chain set drawn from the registry.
 
 If any verifier-specific processing of the `absolutePrestate` is required beyond what the game contract provides, it should be handled within the `IZKVerifier` adapter.
 
@@ -423,8 +434,8 @@ We considered keeping `rollupConfigHash` as an explicit on-chain check but rejec
 Three options were considered for how the anchor state should interact with parent validation during game creation:
 
 1. No anchor check: allow games to reference any non-blacklisted parent regardless of the anchor position.
-2. Parent must be at or above anchor: Enforce that the parent’s `l2SequenceNumber` is at or above the current anchor state’s `l2SequenceNumber`.
-3. New game must be above anchor (but parent can be below): Only check that the new game’s `l2SequenceNumber`  is above the anchor.
+2. Parent must be above anchor: Enforce that the parent’s `l2SequenceNumber` is above the current anchor state’s `l2SequenceNumber`.
+3. New game must be above anchor, but parent can be below: Only check that the new game’s `l2SequenceNumber`  is above the anchor.
 
 For this, Option 2 was chosen. Under normal operation, a rational proposer would never use a parent below the anchor, since it increases the proving range unnecessarily when they could start from the anchor directly via `parentIndex = type(uint32).max`. There is an assumption the anchor advances slowly (12+ hours minimum) relative to proposal frequency (1 hour), making the orphaning risk negligible in practice.
 
@@ -442,10 +453,10 @@ Additionally, the following parent validation decisions were made:
     - Durations too short risk valid proposals being rejected or being resolved wrongly
     - Durations too long delay withdrawals finality
     
-    It is recommended to benchmark proving costs and document recommended values or standard chains, similar to how fault proof bonds are standardized today.
+    It is recommended to benchmark proving costs and document recommended values or standard chains, similar to how fault proof bonds are standardized today. Note that super-root proving time grows with the chain set size, so durations may need to be revisited as chains join the interop set.
     
 - Unified Program Dependency: The single `bytes32` prestate representation assumes that the ZK program identity can be captured in one value (e.g., via embedding the range vkey and rollup config in the aggregation program). If the program remains split, the prestate encoding would need to carry multiple values, handled by the verifier adapter. There are also operational tooling concerns on how chains generate and manage their `absolutePrestate` value at scale.
-- Interop: It will require a `SuperZKDisputeGame` variant that proves cross-chain consistent state via super roots. Cross-chain message validation requires a single program that executes all interop chains simultaneously, as independent per-chain proofs cannot verify the consistency of messages exchanged directly between chains, given their circular dependency of the current design.
+- Chain Set Evolution: Adding a chain to an existing interop set requires a new `absolutePrestate` and may require an anchor reset in the `AnchorStateRegistry`. The OP Stack's existing super-dispute-game migration design notes incremental chain addition as out of scope for v1. `ZKDisputeGame` inherits this constraint: the chain set is fixed at deployment time per `absolutePrestate`, and chain additions require coordinated governance.
 
 # Appendix
 
@@ -461,21 +472,19 @@ The following table summarizes the differences between the previous approach (`O
 
 | Item | OptimisticZkGame / OPSuccinctFaultDisputeGame (old) | ZKDisputeGame |
 | --- | --- | --- |
-| **Game Type ID** | 10 and 6 respectively (but Succinct allocated 42 in its repo) | Take 10 |
+| **Game Type ID** | 10 and 6 respectively (but Succinct allocated 42 in its repo) | Takes 10. Registered in `GameTypes.isSuperGame()` allowlist. |
 | **Architecture pattern** | Constructor immutables. All config (`SP1_VERIFIER`, `ROLLUP_CONFIG_HASH`, `AGGREGATION_VKEY`, `RANGE_VKEY_COMMITMENT`, `CHALLENGER_BOND`, `ANCHOR_STATE_REGISTRY`, `ACCESS_MANAGER`, durations) hardcoded at deploy time. | MCP clones. A single shared implementation is cloned per proposal. All per-chain config is injected via `gameArgs` appended by `DisputeGameFactory`. |
+| **rootClaim semantics** | Single-chain output root. | Super root: `keccak256(SuperRootProof)` committing to all chains' output roots at a timestamp. |
+| **extraData layout** | Fixed. | Variable (depending on the `SuperRootProof` preimage). |
 | **Prestate representation** | Two separate fields: `AGGREGATION_VKEY` + `RANGE_VKEY_COMMITMENT`, stored as constructor immutables. | Unified `absolutePrestate` in `gameArgs`. This is a single representation for verifier-agnostic program identification.  |
 | **Permissioning model** | `AccessManager` siloed. Both `initialize()` and `challenge()` call `isAllowedProposer()` / `isAllowedChallenger()`. Includes a `FALLBACK_TIMEOUT` for permissionless fallback. | Fully permissionless. |
 | **Bond management** | Raw bonds in ETH + the contract receives `msg.value` through `initialize()` and `challenge()` | Integration with `DelayedWETH`. Bonds follow the deposit → unlock → withdraw lifecycle as in FDG. It has a delay window as a security measure |
 | **Proof verification** | Calls `ISP1Verifier` directly with `AGGREGATION_VKEY` and `RANGE_VKEY_COMMITMENT` as separate immutable | **Verifier agnostic**. Calls `IZKVerifier.verify(absolutePrestate, publicValues, proofBytes)` Verifier address and absolute prestate comes from `gameArgs`. |
 | **Verifier trust model** | Groth16 (implicit default from Succinct). | Any verifier, with SP1 PLONK as the first addition. |
 | **Resolution model** | Immediate resolution when proof is provided and parent is resolved. No clock expiration needed. | Immediate resolution when proof provided + additional safety via `DelayedWETH` delay and `AnchorStateRegistry` finality delay. |
-| **Chain identification** | `ROLLUP_CONFIG_HASH`: SHA-256 of JSON-serialized `RollupConfig` with a plethora of parameters. | `l2ChainId`: single integer from `SystemConfig`, injected via `gameArgs`. Config changes are absorbed into the program update (new `absolutePrestate`). |
+| **Chain scoping** | `ROLLUP_CONFIG_HASH`: SHA-256 of JSON-serialized `RollupConfig` with a plethora of parameters. | Super root commits to the chain set via the `SuperRootProof` preimage in `extraData`. Config changes are absorbed into the program update (new `absolutePrestate`). |
 | **OPCM integration** | None | Full integration. `ZK_DISPUTE_GAME` added to `validGameTypes`, `zkDisputeGameImpl` tracked in `Implementations`, `_makeGameArgs` encodes all `gameArgs` fields, upgrade path via `UpgradeInput`. |
-| **Safety mechanisms** | No pause check. No `resolvedAt` zero-check. Bonds held as raw ETH in the contract. | 1. Pause check via `AnchorStateRegistry`, managed by `SuperchainConfig`. 
-
-2. Game blacklisting. `disputeGameFinalityDelaySeconds` buffer. 
-
-3. Bonds managed by `DelayedWETH` for withdrawal delay and refund. |
+| **Safety mechanisms** | No pause check. No `resolvedAt` zero-check. Bonds held as raw ETH in the contract. | 1. Pause check via `AnchorStateRegistry`, managed by `SuperchainConfig`. 2. Game blacklisting. `disputeGameFinalityDelaySeconds` buffer. 3. Bonds managed by `DelayedWETH` for withdrawal delay and refund. |
 | **Upgrade path** | Requires redeployment of the entire contract with new constructor immutables. | Managed through OPCM |
 
 ## Appendix C: An Example of ZK Game Flow
@@ -525,7 +534,7 @@ sequenceDiagram
 
 In this iteration, the `ZKDisputeGame` offers the SP1+PLONK proof scheme verifier instead of Groth16, perhaps being the one recommended by Succinct. There are various reasons for doing this:
 
-The `ZKDisputeGame` can accept any verifier that complies with the `ZKVerifier` interface, and the first verifier integrated in this phase will be Succinct's `PLONKVerifier`. PLONK is chosen over Groth16 primarily for its stronger trust model and simpler upgrade path, with negligible performance tradeoffs in a dispute context. The table below compares both schemes across the dimensions that informed this decision.
+The `ZKDisputeGame` can accept any verifier that complies with the `IZKVerifier` interface, and the first verifier integrated in this phase will be Succinct's `PLONKVerifier`. PLONK is chosen over Groth16 primarily for its stronger trust model and simpler upgrade path, with negligible performance tradeoffs in a dispute context. The table below compares both schemes across the dimensions that informed this decision.
 
 | Dimension | Groth16 | PLONK | Impact on the ZK Game |
 | --- | --- | --- | --- |
