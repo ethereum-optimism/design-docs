@@ -25,7 +25,7 @@ This problem is worked around on L1 through special block builders like Flashbot
 
 ## Do Nothing
 
-4337 account abstraction is currently live on optimism. Dapps utilize the bundler endpoints that are come with a vendor-specific SDK -- Alchemy, Pimilico, Thirdweb, etc -- each with their own mempools. As 4337 infrastructure becomes more permissionless, we will later have to play catch-up to ensure the op-stack remains compatible while other L2 offerings have already moved towards supporting `eth_sendRawTransactionConditional`.
+4337 account abstraction is currently live on optimism. Dapps utilize the bundler endpoints that come with a vendor-specific SDK -- Alchemy, Pimlico, Thirdweb, etc -- each with their own mempools. As 4337 infrastructure becomes more permissionless, we will later have to play catch-up to ensure the op-stack remains compatible while other L2 offerings have already moved towards supporting `eth_sendRawTransactionConditional`.
 
 ## Verticalize the OP-Stack
 
@@ -36,7 +36,7 @@ Verticalization is possible in the proposed solution by configuring the allowlis
 
 # Proposed Solution
 
-1. Implement `eth_sendRawTransactionConditional` in op-geth with support for the conditionals described in the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j), for which a draft implementation [exists](https://github.com/ethereum/go-ethereum/compare/master...tynes:go-ethereum:eip4337) but requires a refresh. The conditional attached to the transaction is checked against the latest unsafe head the prior to mempool submisison and re-checked when included in the block being built.
+1. Implement `eth_sendRawTransactionConditional` in op-geth with support for the conditionals described in the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j), for which a draft implementation [exists](https://github.com/ethereum/go-ethereum/compare/master...tynes:go-ethereum:eip4337) but requires a refresh. The conditional attached to the transaction is checked against the latest unsafe head before the mempool submission and re-checked when included in the block being built.
 
     * There exists implementations for [Arbitrum](https://github.com/OffchainLabs/go-ethereum/blob/da4c975e354648c7be814ab9667b42f1c19cdc0f/arbitrum/conditionaltx.go#L25) and [Polygon](https://github.com/maticnetwork/bor/blob/b8ad00095a9e3e508517d802c5358a5ce3e81ed3/internal/ethapi/bor_api.go#L70) conforming to the [spec](https://notes.ethereum.org/@yoav/SkaX2lS9j). On Polygon, the API is authenticated under the` bor` namespace but public on Arbitrum under the `eth` namespace.
 
@@ -48,9 +48,9 @@ Verticalization is possible in the proposed solution by configuring the allowlis
 
     * **Only 4337 Entrypoint Contract Support**: `tx.to() == entrypoint_contract_address`
 
-        The rationale is to make it easier to rollback if deprecated in the future due to native account abstraction or better solutions. Otherwise new uses case might create unwanted dependencies on this endpoint.
+        The rationale is to make it easier to rollback if deprecated in the future due to native account abstraction or better solutions. Otherwise new use cases might create unwanted dependencies on this endpoint.
 
-        There does exist different [versions](https://github.com/eth-infinitism/account-abstraction/releases) of the Entrypoint contract as the 4337 spec is iterated on. We'll need to stay up to date with these version as a part of op-stack [preinstalls](https://docs.optimism.io/builders/chain-operators/features/preinstalls) and pass through calls to all the supported versions of `EntryPoint`.
+        There does exist different [versions](https://github.com/eth-infinitism/account-abstraction/releases) of the Entrypoint contract as the 4337 spec is iterated on. We'll need to stay up to date with these version as a part of op-stack [preinstalls](https://docs.optimism.io/operators/chain-operators/features/preinstalls) and pass through calls to all the supported versions of `EntryPoint`.
 
     * **Authentication**: Allowlist Policy
 
@@ -85,7 +85,7 @@ With this initial set of validation rules, we should be in a good position to sa
 
 * **conditional mempool latency**: understanding of how long conditional transactions are sitting in the mempool. We would expect failed inclusion the longer a conditional tx remains in the mempool due to state changes since submission.  Elevated latencies in combination with a low inclusion success rate will indicate if the proxy should be enforcing a higher minimum fee for these transactions to minimize mempool time.
 
-The public keys of known bundlers should be collected and registered. With alerts setup on the metrics above, when in a state of degradation, the allowlist policy should first be enabled to avoid 4337 downtime while assessing next steps. If still in a degradaded state, the endpoint should then be fully shutoff, having bundlers revert to `sendRawTransaction` until further iteration. Both of these actions should occur in tandem with public comms.
+The public keys of known bundlers should be collected and registered. With alerts setup on the metrics above, when in a state of degradation, the allowlist policy should first be enabled to avoid 4337 downtime while assessing next steps. If still in a degraded state, the endpoint should then be fully shutoff, having bundlers revert to `sendRawTransaction` until further iteration. Both of these actions should occur in tandem with public comms.
 
 Additional validation rules can be applied to boost performance of this endpoint. Here are a some extra applicable validation rules:
 
@@ -107,6 +107,6 @@ Additional validation rules can be applied to boost performance of this endpoint
 
 **Risk 2: Implemented validation isn't enough for permissionless bundler participation.** The listed validation rules are a starting point and there's room for exploration in horizontally scalable validation. However we can fallback to a permissioned allowlist for this endpoint which still enables 4337 shared mempools and likely makes no difference to dapp developers which already use a small subset of known infra providers.
 
-**Risk 3: Generalized External Validation.** Validation policies should be DRY'd between interop, eth_sendRawTransactionConditional, and any future use cases. These policies that are implementated should work well between these usecases as this approach is adopted and scales. The tech-debt here can grow quickly if each solution has it's own methods of preventing DoS and validation, especially operationally.
+**Risk 3: Generalized External Validation.** Validation policies should be DRY'd between interop, eth_sendRawTransactionConditional, and any future use cases. These policies that are implemented should work well between these usecases as this approach is adopted and scales. The tech-debt here can grow quickly if each solution has it's own methods of preventing DoS and validation, especially operationally.
 
-**Risk 4: Excessive Compute/Operational Requirements**. This endpoint is a feature provided out of protocol by the block builder -- the sequencer. With failed conditional transactions, the sequencer is not compensated with charged gas like when processing a reverted transaction, nor for the addtional checks of successful conditional transactions. There's also the added overhead of managing new services to mitigate DoS and increases the surface area where manual intervention will be required. The uncompensated compute or inability to effectively mitigate DoS may be a reason to rollback this feature.
+**Risk 4: Excessive Compute/Operational Requirements**. This endpoint is a feature provided out of protocol by the block builder -- the sequencer. With failed conditional transactions, the sequencer is not compensated with charged gas like when processing a reverted transaction, nor for the additional checks of successful conditional transactions. There's also the added overhead of managing new services to mitigate DoS and increases the surface area where manual intervention will be required. The uncompensated compute or inability to effectively mitigate DoS may be a reason to rollback this feature.
