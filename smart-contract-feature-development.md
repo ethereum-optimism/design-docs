@@ -5,8 +5,8 @@ The purpose of this document is to provide guidance on how develop smart contrac
 # Summary
 
 Feature branches result in a lot of effort spent keeping the feature branch up to date. We want to have modular code
-that enables us to easily compose features together such that we can get code mainlined early and toggle it off when
-running in production.
+that enables us to easily compose features together such that we can get code mainlined early while keeping
+development features disabled in production.
 
 # Problem Statement + Context
 
@@ -29,6 +29,19 @@ of solidity inheritance and all of the logic lives in a single contract, making 
 
 Below includes general guidelines for how to develop solidity feature contracts that are meant to be merged into mainline at
 some point in the future.
+
+### Development and system features
+
+Development features and system features have different lifecycles:
+
+- A development feature is a temporary gate that lets unfinished code merge early. Development features that are not
+  shipping must remain disabled in production.
+- A system feature is a production-supported setting stored in `SystemConfig`. It may remain configurable after release.
+
+When a development feature is ready to ship, the PR that makes its functionality production-default on `develop`,
+without requiring the development feature to be enabled in production, is the shipping signoff. The release candidate
+must be cut and audited from that commit. Keep the development-feature gate in the audited code through production,
+then track its removal as follow-up work. System features do not follow this cleanup lifecycle.
 
 ### Composition through Inheritance
 
