@@ -47,7 +47,7 @@ is an explicit sequencer trust assumption.
 
 SDM activates with the Lagoon network upgrade. Producing refunds additionally requires an operator-controlled
 execution-layer opt-in. Verification does not depend on this opt-in: after activation, every verifier must accept
-and apply a valid SDM payload whether or not that verifier would produce one.
+and apply a valid SDM payload if the sequencer did.
 
 The normative specifications are the source of truth:
 
