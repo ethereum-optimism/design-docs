@@ -246,7 +246,7 @@ blockers** until an owner accepts them and a tracking issue or PR is created.
 | ID | Candidate Follow-up | Failure Modes | Owner | Status |
 | --- | --- | --- | --- | --- |
 | A1 | Run a production-FPVM proof over a block with a non-empty SDM payload. | FM1, FM4 | _TBD_ | Proposed |
-| A2 | Add a post-Isthmus, Lagoon-active, non-empty fixture that compares execution-client and proof-program block hash and state root. | FM1, FM4 | _TBD_ | Proposed |
+| A2 | Add an action test that compares execution-client and proof-program block hash and state root. | FM1, FM4 | _TBD_ | Proposed |
 | A3 | Document the proof-program and dependency-set requirements for every SDM-active chain. | FM4, FM5 | _TBD_ | Proposed |
 | A4 | Implement and run the cross-component activation preflight described in FM5. | FM5 | _TBD_ | Proposed |
 | A5 | Resolve and specify how SDM canonical gas interacts with the EIP-7623 transaction gas floor. | FM1, FM2 | _TBD_ | Proposed |
