@@ -11,7 +11,8 @@
   - [FM2b: Settlement violates value conservation](#fm2b-settlement-violates-value-conservation)
   - [FM3: Refunds bypass block resource limits](#fm3-refunds-bypass-block-resource-limits)
   - [FM4: Fault-proof programs cannot prove an SDM block](#fm4-fault-proof-programs-cannot-prove-an-sdm-block)
-  - [FM5: Activation or operator configuration is inconsistent](#fm5-activation-or-operator-configuration-is-inconsistent)
+  - [FM5a: Lagoon activation is inconsistent](#fm5a-lagoon-activation-is-inconsistent)
+  - [FM5b: Sequencer SDM production configuration drifts](#fm5b-sequencer-sdm-production-configuration-drifts)
   - [FM6: RPC or receipt handling breaks consumers or misattributes refunds](#fm6-rpc-or-receipt-handling-breaks-consumers-or-misattributes-refunds)
   - [Generic items](#generic-items)
 - [Action Items](#action-items)
@@ -62,11 +63,14 @@ The normative specifications are the source of truth:
 
 ### FM1a: Structurally invalid or inconsistent PostExec blocks
 
-- **Description:** A producer may emit a stale cumulative PostExec payload in a subblock stream, produce a final
-  subblock-stream payload that differs from the sealed transaction, or seal a malformed payload. Examples include
-  multiple `0x7D` transactions, an incorrect position or block anchor, and invalid transaction indices. A
-  subblock-stream-only mismatch breaks pending views and preconfirmations. Uniform rejection of a malformed sealed
-  block causes a deposits-only replacement and user-transaction reorg.
+- **Description:** A producer may seal a malformed PostExec block whether it uses standard block building or
+  incremental subblocks. Examples include multiple `0x7D` transactions, an incorrect position or block anchor, and
+  invalid transaction indices. A batcher may omit, corrupt, or reorder `0x7D`; omission can produce a valid derived
+  block without refunds that differs from the unsafe block, while corruption or reordering can make the derived
+  payload invalid. With subblock streaming enabled, a producer may additionally emit a stale cumulative PostExec
+  payload or a final subblock-stream payload that differs from the sealed transaction. A subblock-stream-only mismatch
+  breaks pending views and preconfirmations. Uniform rejection of a malformed sealed block causes a deposits-only
+  replacement and user-transaction reorg.
 - **Risk Assessment:** High impact, low likelihood. Producer lifecycle bugs can invalidate preconfirmations or omit
   user transactions from the derived chain. The specification, execution-layer validation, and lifecycle tests
   reduce the likelihood.
@@ -78,30 +82,33 @@ The normative specifications are the source of truth:
   3. Before Lagoon activation, blocks containing PostExec transactions are invalid. After activation, the
      execution layer validates PostExec payloads, while derivation handles deposits-only recovery when a payload
      is invalid.
-  4. Existing unit and acceptance tests cover structural rejection and subblock-stream-to-sealed payload equality.
+  4. Existing unit and acceptance tests cover structural rejection, subblock-stream-to-sealed payload equality, and
+     PostExec derivation through singular and span batches.
 - **Possible Mitigations:**
   1. Add deposits-only replacement metrics and cross-client malformed-payload recovery coverage.
 - **Existing Detection:** Execution-engine `INVALID` responses and differential-test failures.
 - **Possible Detection:** Alerts for deposits-only replacements.
 - **Recovery Path(s):** A subblock-stream-only mismatch self-heals when the canonical block arrives but invalidates
-  the affected preconfirmation. Uniform rejection of a sealed payload results in a deposits-only block and
-  requires users to resubmit omitted transactions.
+  the affected preconfirmation. Batcher omission can reorg the unsafe block to a valid derived block without refunds.
+  Uniform rejection of a malformed sealed or batched payload results in a deposits-only block and requires users to
+  resubmit omitted transactions.
 
 ### FM1b: PostExec application diverges across clients
 
-- **Description:** Consensus consumers may apply the same valid PostExec payload differently. Examples include
-  applying a refund twice or calculating canonical gas, receipts, or settlement differently. A validity,
-  block-hash, or state-root disagreement between clients causes a chain split.
+- **Description:** Native op-reth execution and kona-executor's fault-proof execution path may apply the same valid
+  PostExec payload differently. Examples include applying a refund twice or calculating canonical gas, receipts, or
+  settlement differently. A validity, block-hash, or state-root disagreement between the two paths causes a chain
+  split or an invalid fault-proof result.
 - **Risk Assessment:** High impact, low likelihood. PostExec affects consensus-visible gas accounting, receipts,
-  balances, and state roots. Shared execution code and cross-client testing reduce the likelihood, but an
-  independent implementation can still diverge.
+  balances, and state roots. The two paths share core execution code, reducing the likelihood, but their parsing,
+  configuration, and integration paths can still diverge.
 - **Existing Mitigations:**
   1. Entries may target only standard Ethereum transactions. Execution enforces `refund <= evmGasUsed`, rejects
      settlement underflow, and consumes every entry exactly once.
   2. Existing tests cover producer/verifier round trips, settlement, and structural validity.
 - **Possible Mitigations:**
-  1. Add execution-client and fault-proof-program consensus coverage for a block containing an SDM refund.
-  2. Add cross-client differential coverage for valid and malformed PostExec payloads.
+  1. Add op-reth and kona-executor parity coverage for a block containing an SDM refund.
+  2. Add differential coverage across native and fault-proof execution for valid and malformed PostExec payloads.
 - **Existing Detection:** Replica block-hash or state-root disagreement, fault-proof disagreement, and
   differential-test failures.
 - **Possible Detection:** Alerts for cross-client block-hash disagreement.
@@ -202,36 +209,50 @@ The normative specifications are the source of truth:
   governance and registry process. Use the established fault-proof recovery process while the corrected program
   is prepared.
 
-### FM5: Activation or operator configuration is inconsistent
+### FM5a: Lagoon activation is inconsistent
 
 - **Description:** SDM uses the Lagoon activation timestamp across the consensus client, execution client, and
   fault-proof stack. A timestamp mismatch can make one component produce or accept `0x7D` while another considers
-  it inactive. Legacy configuration keys may be silently ignored. An execution client without PostExec support
-  cannot follow an SDM-active chain. Missing proof-program prerequisites can prevent proving at activation.
-  Separately, the operator opt-in defaults off and may differ across sequencer instances, causing refunds to stop
-  or vary after a restart. Exposing the mutating admin method can let an unauthorized caller toggle production.
+  it inactive. An execution client without PostExec support cannot follow an SDM-active chain. Missing proof-program
+  prerequisites can prevent proving at activation.
 - **Risk Assessment:** High impact, low likelihood with an activation preflight. Cross-component activation
-  disagreement can halt or split the chain. An opt-in-only mismatch has lower impact because verification is
-  independent of opt-in and missing refunds remain valid.
+  disagreement can halt or split the chain or make its outputs unprovable.
 - **Existing Mitigations:**
   1. The Superchain Registry defines the expected Lagoon activation schedule, and every component derives SDM
      activation from that schedule.
-  2. Refund production is enabled only when both Lagoon is active and the operator opt-in is set.
-  3. Verification ignores the local production opt-in.
-  4. The operator opt-in defaults off, supports boot-time configuration, and exposes effective state through the
+  2. Before Lagoon activation, blocks containing PostExec transactions are invalid; after activation, every verifier
+     must accept and apply valid PostExec payloads.
+- **Possible Mitigations:**
+  1. Add a cross-component activation preflight covering timestamps, execution-client support, and proof-program
+     selection.
+- **Existing Detection:** Standard replica-divergence and proof-failure alerts detect severe activation mismatches.
+- **Possible Detection:** Compare the effective Lagoon schedule reported by every consensus, execution, and
+  fault-proof component before activation.
+- **Recovery Path(s):** Before activation, correct configuration and reschedule if necessary. After activation, a
+  consensus mismatch may require a coordinated configuration update, rollback, or emergency hardfork.
+
+### FM5b: Sequencer SDM production configuration drifts
+
+- **Description:** The operator opt-in defaults off and may differ across sequencer instances, causing refunds to
+  stop or vary after a restart. The chain continues because verification is independent of the production opt-in,
+  but the resulting refund behavior may not match the operator's intent. Different valid refund policies likewise do
+  not halt the chain; their economic consequences are covered by FM2a. Exposing the mutating admin method can let an
+  unauthorized caller toggle production.
+- **Risk Assessment:** Medium impact, low likelihood with configuration monitoring. Drift does not invalidate blocks
+  or halt the chain, but it can create inconsistent user charges, revenue, and operator-policy compliance.
+- **Existing Mitigations:**
+  1. Refund production is enabled only when both Lagoon is active and the operator opt-in is set.
+  2. Verification ignores the local production opt-in and does not recompute the sequencer's refund policy.
+  3. The operator opt-in defaults off, supports boot-time configuration, and exposes effective state through the
      admin status method.
 - **Possible Mitigations:**
-  1. Add a cross-component activation preflight covering timestamps, legacy keys, execution-client support, and
-     proof-program selection.
-  2. Add restart health checks that verify the intended effective opt-in state.
-  3. Document and test that mutating admin methods are not exposed on public HTTP or WebSocket endpoints.
-- **Existing Detection:** The admin status method exposes protocol activation and effective opt-in state;
-  standard replica-divergence and proof-failure alerts detect severe mismatches.
-- **Possible Detection:** Cross-node configuration checks and alerts for unexpected opt-in changes or unexpected
+  1. Add restart and cross-sequencer health checks that verify the intended effective opt-in.
+  2. Document and test that mutating admin methods are not exposed on public HTTP or WebSocket endpoints.
+- **Existing Detection:** The admin status method exposes protocol activation and effective opt-in state.
+- **Possible Detection:** Cross-sequencer configuration checks and alerts for unexpected opt-in changes or unexpected
   presence or absence of `0x7D`.
-- **Recovery Path(s):** Before activation, correct configuration and reschedule if necessary. After activation,
-  an opt-in error is fixed by restoring the intended setting. A consensus activation mismatch may require a
-  coordinated configuration update, rollback, or emergency hardfork.
+- **Recovery Path(s):** Restore the intended opt-in on every active sequencer and restrict the admin endpoint if it
+  was exposed. Blocks already accepted under the drifted configuration remain consensus-valid.
 
 ### FM6: RPC or receipt handling breaks consumers or misattributes refunds
 
@@ -284,7 +305,7 @@ blockers** until an owner accepts them and a tracking issue or PR is created.
 | A5 | Add deposits-only replacement metrics and an acceptance test for malformed PostExec recovery across supported consensus clients. | FM1a | _TBD_ | Proposed |
 | A6 | Add refund anomaly alerts. | FM2a, FM3 | _TBD_ | Proposed |
 | A7 | Decide and document the PostExec receipt's auxiliary L1 fee fields. | FM6 | _TBD_ | Proposed |
-| A8 | Add an operator runbook for opt-in health checks, restarts, and admin-RPC exposure. | FM5 | _TBD_ | Proposed |
+| A8 | Add an operator runbook for opt-in health checks, restarts, and admin-RPC exposure. | FM5b | _TBD_ | Proposed |
 
 - [ ] Resolve all review comments and incorporate accepted decisions into this document (Assignee: document author).
 
