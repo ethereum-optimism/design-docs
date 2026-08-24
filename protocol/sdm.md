@@ -60,6 +60,10 @@ $$
 \text{effective gas}=\text{gas used}-\text{sequencer-defined refund}
 $$
 
+Here `gas used` is the EVM-reported value after ordinary EVM refunds and the EIP-7623 calldata floor. SDM is a
+separate post-EVM rebate and may reduce effective gas below that floor; clients must not apply the floor again
+once the SDM refund has been subtracted.
+
 There is also a block-level cap on the **total permissible gas used before rebates**. This is the hard limit on the sum of the raw `gas used` values of transactions that the sequencer is allowed to include in a block, before subtracting any SDM rebates. In production, this limit will be set to `MAX_GAS_LIMIT` from `L1.SystemConfig`.
 
 Given the **SDM mechanism**, we get the following effects:

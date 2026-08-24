@@ -59,6 +59,7 @@ The normative specifications are the source of truth:
   2. Incremental subblock streams use replace-not-append semantics for the cumulative PostExec payload; the final subblock-stream payload is compared with the sealed transaction, and sealing aborts if PostExec finalization fails.
   3. Before Lagoon activation, blocks containing PostExec transactions are invalid. After activation, the execution layer validates PostExec payloads, while derivation handles deposits-only recovery when a payload is invalid.
   4. Existing unit and acceptance tests cover structural rejection, subblock-stream-to-sealed payload equality, and PostExec derivation through singular and span batches.
+- **Open conformance issue:** The specification rejects empty entry lists and requires strictly increasing transaction indices, while the current verifier accepts an empty payload and accepts out-of-order unique entries through `BTreeMap` normalization. Zero refunds are rejected by implementation but lack a direct Kona negative test. Decide the normative behavior, then align the specification, executor, Kona tests, and premium tamper acceptance.
 - **Possible Mitigations:**
   1. Add deposits-only replacement metrics and cross-client malformed-payload recovery coverage.
 - **Existing Detection:** Execution-engine `INVALID` responses and differential-test failures.
@@ -71,7 +72,7 @@ The normative specifications are the source of truth:
 - **Risk Assessment:** High impact, low likelihood. PostExec affects consensus-visible gas accounting, receipts, balances, and state roots. The two paths share core execution code, reducing the likelihood, but their parsing, configuration, and integration paths can still diverge.
 - **Existing Mitigations:**
   1. Entries may target only standard Ethereum transactions. Execution enforces `refund <= evmGasUsed`, rejects settlement underflow, and consumes every entry exactly once.
-  2. Existing tests cover producer/verifier round trips, settlement, and structural validity.
+  2. Kona's `StatelessL2Builder` has a successful non-zero settlement test, and the native single-chain-super proof test derives a real non-empty SDM block. Shared executor tests pin settlement arithmetic, value conservation, exact gas adjustment, producer/verifier round trips, and structural validity.
 - **Possible Mitigations:**
   1. Add op-reth and kona-executor parity coverage for a block containing an SDM refund.
   2. Add differential coverage across native and fault-proof execution for valid and malformed PostExec payloads.
@@ -126,21 +127,21 @@ The normative specifications are the source of truth:
 
   or, equivalently for a payload that records the amount actually credited, require `R <= G_evm - F`. The distinction is reachable: a calldata-heavy transaction can be floor-bound while touching an account or slot warmed by an earlier transaction, and the production block-warming policy does not currently inspect or clip against the calldata floor.
 
-  The current public executor mostly follows the first interpretation. Its explicit `canonical_gas_used`, receipt cumulative gas, block `gasUsed`, settlement, and builder-facing committed-gas output subtract the full SDM refund. However, the underlying EVM `ResultGas` retains its EIP-7623 floor, so its generic `tx_gas_used()` accessor remains clamped at `F`. A floor-bound refunded transaction can therefore have two different post-execution gas values inside the same process. This is not currently used to validate the block, but it is a fragile interface for tracing, builder policy, metrics, and future execution consumers.
-- **Risk Assessment:** High impact, low likelihood for consensus divergence; medium impact for economics and compatibility if all clients make the same choice. A producer, verifier, or fault-proof implementation that clamps at `F` will disagree with one that subtracts the full refund, changing receipts, header `gasUsed`, fee settlement, and the state root. If every client follows the current full-refund behavior, there is no chain split or value-conservation failure, but the sequencer can subsidize gas below Ethereum's calldata floor and lower the gas signal used for base-fee adjustment. This may be intended for an out-of-EVM sequencer rebate, but it is not equivalent to implementing block-level warming directly in the EVM gas schedule, where EIP-7623's final `max` would continue to bind.
+  The Lagoon specification resolves this ordering in favor of the first interpretation: `evmGasUsed` already includes ordinary EVM refunds and the calldata floor, SDM applies afterwards, and clients MUST NOT re-clamp after SDM. The current implementation branches discount both `ResultGas.total_gas_spent` and its stored floor so generic and explicit post-execution gas views remain consistent.
+- **Risk Assessment:** High impact, low likelihood for consensus divergence; medium impact for economics and compatibility if clients implement the specified ordering differently. A producer, verifier, or fault-proof implementation that clamps at `F` will disagree with one that subtracts the full refund, changing receipts, header `gasUsed`, fee settlement, and the state root. If every client follows the specified full-refund behavior, there is no chain split or value-conservation failure, but the sequencer can subsidize gas below Ethereum's calldata floor and lower the gas signal used for base-fee adjustment. This is an out-of-EVM sequencer rebate and is not equivalent to implementing block-level warming directly in the EVM gas schedule, where EIP-7623's final `max` would continue to bind.
 - **Existing Mitigations:**
-  1. Block admission and validation use pre-SDM `G_evm`, which already includes the EIP-7623 floor. Consequently, an SDM refund cannot use this ambiguity to fit extra calldata or EVM work under the block gas limit.
-  2. The current producer and verifier share the explicit `canonical_gas_used` accounting path, reducing the chance that those two roles accidentally choose different orderings.
+  1. Block admission and validation use pre-SDM `G_evm`, which already includes the EIP-7623 floor. Consequently, an SDM refund cannot use this ordering to fit extra calldata or EVM work under the block gas limit.
+  2. The Lagoon specification states that clients MUST NOT re-clamp canonical gas after SDM.
   3. Settlement debits exactly match the sender credit for the applied `R`; allowing gas below `F` does not by itself mint value.
-  4. Production is operator-gated and can be disabled while the behavior is resolved.
+  4. The current implementation branches test refunds above, exactly at, and below the floor, including a native EVM refund, receipt cumulative gas, and block gas assertions.
+  5. Production is operator-gated and can be disabled while implementation changes are reviewed and deployed.
 - **Possible Mitigations:**
-  1. Before production activation, make the ordering normative in the SDM specification. State whether the EIP-7623 floor constrains only transaction validity and pre-refund block admission, or also constrains canonical gas and the amount that SDM may credit.
-  2. If the floor remains binding, encode only the effective, clipped refund and enforce `R <= G_evm - F` in producers and verifiers. If SDM may cross the floor, make every post-execution gas view report `G_evm - R` consistently rather than retaining a conflicting generic EVM floor-clamped value.
-  3. Add a floor-bound block-warming vector to the public executor, receipt/block validation, fault-proof program, standard and subblock premium producers, replay tooling, and RPC tests. Cover values below, exactly at, and above the floor, including a transaction with a native EVM refund as well as an SDM refund.
-  4. Document that gas estimation must still reserve the EIP-7623 floor even if the eventual SDM charge may be lower; an SDM rebate does not make a transaction with `gasLimit < F` valid.
-- **Existing Detection:** A disagreement is visible as a receipt-root, state-root, or block-hash mismatch. The current implementation comment records the open question, but there is no dedicated floor-bound SDM test.
-- **Possible Detection:** Assert equality between receipt-derived gas, block accumulation, settlement gas, generic execution-result gas, replay output, and builder-policy inputs for the floor-bound vector. Alert or report when canonical gas is below the transaction's EIP-7623 floor so the chosen behavior is observable in deployment.
-- **Recovery Path(s):** Before activation, settle the specification and patch all implementations. After activation, an operator can stop producing new refunds while clients are patched. Already accepted blocks must be interpreted under the activated rule; changing the ordering retroactively would require a coordinated consensus upgrade.
+  1. Merge and release the implementation changes that make every post-execution gas view report `G_evm - R` consistently.
+  2. Extend the floor-bound block-warming vectors across the public executor, receipt/block validation, fault-proof program, standard and subblock premium producers, replay tooling, and RPC tests.
+  3. Document that gas estimation must still reserve the EIP-7623 floor even if the eventual SDM charge may be lower; an SDM rebate does not make a transaction with `gasLimit < F` valid.
+- **Existing Detection:** A disagreement is visible as a receipt-root, state-root, or block-hash mismatch. Current implementation tests cover values above, exactly at, and below the floor and include a native EVM refund.
+- **Possible Detection:** Assert equality between receipt-derived gas, block accumulation, settlement gas, generic execution-result gas, replay output, and builder-policy inputs for the floor-bound vector. Alert or report when canonical gas is below the transaction's EIP-7623 floor so the specified behavior is observable in deployment.
+- **Recovery Path(s):** Before activation, merge and release aligned specification and implementation changes. After activation, an operator can stop producing new refunds while clients are patched. Already accepted blocks must be interpreted under the activated rule; changing the ordering retroactively would require a coordinated consensus upgrade.
 
 ### FM3: Refunds bypass block resource limits
 
@@ -159,16 +160,19 @@ The normative specifications are the source of truth:
 
 ### FM4: Fault-proof programs cannot prove an SDM block
 
-- **Description:** An execution client may validate an SDM block while the deployed fault-proof program fails to reproduce it. Causes include different transaction decoding, settlement behavior, configuration, or behavior that works in native execution but fails inside the production FPVM. The deployed proof program and prestate must support Lagoon and SDM.
-- **Risk Assessment:** High impact, medium likelihood until production-FPVM coverage exists. An unprovable output stalls permissionless withdrawals and may require replacing the fault-proof program under governance.
+- **Description:** An execution client may validate an SDM block while the released fault-proof program fails to reproduce it because of stale code, configuration, dependency-set selection, or an incorrect absolute prestate. SDM activates with Lagoon, whose super-proof and dependency-set requirements must be satisfied by the target chain.
+- **Risk Assessment:** High impact, low likelihood. An unprovable output stalls permissionless withdrawals and may require replacing the fault-proof program under governance. The released absolute prestate remains a go-live gate.
 - **Existing Mitigations:**
-  1. Fault-proof execution uses the same PostExec parser and refund application logic as the execution client.
-  2. Native proof tests exercise non-empty SDM blocks.
+  1. Kona fault-proof execution uses the same PostExec parser and refund-application logic as native execution.
+  2. Native Kona proof tests derive real non-empty SDM blocks, and `StatelessL2Builder` executes a successful synthetic non-zero refund payload.
+  3. Shared executor tests pin exact-once gas adjustment, settlement arithmetic, value conservation, and producer/verifier agreement.
+  4. Generic Cannon/Kona tests cover the MIPS ELF, preimage oracle, VM, and dispute-game integration independently of SDM feature semantics.
+- **Testing boundary:** A feature-specific Cannon test is not required merely because SDM is a new feature: Cannon executes the same Kona program and is not an independent SDM implementation. Add such a test only if an SDM change introduces target-specific code or assembly, new preimage/syscall behavior, new precompiles, or a materially different VM resource boundary.
 - **Possible Mitigations:**
-  1. Prove a non-empty SDM block in the production FPVM rather than only running the program natively.
-  2. Add a post-Isthmus, Lagoon-active fixture that compares execution-client and proof-program block hash and state root.
-- **Existing Detection:** Proof-runner failures, challenger disagreement, and output-root disagreement in native acceptance tests.
-- **Possible Detection:** A production-FPVM regression test that detects native-versus-FPVM trace divergence.
+  1. Release the tested Lagoon-capable interop absolute prestate through the registry and governance process.
+  2. Document and preflight the compatible proof program and dependency-set requirements for every Lagoon chain.
+- **Existing Detection:** Generic proof-runner failures, challenger disagreement, and output-root disagreement in native acceptance tests.
+- **Possible Detection:** Alert when production challengers use an absolute prestate other than the approved Lagoon-capable release.
 - **Recovery Path(s):** Deploy a corrected proof program and publish a new absolute prestate through the approved governance and registry process. Use the established fault-proof recovery process while the corrected program is prepared.
 
 ### FM5a: Lagoon activation is inconsistent
@@ -228,13 +232,14 @@ The following are candidate follow-ups for Security and engineering review. They
 | ID | Candidate Follow-up | Failure Modes | Owner | Status |
 | --- | --- | --- | --- | --- |
 | A1 | Decide whether SDM subblock-stream behavior needs a normative specification. | FM1a | _TBD_ | Proposed |
-| A2 | Agree on required proof coverage for an SDM block: client/program parity, FPVM execution, or an end-to-end dispute game. | FM1b, FM4 | _TBD_ | Proposed |
-| A3 | Before production activation, choose and specify the EIP-7623/SDM ordering, make all gas views consistent, and add floor-bound cross-stack vectors. | FM1b, FM2a, FM2c | _TBD_ | Proposed |
-| A4 | Complete an external audit of the public mechanism and production refund policy/builder. | FM1a–FM4 | _TBD_ | Proposed |
-| A5 | Add deposits-only replacement metrics and an acceptance test for malformed PostExec recovery across supported consensus clients. | FM1a | _TBD_ | Proposed |
-| A6 | Add refund anomaly alerts. | FM2a, FM3 | _TBD_ | Proposed |
-| A7 | Decide and document the PostExec receipt's auxiliary L1 fee fields. | FM6 | _TBD_ | Proposed |
-| A8 | Add an operator runbook for opt-in health checks, restarts, and admin-RPC exposure. | FM5b | _TBD_ | Proposed |
+| A2 | Keep generic Cannon/Kona release and dispute-game coverage healthy; add feature-specific VM coverage only for target-sensitive changes. | FM4 | Fault proofs | Existing generic control — not SDM-specific |
+| A3 | Execute a successful non-zero PostExec payload through Kona's stateless executor. | FM1b, FM4 | Fault proofs + SDM | Implemented on `nonsense/sdm-fault-proof-mips-coverage`; merge/CI status must be tracked separately |
+| A4 | Resolve and specify how SDM canonical gas interacts with the EIP-7623 transaction gas floor; add below/at/crossing-floor vectors. | FM1b, FM2a, FM2c | SDM + execution | **Implemented on current branches; merge/review pending** |
+| A5 | Complete an external audit of the public mechanism and production refund policy/builder. | FM1a–FM4 | _TBD_ | Proposed |
+| A6 | Add deposits-only replacement metrics and an acceptance test for malformed PostExec recovery across supported consensus clients. | FM1a | _TBD_ | Proposed |
+| A7 | Add refund anomaly alerts. | FM2a, FM3 | _TBD_ | Proposed |
+| A8 | Decide and document the PostExec receipt's auxiliary L1 fee fields. | FM6 | _TBD_ | Proposed |
+| A9 | Add an operator runbook for opt-in health checks, restarts, and admin-RPC exposure. | FM5b | _TBD_ | Proposed |
 
 - [ ] Resolve all review comments and incorporate accepted decisions into this document (Assignee: document author).
 
@@ -251,7 +256,7 @@ The audit should cover:
 - transaction rollback and policy snapshot behavior;
 - producer, subblock-stream, and sealed-block consistency;
 - production refund-policy correctness against the EIP-2929 metered-access rules; and
-- execution-client versus fault-proof-program parity, including the production FPVM.
+- execution-client versus native Kona proof-program parity, plus confirmation that SDM introduces no target-specific FPVM boundary beyond generic Cannon/Kona coverage.
 
 No new L1 or L2 contracts are introduced. Re-audit triggers include a new payload schema, a new refund policy, configurable policy composition, changes to settlement, changes to the pre-refund resource limit, or a new independent implementation of PostExec verification.
 
