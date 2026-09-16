@@ -4,14 +4,15 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
 
-- [Upgrade Info](#upgrade-info)
-- [Changelog Links](#changelog-links)
-- [Benefits to the OP Stack](#benefits-to-the-op-stack)
-- [Notable Features](#notable-features)
-- [Notable Bug Fixes](#notable-bug-fixes)
-- [Additional Notes](#additional-notes)
-  - [Risks and alternatives](#risks-and-alternatives)
-  - [Rollout and rollback](#rollout-and-rollback)
+- [Foundry Version Upgrade Proposal](#foundry-version-upgrade-proposal)
+  - [Upgrade Info](#upgrade-info)
+  - [Changelog Links](#changelog-links)
+  - [Benefits to the OP Stack](#benefits-to-the-op-stack)
+  - [Notable Features](#notable-features)
+  - [Notable Bug Fixes](#notable-bug-fixes)
+  - [Additional Notes](#additional-notes)
+    - [Risks and alternatives](#risks-and-alternatives)
+    - [Rollout and rollback](#rollout-and-rollback)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -27,18 +28,6 @@
 Propose **Foundry v1.8.3 for Forge, Cast, Anvil, and Chisel in both optimism and superchain-ops**.
 
 v1.8.3 was released Tuesday, September 15, 2026. The [release notes](https://github.com/foundry-rs/foundry/releases/tag/v1.8.3) explain that v1.8.2 was left unpublished because of RUSTSEC-2026-0285; v1.8.3 ships patched binaries.
-
-Pins verified on September 11, 2026, from local checkouts and read-only GitHub access:
-
-| Surface                                                                                                                                                                                                                                                                               | Current                                          | Proposed                      |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------- |
-| [optimism Forge/Cast/Anvil](https://github.com/ethereum-optimism/optimism/blob/f01cf91d8c1b372b98d7bf4b556c65846d7131a0/mise.toml)                                                                                                                                                    | v1.2.3                                           | v1.8.3                        |
-| [op-deployer Forge](https://github.com/ethereum-optimism/optimism/blob/f01cf91d8c1b372b98d7bf4b556c65846d7131a0/op-deployer/pkg/deployer/forge/version.json)                                                                                                                          | v1.2.3                                           | v1.8.3                        |
-| [superchain-ops Forge/Cast/Anvil](https://github.com/ethereum-optimism/superchain-ops/blob/b960159ea70a9479d579532efb3776dccf73cdc1/mise.toml)                                                                                                                                        | v1.1.0                                           | v1.8.3                        |
-| Chisel in both repos                                                                                                                                                                                                                                                                  | No explicit pin in the inspected mise.toml files | Add v1.8.3 pin and tool alias |
-| forge-std: [optimism](https://github.com/ethereum-optimism/optimism/tree/f01cf91d8c1b372b98d7bf4b556c65846d7131a0/packages/contracts-bedrock/lib/forge-std) / [superchain-ops](https://github.com/ethereum-optimism/superchain-ops/tree/b960159ea70a9479d579532efb3776dccf73cdc1/lib) | `6853b9ec` / `3b20d60d`                          | `88c8a288` in both            |
-
-Source links pin the inspected repository revisions. The Glamsterdam branch at `34a70ad9093ad7e9029cb0b855f521582e422671` uses tested Forge pin `nightly-4306ec60f947ac20cf1c069366a1ff870b79fe82` with the proposed forge-std revision. This is preliminary evidence; validation must be repeated on released v1.8.3. Builds, tests, and simulations were not run while drafting.
 
 ## Changelog Links
 
@@ -74,7 +63,9 @@ The `superchain-ops` repo also imports monorepo contracts and uses Forge to simu
 
 ### Risks and alternatives
 
-The main risk is adopting a new release without the normal observation period. Given the imminent need for Amsterdam EVM testing and the required fixes in v1.8.3, this proposal requests an exception to the [Foundry policy](https://github.com/ethereum-optimism/optimism/blob/f01cf91d8c1b372b98d7bf4b556c65846d7131a0/packages/contracts-bedrock/book/src/policies/foundry-upgrades.md)'s three-month waiting period. Adoption requires an explicit decision on that exception and unanimous approval from at least two Security team members. Waiting the full period would delay adoption.
+The main risk is adopting a new release without the normal observation period. Given the imminent need for Amsterdam EVM testing and the required fixes in v1.8.3, this proposal requests an exception to the [Foundry policy](https://github.com/ethereum-optimism/optimism/blob/f01cf91d8c1b372b98d7bf4b556c65846d7131a0/packages/contracts-bedrock/book/src/policies/foundry-upgrades.md)'s three-month waiting period.
+
+In order to mitigate this risk, an AI driven review focused on specific threats relevant to our use is recommended.
 
 ### Rollout and rollback
 
