@@ -65,6 +65,8 @@ The `superchain-ops` repo also imports monorepo contracts and uses Forge to simu
 
 The main risk is adopting a new release without the normal observation period. Given the imminent need for Amsterdam EVM testing and the required fixes in v1.8.3, this proposal requests an exception to the [Foundry policy](https://github.com/ethereum-optimism/optimism/blob/f01cf91d8c1b372b98d7bf4b556c65846d7131a0/packages/contracts-bedrock/book/src/policies/foundry-upgrades.md)'s three-month waiting period.
 
+The most recent version that is more than 3 months old is [v1.7.1](https://github.com/foundry-rs/foundry/releases/tag/v1.7.1). However it does not contain the [Amsterdam fork](https://github.com/foundry-rs/foundry/pull/14683), which was added in [v1.8.0](https://github.com/foundry-rs/foundry/releases/tag/v1.8.0). It also lacks the fixes listed above which were not included until 1.8.3, which are required to support some of the tests in our monorepo.
+
 In order to mitigate this risk, an AI driven review focused on specific threats relevant to our use is recommended.
 
 ### Rollout and rollback
