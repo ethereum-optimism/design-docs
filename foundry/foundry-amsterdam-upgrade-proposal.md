@@ -25,7 +25,7 @@
 
 ## Upgrade Info
 
-Propose **Foundry v1.8.3 for Forge, Cast, Anvil, and Chisel in both optimism and superchain-ops**.
+Propose **Foundry v1.8.3 for Forge, Cast and Anvil in both optimism and superchain-ops**.
 
 v1.8.3 was released Tuesday, September 15, 2026. The [release notes](https://github.com/foundry-rs/foundry/releases/tag/v1.8.3) explain that v1.8.2 was left unpublished because of RUSTSEC-2026-0285; v1.8.3 ships patched binaries.
 
@@ -71,7 +71,7 @@ In order to mitigate this risk, an AI driven review focused on specific threats 
 
 ### Rollout and rollback
 
-After approval and passing compatibility checks, merge PRs updating Forge, Cast, Anvil, and Chisel to v1.8.3 in both repos, including new Chisel pins and op-deployer's Forge version and checksums. These PRs will introduce the new binaries as well as update formatting and
+After approval and passing compatibility checks, merge PRs updating Forge, Cast and Anvil to v1.8.3 in both repos, including op-deployer's Forge version and checksums. These PRs will introduce the new binaries as well as update formatting and
 any other test changes required to support updated Foundry behavior. At this point rollback should be fairly straightforward with a reverting PR, but will become more difficult over time.
 
 A follow-up PR will then be needed to run the L1 test suite against the Amsterdam EVM. This PR will be larger and make more significant changes that will be more likely to create conflicts in an attempted future revert.
