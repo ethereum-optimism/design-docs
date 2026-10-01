@@ -87,17 +87,36 @@ In the production implementation of SDM `gas used` will include the refund and w
 
 #### Refund accumulation for the block-level warming policy
 
-For the current PoC policy, during block execution the executor maintains persistent warming state across transactions in the block. When a later user transaction accesses state that was already warmed earlier in the block, a rebate is accumulated.
+During block execution the executor maintains persistent warming state across transactions in the block. A rebate is owed to a later transaction **only when it actually pays the cold access cost** for an account or storage slot that an **earlier** transaction in the same block already warmed — the rebate refunds a cold→warm surcharge the transaction genuinely paid but that, block-locally, was unnecessary because the client had already loaded that state.
 
-The current PoC uses rebate values that come directly from [EIP-2929](https://eips.ethereum.org/EIPS/eip-2929):
+The rebate values come directly from [EIP-2929](https://eips.ethereum.org/EIPS/eip-2929) and match the cold → warm access deltas:
 
-- **warm account:** 2500 gas refund
-- **warm storage read:** 2000 gas refund
-- **warm storage write:** 2100 gas refund
+- **warm account:** 2500 gas refund (cold 2600 − warm 100)
+- **warm storage read (SLOAD):** 2000 gas refund (cold 2100 − warm 100)
+- **warm storage write (SSTORE):** 2100 gas refund (cold 2200 − warm 100)
 
-Deposits may warm state for later transactions, but do not themselves receive rebates.
+##### What is never rebated: intrinsically-warm and non-charged accesses
 
-These values match the cold -> warm access deltas used by tx-level warming.
+Warming an account/slot *for later transactions* and *claiming a rebate* for it are separate concerns. An address/slot is recorded as warmed by the first transaction that touches it (so a later transaction that genuinely pays a cold access for it can be rebated), but a touch the EVM did **not** charge the cold price for claims nothing. The following are therefore **never** rebated, even when an earlier transaction in the block warmed the same address or slot:
+
+- **A transaction's own EIP-2929 intrinsically-warm set.** EIP-2929 (with [EIP-2930](https://eips.ethereum.org/EIPS/eip-2930), [EIP-3651](https://eips.ethereum.org/EIPS/eip-3651), and [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702)) pre-seeds each transaction's accessed-address / accessed-slot set, so the transaction is billed the **warm** cost (100) — never the cold cost — on its first access to any of:
+  - its own **`tx.sender`**,
+  - its own **`tx.to`** (or, for a contract-creation transaction, the **created-contract address**),
+  - the **precompiles**,
+  - the **block coinbase** (beneficiary),
+  - every **access-list** address and storage slot,
+  - every **EIP-7702 authority**.
+
+  No cold surcharge is ever paid for these, so no rebate is owed for a transaction touching its *own* intrinsically-warm entries — regardless of what earlier transactions did.
+- **Protocol-level state writes the transaction is not charged a cold access for.** In particular the per-transaction **fee-vault settlement writes** — crediting the L1-fee, base-fee, and operator-fee recipients — warm those vault accounts but are not user opcode accesses and incur no EIP-2929 cold-access charge. They warm the vaults for later transactions but never themselves earn a rebate.
+- **Deposit transactions** warm state for later transactions but never receive rebates.
+
+###### Examples
+
+- **Same sender twice.** Alice sends two transactions in one block. The second is **not** rebated for touching its own `tx.sender` (Alice): EIP-2929 pre-warmed Alice for that transaction, so it paid 100, not 2600 — no surcharge, no rebate.
+- **Two transactions to the same contract.** Both call router `R`. Neither is rebated for `R` *as its own `tx.to`* (intrinsically warm). But if `R`'s code reads a storage slot that the first call already warmed, the second transaction **is** rebated 2000 for that SLOAD (it genuinely paid the cold 2100); likewise it is rebated 2500 for a *cold* `BALANCE`/`CALL` to some third account `D` that the first transaction warmed.
+- **Contract creation.** A `CREATE` transaction whose created-contract address was warmed by an earlier transaction is **not** rebated for that address — it is the transaction's intrinsic creation target (billed warm).
+- **Fee vaults.** A plain transfer warms the fee vaults via settlement but is **not** rebated for them. A transaction whose code does `BALANCE(baseFeeVault)` after an earlier transaction warmed the vault **is** rebated 2500 — it paid the cold access.
 
 #### Propagating calculated refunds to block assembly
 
