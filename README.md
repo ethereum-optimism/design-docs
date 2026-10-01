@@ -61,3 +61,4 @@ time between opening the PR and it getting onto the Design Review agenda:
 - Short document (e.g., 1-pager): share a minimum of 2 working days prior
 - Medium-length document (2-5 pages): share a minimum of 3-5 working days prior
 - Long document (6+ pages): share at least 1 week prior
+
