@@ -79,6 +79,28 @@ It will split the fees between 2 recipients: `revenueShareRecipient` and `remain
 
 To calculate the share to send to the `revenueShareRecpient`, it will get the `grossRevenue` (the sum of all vaults revenue) and the `netRevenue` (fees collected only from `SequencerFeeVault`, `OperatorFeeVault`, and `BaseFeeVault`). Then, the amount to transfer to it will be the higher value between 2.5% of the `grossRevenue` and 15% of the `netRevenue` — setting the remaining balance as the amount to transfer to `remainderRecipient`.
 
+## Upgrade Path
+
+Given the optional nature of this system, it's important that chain operators have a clear, easy, and deterministic way to either upgrade to use the `FeeSplitter` from the very beginning or to opt not to use it with the option to easily integrate to the system at a later point.
+
+We make use of the Superchain-Ops tool, which allows defining tasks that are easily repeated and verified. Two new task templates are included:
+
+1. `RevenueShareUpgradePath` template deploys new `FeeVault` implementations and the `FeeSplitter` contract on L2,
+   using OptimismPortal's `depositTransaction` function. In both opt-in and opt-out scenarios,
+   the new fee vault implementations are deployed and the `FeeSplitter` is initialized.
+   When operators opt-out, the `FeeSplitter` is initialized with
+   a zero address for the `SharesCalculator`, effectively disabling the fee
+   splitting functionality while setting up the infrastructure for future usage. On the other hand, when operators opt-in,
+   both `L1Withdrawer` and `SuperchainRevSharesCalculator` are deployed on L2 for the `FeeSplitter` to use.
+   The `L1Withdrawer` will have the `FeesDepositor` address set, and the deployed calculator will be set as the calculator implementation on the `FeeSplitter`.
+
+2. `LateOptInRevenueShare` template allows chain operators to start using the fee splitting mechanism in case they initially opted out of it.
+   Operators can choose to use their own already deployed `SharesCalculator` or use the default implementation provided,
+   whose deployment will be handled by the template. The process consists of properly configuring the vaults to work with the `FeeSplitter`
+   and updating the `FeeSplitter` with the new calculator.
+
+With the introduction of these two templates, operators can deploy and configure the contracts in a way that is less prone to errors than executing one transaction at a time for contract deployments and configuration, and has the advantage of not requiring a Network Upgrade Transaction.
+
 ### Resource Usage
 
 - Compared to current “vault → L1 withdrawal” flows, this adds an extra step at disbursement time with the `FeeSplitter` as intermediate, which incurs higher gas consumption.
