@@ -18,6 +18,7 @@ Interop executing messages can't be forced in through deposits, so a destination
 - **Expire on the source.** `L2ToL2CrossDomainMessenger` records each message's send timestamp and marks a message expired when L1 reports it unrelayed more than `expiryPeriod()` after the send. From then on the protocol rejects any relay of it, so expiry and delivery exclude each other. The period lives in proxy storage, set by `initialize(uint256)` (rejects 0 and anything above 365 days); production uses 8 days (`Constants.L2_TO_L2_MESSAGE_EXPIRY_PERIOD`): the 7-day protocol window plus a day of margin.
 - **Refund.** `SuperchainETHBridge.refundETH(destination, nonce, from, to, amount)` rebuilds the send's message hash and refunds the sender once, by forced send, only if the messenger marked the message expired. `SuperchainETHBridge` goes to 2.0.0.
 - **Window cap.** op-core, kona and op-interop-filter reject a message expiry window override above 7 days (#23276).
+- **L2 pause of the ETH bridge.** `ETHLiquidity` follows the chain's L1 pause (optimism#23348). Anyone can call `L1CrossDomainMessenger.syncETHLiquidityPause()`, which relays `ETHLiquidity.setPaused(paused(), block.timestamp)` to L2. While it is paused, `burn` and `mint` revert, so `SuperchainETHBridge` sends, relays and refunds all revert; relays and refunds stay retryable after the unpause. Updates with an older L1 timestamp are ignored. Generic interop messaging is not paused.
 - **Fresh install.** On OP Mainnet, Ink and Unichain (mainnet and Sepolia), none of the interop predeploys (`0x…22`–`0x…25`, `0x…30`) has an implementation before Lagoon (implementation slots read 2026-10-12), so there is no earlier messenger or bridge state for the new storage to meet.
 
 **Out of scope:** refunds for anything other than ETH. `SuperchainTokenBridge` / `SuperchainERC20` sends that expire are still stranded; other applications can read `expiredMessages(messageHash)` and build their own undo.
@@ -74,9 +75,10 @@ Critical severity / Low likelihood
 #### Recovery Path
 
 1. op-interop-mon alerts.
-2. Trigger the guardian pause on L1 (resolved through each chain's `ETHLockbox`, optimism#22760). It stops `relayUndeliveredMessage`, so no new expiries (and no new refunds), and it stops withdrawals and lockbox unlocks. It does not pause anything on L2: `SuperchainETHBridge`, the messenger and `CrossL2Inbox` keep working. Expiry deposits already queued on L1 still land. The op-interop-filter failsafe in the next step runs on each chain's own sequencer, so on chains OP Labs doesn't operate it needs that operator.
-3. Trigger the op-interop-filter failsafe (manual override), which makes sequencers reject all interop executing transactions, so no new relays.
-4. Fix through an `L2ContractsManager` upgrade or a hard fork. Complex: needs governance.
+2. Pause the chain on L1 with the existing deputy guardian flow (resolved through each chain's `ETHLockbox`, optimism#22760). It stops `relayUndeliveredMessage`, so no new expiries, and it stops withdrawals and lockbox unlocks. Expiry deposits already queued on L1 still land.
+3. Run `L1CrossDomainMessenger.syncETHLiquidityPause()` for each interop chain (permissionless). About 1-3 minutes later `ETHLiquidity` is paused on L2, so bridge sends, mints and refunds stop.
+4. Trigger the op-interop-filter failsafe (manual override), which makes sequencers reject all interop executing transactions, so no new relays of any message. It runs on each chain's own sequencer, so on chains OP Labs doesn't operate it needs that operator.
+5. Fix through an `L2ContractsManager` upgrade or a hard fork. Complex: needs governance. Unpausing on L1 and syncing again restores the bridge.
 
 #### Action Items
 
@@ -84,7 +86,8 @@ Critical severity / Low likelihood
 - [ ] Every node, op-interop-filter and the Lagoon absolute prestate enforce the 7-day window cap (#23276) before any destination's exporter goes live.
 - [ ] Never ship a resend-capable messenger implementation to a chain with expiry; the Lagoon NUT bundle is re-snapshotted from develop with messenger, bridge and exporter at their expiry versions (#23287).
 - [ ] Add the pause-plus-failsafe response to the interop runbook.
-- [ ] Evaluate a cluster-wide L2 pause mirrored from the L1 guardian pause, so OP Labs can stop bridge sends, mints, refunds and relays on every interop chain without each operator's failsafe (under evaluation for U22).
+- [ ] Land the ETHLiquidity pause sync (optimism#23348) in U22 and add the sync step to the Superchain pause runbook.
+- [ ] Run the gate `interop.eth-liquidity-pause` on the interop devnets.
 
 ### FM2: A still-deliverable message is marked expired
 
@@ -144,6 +147,35 @@ Medium severity / Low likelihood
 #### Action Items
 
 - [ ] None beyond the acceptance tests.
+
+### FM4: The ETHLiquidity pause sync is wrong
+
+#### Description
+
+The L2 copy of the pause doesn't match the L1 pause. If it stays paused when L1 isn't, the ETH bridge stops: sends revert, relays and refunds wait. If it fails to pause when L1 is paused, the bridge keeps running, which is today's behaviour without the sync. If anyone other than this chain's relayed L1 messenger could set it, an attacker could pause the bridge at will, or unpause it during an incident. If ordering were wrong, an older failed sync replayed later could undo a newer pause.
+
+#### Risk Assessment
+
+Medium severity / Low likelihood. Liveness only: a wrong pause state can't mint or refund ETH.
+
+#### Mitigations
+
+- `setPaused` accepts only a relay from this chain's `L1CrossDomainMessenger`, checked the same way as `expireMessage`.
+- Each update carries the L1 timestamp; older updates are ignored, so replaying a failed sync is harmless.
+- The sync only copies the L1 state, so calling it can't choose the outcome.
+- Tests cover auth, stale and replayed updates, and the full L1-pause-to-L2 path (optimism#23348, including the acceptance test `TestL1PauseSyncedToETHLiquidity`).
+
+#### Detection
+
+- `ETHLiquidity.paused()` on each chain compared with the chain's L1 `paused()` (the `eth-liquidity-pause status` command).
+
+#### Recovery Path
+
+- Run the sync again. If the sync itself is broken, fix through an `L2ContractsManager` upgrade or hard fork; meanwhile relays and refunds stay retryable, and sends that expire are refunded after the fix.
+
+#### Action Items
+
+- [ ] Alert when `ETHLiquidity.paused()` differs from the chain's L1 pause for longer than a few minutes.
 
 ## Audit Requirements
 
