@@ -31,8 +31,8 @@ _Italics are used to indicate things that need to be replaced._
 > - Maintain the “Status” property accordingly. An FMA document can have the following statuses:
 >   - **Draft 📝:** Doc is created but not yet ready for review.
 >   - **In Review 🔎:** Security is reviewing, and Engineering is iterating on the design. A checklist of action items will be created during this phase.
->   - **Implementing Actions 🛫:** Security has signed off on the content of the document, including the resulting action items. Engineering is responsible for implementing the action items, and updating the checklist.
->   - **Final 👍:** Security will transition the status of the document to Final once all action items are completed.
+>   - **Implementing Actions 🛫:** Security has signed off on the content of the document, including the resulting action items. Engineering is responsible for implementing the action items, tracking each one with a recorded decision on whether it blocks launch, and updating the checklist.
+>   - **Final 👍:** Security will transition the status of the document to Final once every action item is tracked (for example in an issue or project board) with a recorded decision on whether it blocks launch. Action items do not need to be completed first; the tracker, not the FMA, gates the launch on the blocking ones.
 
 > [!TIP]
 > Guidelines for writing a good analysis, and what the reviewer will look for:
@@ -86,11 +86,11 @@ Incorporate any applicable failure modes with FMA-specific mitigations and detec
 
 ## Action Items
 
-Below is what needs to be done before launch to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from:
+Below is what needs to be done to reduce the chances of the above failure modes occurring, and to ensure they can be detected and recovered from. Link each item to where it is tracked and state whether it blocks launch:
 
 - [ ] Resolve all comments on this document and incorporate them into the document itself (Assignee: document author)
-- [ ] _Action item 2 (Assignee: tag assignee)_
-- [ ] _Action item 3 (Assignee: tag assignee)_
+- [ ] _Action item 2 (Assignee: tag assignee; Tracking: link; Blocks launch: yes/no)_
+- [ ] _Action item 3 (Assignee: tag assignee; Tracking: link; Blocks launch: yes/no)_
 
 ## Audit Requirements
 
