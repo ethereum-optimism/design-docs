@@ -45,7 +45,7 @@ This is not ideal for various reasons:
 There are three aspects to deploying L1 contracts:
 
 1. **Deploy Superchain Contracts**. Superchain contracts are shared between many OP chains, so this occurs only occasionally in production, but is needed for every OP chain deployment in devnet and testnet.
-2. **Deploy Shared Implementation Contracts**. This occurs once per [contracts release](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/VERSIONING.md) in production, but is needed for every OP chain deployment in devnet and testnet.
+2. **Deploy Shared Implementation Contracts**. This occurs once per [contracts release](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/meta/VERSIONING.md) in production, but is needed for every OP chain deployment in devnet and testnet.
 3. **Deploy OP Chain Contracts**. This occurs for every OP chain deployment in production, devnet, and testnet.
 
 For each step we define the step inputs (configuration), sub-steps that occur, and the step outputs (artifacts).
