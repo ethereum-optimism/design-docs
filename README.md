@@ -1,5 +1,8 @@
 # Design Docs
 
+> [!IMPORTANT]
+> OP Labs no longer adds new FMAs to this repo. New OP Labs FMAs go in the internal [Notion FMAs table](https://www.notion.so/oplabs/Failure-Mode-Analyses-FMAs-1fb9f65a13e542e5b48af6c850763494). Existing FMAs stay here as references.
+
 Welcome to the design docs repository. This repo is used to coordinate
 around engineering design and risk analysis.
 

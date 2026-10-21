@@ -11,6 +11,9 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
+> [!IMPORTANT]
+> OP Labs no longer adds new FMAs to this repo. New OP Labs FMAs go in the internal [Notion FMAs table](https://www.notion.so/oplabs/Failure-Mode-Analyses-FMAs-1fb9f65a13e542e5b48af6c850763494). Existing FMAs stay here as references.
+
 # Purpose
 
 The goal of this document is to ensure project teams understand the importance of a Failure Modes Analysis (FMA) and know how to complete a thorough analysis.

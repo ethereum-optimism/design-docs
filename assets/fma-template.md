@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> OP Labs no longer adds new FMAs to this repo. New OP Labs FMAs go in the internal [Notion FMAs table](https://www.notion.so/oplabs/Failure-Mode-Analyses-FMAs-1fb9f65a13e542e5b48af6c850763494). Existing FMAs stay here as references.
+
 # [Project Name]: Failure Modes and Recovery Path Analysis
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
