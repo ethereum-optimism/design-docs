@@ -47,7 +47,7 @@ Does it consume a large amount of computational resources or time? -->
 
 ## Failure Mode Analysis
 
-<!-- Link to the failure mode analysis document, created from the fma-template.md file. -->
+<!-- Link to the failure mode analysis document. OP Labs FMAs go in the internal Notion FMAs table (https://www.notion.so/oplabs/Failure-Mode-Analyses-FMAs-1fb9f65a13e542e5b48af6c850763494); others can use the fma-template.md file. -->
 
 ## Backward Compatibility
 
