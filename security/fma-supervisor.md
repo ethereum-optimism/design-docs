@@ -157,8 +157,7 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
         - Once paused, unpause should be manual to start with.
     - Optionally: Implement a matching Batcher pause to avoid publishing invalid blocks in batches where avoidable.
 
-## FM3: The Supervisor Issues a Reset to the Sequencer
-
+## FM3a: The Supervisor Issues a Reset to the Sequencer
 - Description
     - The Supervisor manages Nodes in Managed Mode, meaning they listen to the Supervisor for signals for what derivation activities to take next.
     - One such activity is to reset the node to specific heads.
@@ -175,8 +174,26 @@ And all Failure Modes are some subtype. Incorrect responses are much worse than 
     - With respect to the Node, an arbitrary amount of re-sync may be required.
     - Recovery to the network depends entirely on the impact of the node outage.
 
-## FM4a: Managed Nodes are at Different Heights
+## FM3b: The Supervisor Issues a *repeating* Reset to the Sequencer
+- Description:
+    - Similar to FM3a, suppose the Supervisor is lacking some knowledge (input data or protocol rules) which cause it to consider the Node
+    inconsistent with the Supervisor Database.
+    - Because the Supervisor Database is the default source of truth, a reset is issues to the Node, pushing it back.
+    - Because the Node is behaving correctly, the derivation behaves identically to how it had previously.
+    - The Supervisor continues to reset the Node, and the two loop indefinitely.
+- Risk Assessment
+    - High Impact, High Likelihood.
+    - If this happens to a Sequencer, the network will be effectively stalled, since no new blocks can come out.
+    - Situations like this have been discovered organically, for example the Sequencing Window Lapse will create this loop scenario,
+    because the Supervisor is unable to understand the legitimate source of the unsafe data inconsistency.
+- Mitigations
+    - These failures represent gaps in our modeling of derivation between the Supervisor and Sequencer. Additional validation exercises
+    (threat modeling, testing) should be done around edge-behaviors of the protocol.
+- Recovery
+    - When this issue occurs on a network, the `admin_rewind` RPC command may come in useful. This will allow the operator to prune the old
+    data from the Supervisor, which can allow the Node to correctly advance and inform the Supervisor.
 
+## FM4a: Managed Nodes are at Different Heights
 - Description
     - The Supervisor is managing one Managed Node per chain, and using the data reported from their derivation to calculate cross-safety.
     - While the Node for Chain A has derived to some height (L1 block 100), the Node for Chain B is still processing earlier L1 blocks (L1 block 90).
